@@ -1,0 +1,18 @@
+{
+  "name": "from-nothing",
+  "version": "0.1.0",
+  "description": "Life -> Settlement -> City -> Civilization. A 2D life-sim / settlement RPG built with Phaser 3.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "phaser": "^3.90.0"
+  },
+  "devDependencies": {
+    "vite": "^8.3.0"
+  }
+}
