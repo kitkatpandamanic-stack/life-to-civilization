@@ -17,11 +17,51 @@
 import { BALANCE } from '../config/balance.js';
 import { SKILLS } from '../data/skills.js';
 import { ITEMS } from '../data/items.js';
-import { BUSINESSES } from '../data/businesses.js';
+import { FOUNDING_BUSINESSES } from '../data/businesses.js';
 import { NPC_ROSTER, LOOK_PALETTE } from '../data/npcs.js';
 import { Rng } from './rng.js';
 
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
+
+/**
+ * Fill in anything missing from a state created by an older version of the game.
+ * Called for new games and loaded saves alike, so every system can rely on its fields.
+ */
+export function normalizeState(state) {
+  const p = state.player;
+  p.storage ??= [];
+  p.homeTier ??= 'shack';
+  for (const id of Object.keys(SKILLS)) p.skills[id] ??= { level: 0, xp: 0 };
+  for (const s of p.inventory) if (ITEMS[s.id]?.tool?.water !== undefined) s.water ??= ITEMS[s.id].tool.water;
+  state.stats.itemsCrafted ??= 0;
+  state.land ??= { owned: [] }; // plot ids the player owns
+  state.constructions ??= []; // construction sites and finished player buildings
+  state.fields ??= {}; // farm soil tiles: "tx,ty" → { tilled, crop, stage, watered, ... }
+  state.workers ??= {}; // npc id → employment contract with the player
+  state.playerBusinesses ??= {}; // business id → ledger
+  state.settlement ??= { nextNpcId: 1, migrantsArrived: 0, left: 0, lastMigrationDay: 0 };
+  state.settlement.nextBizId ??= 1;
+  state.settlement.nextBuildId ??= 1;
+  state.settlement.nameIdx ??= Math.abs(state.seed | 0) % 10; // the village's name (locale list village_names)
+  state.settlement.milestones ??= [];
+  for (const [id, b] of Object.entries(state.businesses)) {
+    const f = FOUNDING_BUSINESSES[id];
+    b.id ??= id;
+    b.type ??= f?.type;
+    b.building ??= f?.building;
+    if (b.owner === undefined) b.owner = f?.owner ?? null;
+    b.markup ??= 1;
+    b.wageLevel ??= 1;
+    b.reputation ??= 50;
+    b.maxWorkers ??= null; // null = the type's default
+    b.history ??= [];
+    b.today ??= { rev: 0, exp: 0 };
+    b.opened ??= 0;
+  }
+  state.explored ??= null; // fog-of-war bitmap (base64), created by the map system
+  state.version = SAVE_VERSION;
+  return state;
+}
 
 export function createNewState({ playerName, seed, world }) {
   const rng = new Rng(seed + 999);
@@ -80,8 +120,8 @@ function createPlayer(name, spawn) {
 
 function createBusinesses() {
   const out = {};
-  for (const [id, def] of Object.entries(BUSINESSES)) {
-    out[id] = { id, money: def.money, stock: { ...def.stock }, daysUnpaid: 0 };
+  for (const [id, def] of Object.entries(FOUNDING_BUSINESSES)) {
+    out[id] = { id, type: def.type, building: def.building, owner: def.owner, money: def.money, stock: { ...def.stock }, daysUnpaid: 0 };
   }
   return out;
 }

@@ -3,7 +3,9 @@
  */
 import { Panel } from '../Panel.js';
 import { t, itemName, fmtMoney } from '../../i18n/i18n.js';
-import { escapeHtml } from '../format.js';
+import { escapeHtml, slotName, qualityBadge } from '../format.js';
+import { Q } from '../../data/quality.js';
+import { Mod } from '../../systems/Modifiers.js';
 import { icon, bar, button } from '../widgets.js';
 import { ITEMS, ITEM_CATEGORY_ORDER } from '../../data/items.js';
 
@@ -34,8 +36,8 @@ export class InventoryPanel extends Panel {
     const grid = slots
       .map(({ s, index }) => {
         const def = ITEMS[s.id];
-        const dur = def.tool ? bar((s.dur / def.tool.durability) * 100, 'dur') : '';
-        return `<div class="slot${index === this.selected ? ' selected' : ''}" data-action="select" data-index="${index}" title="${escapeHtml(itemName(s.id))}">${icon(s.id, 36)}${def.tool ? '' : `<span class="qty">${s.qty}</span>`}${dur}</div>`;
+        const dur = def.tool ? bar((s.dur / inv.maxDurability(s)) * 100, 'dur') : '';
+        return `<div class="slot${index === this.selected ? ' selected' : ''}" data-action="select" data-index="${index}" title="${escapeHtml(slotName(s))}">${icon(s.id, 36)}${qualityBadge(s.q)}${def.tool ? '' : `<span class="qty">${s.qty}</span>`}${dur}</div>`;
       })
       .join('');
     const empty = Math.max(0, 18 - slots.length);
@@ -56,16 +58,19 @@ export class InventoryPanel extends Panel {
     const lines = [];
     lines.push(`<div class="kv"><span>${escapeHtml(t('ui.weight'))}</span><b>${def.weight} ${escapeHtml(t('ui.kg'))}</b></div>`);
     if (def.basePrice) lines.push(`<div class="kv"><span>${escapeHtml(t('ui.base_value'))}</span><b>${fmtMoney(def.basePrice)}</b></div>`);
+    if (s.q !== undefined) lines.push(`<div class="kv"><span>${escapeHtml(t('ui.quality'))}</span><b>${escapeHtml(t(`quality.${Q(s.q).id}`))}</b></div>`);
     if (def.food) {
+      const food = Mod.meal(this.sim.state.player, def.food, s.q);
       const parts = [];
-      if (def.food.hunger) parts.push(`🍞 +${def.food.hunger}`);
-      if (def.food.energy) parts.push(`⚡ +${def.food.energy}`);
-      if (def.food.health) parts.push(`❤️ +${def.food.health}`);
+      if (food.hunger) parts.push(`🍞 +${Math.round(food.hunger)}`);
+      if (food.energy) parts.push(`⚡ +${Math.round(food.energy)}`);
+      if (food.health) parts.push(`❤️ +${Math.round(food.health)}`);
       lines.push(`<div class="kv"><span>${escapeHtml(t('ui.restores'))}</span><b>${parts.join(' ')}</b></div>`);
     }
     if (def.tool) {
-      lines.push(`<div class="kv"><span>${escapeHtml(t('ui.durability'))}</span><b>${s.dur} / ${def.tool.durability}</b></div>`);
-      lines.push(`<div class="kv"><span>${escapeHtml(t('ui.efficiency'))}</span><b>×${def.tool.efficiency}</b></div>`);
+      lines.push(`<div class="kv"><span>${escapeHtml(t('ui.durability'))}</span><b>${s.dur} / ${this.sim.inventory.maxDurability(s)}</b></div>`);
+      lines.push(`<div class="kv"><span>${escapeHtml(t('ui.efficiency'))}</span><b>×${Math.round(this.sim.inventory.toolEfficiency(s) * 100) / 100}</b></div>`);
+      if (def.tool.water !== undefined) lines.push(`<div class="kv"><span>${escapeHtml(t('ui.water_level'))}</span><b>${s.water ?? 0} / ${def.tool.water}</b></div>`);
     }
     const actions = [];
     if (def.food) actions.push(button(t('ui.eat'), 'eat', { index: this.selected }, { cls: 'primary' }));
@@ -74,7 +79,7 @@ export class InventoryPanel extends Panel {
       if (s.qty > 1) actions.push(button(t('ui.drop_all'), 'drop', { index: this.selected, n: s.qty }));
     }
     return `
-      <div class="detail-head">${icon(s.id, 48)}<div><div class="detail-name">${escapeHtml(itemName(s.id))}${def.tool ? '' : ` ×${s.qty}`}</div><div class="muted">${escapeHtml(t(`item_cat.${def.category}`))}</div></div></div>
+      <div class="detail-head">${icon(s.id, 48)}<div><div class="detail-name">${escapeHtml(slotName(s))}${def.tool ? '' : ` ×${s.qty}`}</div><div class="muted">${escapeHtml(t(`item_cat.${def.category}`))}</div></div></div>
       <p class="desc">${escapeHtml(t(`item.${s.id}.desc`))}</p>
       ${lines.join('')}
       <div class="btn-row">${actions.join('')}</div>`;
@@ -86,13 +91,17 @@ export class InventoryPanel extends Panel {
     if (action === 'select') this.selected = index;
     else if (action === 'eat') {
       const s = inv.slots[index];
-      if (s) inv.eat(s.id);
+      if (s) inv.eatSlot(index);
     } else if (action === 'drop') {
       const s = inv.slots[index];
       if (!s) return;
       const n = Math.min(Number(data.n), s.qty);
       if (ITEMS[s.id].tool) inv.removeSlot(index);
-      else inv.remove(s.id, n);
+      else {
+        s.qty -= n;
+        if (s.qty <= 0) inv.slots.splice(index, 1);
+        inv.changed();
+      }
       this.sim.toast('toast.dropped', { qty: n, item: s.id }, 'info');
     }
   }

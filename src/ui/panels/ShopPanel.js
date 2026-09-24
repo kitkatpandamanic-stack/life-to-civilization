@@ -3,10 +3,11 @@
  */
 import { Panel } from '../Panel.js';
 import { t, itemName, fmtMoney, npcName } from '../../i18n/i18n.js';
-import { escapeHtml, buildingLabel } from '../format.js';
+import { escapeHtml, buildingLabel, slotName, qualityBadge } from '../format.js';
+import { bestQuality } from '../../systems/slots.js';
+import { Mod } from '../../systems/Modifiers.js';
 import { icon, button, tabs, bar, portrait } from '../widgets.js';
 import { ITEMS } from '../../data/items.js';
-import { BUSINESSES } from '../../data/businesses.js';
 
 export class ShopPanel extends Panel {
   constructor(ui, bizId, tab = 'buy') {
@@ -18,7 +19,7 @@ export class ShopPanel extends Panel {
     return 'shop';
   }
   title() {
-    return `🛒 ${escapeHtml(buildingLabel(this.sim, BUSINESSES[this.bizId].building))}`;
+    return `🛒 ${escapeHtml(buildingLabel(this.sim, this.sim.economy.biz(this.bizId)?.building))}`;
   }
 
   trend(item) {
@@ -31,7 +32,9 @@ export class ShopPanel extends Panel {
   render() {
     const sim = this.sim;
     const econ = sim.economy;
-    const def = BUSINESSES[this.bizId];
+    const def = econ.def(this.bizId);
+    // A trade fair: the merchant's wanted goods can be sold here too.
+    const fair = sim.state.events.active.find((e) => e.data?.item)?.data.item;
     const owner = econ.owner(this.bizId);
     const p = sim.state.player;
     const tabList = [['buy', t('ui.buy')], ['sell', t('ui.sell')]];
@@ -42,7 +45,7 @@ export class ShopPanel extends Panel {
         ${owner ? portrait(`npc_${sim.state.seed}_${owner.id}`, owner.look, 56) : ''}
         <div>
           <div><b>${owner ? escapeHtml(npcName(owner)) : ''}</b></div>
-          <div class="muted small">${escapeHtml(t('ui.shop_cash', { money: fmtMoney(econ.biz(this.bizId).money) }))}${disc ? ` · ${escapeHtml(t('ui.friend_discount', { pct: Math.round(disc * 100) }))}` : ''}</div>
+          <div class="muted small">${escapeHtml(t('ui.shop_cash', { money: fmtMoney(econ.biz(this.bizId).money) }))}${disc > 0 ? ` · ${escapeHtml(t('ui.friend_discount', { pct: Math.round(disc * 100) }))}` : disc < 0 ? ` · ${escapeHtml(t('ui.distrust_markup', { pct: Math.round(-disc * 100) }))}` : ''}</div>
         </div>
         <div class="shop-wallet">💰 ${fmtMoney(p.money)}<div class="muted small">${escapeHtml(t('ui.weight'))}: ${sim.inventory.weight()} / ${sim.inventory.capacity()}</div></div>
       </div>
@@ -66,15 +69,23 @@ export class ShopPanel extends Panel {
         })
         .join('');
     } else if (this.tab === 'sell') {
-      const rows = def.buys
+      const rows = [...new Set([...def.buys, ...(fair && def.kind === 'shop' ? [fair] : [])])]
         .filter((item) => sim.inventory.count(item) > 0)
         .map((item) => {
           const have = sim.inventory.count(item);
-          const price = econ.playerSellPrice(this.bizId, item);
+          // You sell your best pieces first: the price shown is for the finest you carry.
+          const q = bestQuality(sim.inventory.slots, item) ?? 1;
+          const price = econ.playerSellPrice(this.bizId, item, q);
           const block = econ.sellBlockReason(this.bizId, item);
+          // Market analyst: where would it fetch the most?
+          let tip = '';
+          if (Mod.perk(sim.state.player, 'market_info')) {
+            const best = econ.active().filter((id) => id !== this.bizId && econ.buysItem(id, item)).map((id) => [id, econ.playerSellPrice(id, item, q)]).sort((a, b) => b[1] - a[1])[0];
+            if (best && best[1] > price) tip = `<div class="muted small">📈 ${escapeHtml(t('ui.better_price_at', { building: buildingLabel(sim, econ.biz(best[0]).building), money: fmtMoney(best[1]) }))}</div>`;
+          }
           return `<div class="shop-row">
             ${icon(item, 32)}
-            <div class="shop-item"><b>${escapeHtml(itemName(item))}</b> ×${have}${block ? `<div class="warn small">${escapeHtml(t(`reason.${block}`))}</div>` : ''}</div>
+            <div class="shop-item"><b>${escapeHtml(itemName(item))}</b>${qualityBadge(q)} ×${have}${block ? `<div class="warn small">${escapeHtml(t(`reason.${block}`))}</div>` : ''}${tip}</div>
             <div class="shop-price">${fmtMoney(price)} ${this.trend(item)}</div>
             ${button(t('ui.sell_n', { n: 1 }), 'sell', { item, n: 1 }, { disabled: !!block, cls: 'primary' })}
             ${button(t('ui.sell_all'), 'sell', { item, n: have }, { disabled: !!block })}
@@ -88,11 +99,11 @@ export class ShopPanel extends Panel {
       body =
         tools
           .map(({ s, i }) => {
-            const max = ITEMS[s.id].tool.durability;
+            const max = sim.inventory.maxDurability(s);
             const cost = econ.repairCost(s);
             return `<div class="shop-row">
               ${icon(s.id, 32)}
-              <div class="shop-item"><b>${escapeHtml(itemName(s.id))}</b>${bar((s.dur / max) * 100, 'dur', `${s.dur}/${max}`)}</div>
+              <div class="shop-item"><b>${escapeHtml(slotName(s))}</b>${bar((s.dur / max) * 100, 'dur', `${s.dur}/${max}`)}</div>
               <div class="shop-price">${cost ? fmtMoney(cost) : '—'}</div>
               ${button(t('ui.repair'), 'repair', { index: i }, { disabled: !cost || p.money < cost, cls: 'primary' })}
             </div>`;
@@ -115,7 +126,7 @@ export class ShopPanel extends Panel {
       if (r.reason && r.sold < Number(data.n)) this.sim.toast(`reason.${r.reason}`, {}, 'warn');
     } else if (action === 'repair') {
       const slot = this.sim.inventory.slots[Number(data.index)];
-      if (slot && econ.repair(slot)) this.sim.toast('toast.repaired', { item: slot.id }, 'good');
+      if (slot && econ.repair(slot, this.bizId)) this.sim.toast('toast.repaired', { item: slot.id }, 'good');
     }
   }
 }

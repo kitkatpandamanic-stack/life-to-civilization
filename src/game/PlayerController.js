@@ -12,7 +12,7 @@ export class PlayerController {
     this.scene = scene;
     this.sim = sim;
     const p = sim.state.player;
-    this.tex = ensureCharacter(scene, 'player', p.look);
+    this.tex = ensureCharacter(scene, PlayerController.texKey(p), p.look);
     this.sprite = scene.physics.add.sprite(p.x, p.y, this.tex, idleFrame(p.facing)).setOrigin(0.5, CHAR_ORIGIN_Y);
     this.sprite.body.setSize(14, 8).setOffset(9, 39);
     this.sprite.setCollideWorldBounds(true);
@@ -23,11 +23,25 @@ export class PlayerController {
     this.bar = scene.add.graphics().setDepth(DEPTH.WORLD_UI);
     // One emitter per particle texture (wood chips, stone dust, leaves...).
     this.fx = {};
-    for (const tex of ['chip', 'dot', 'spark']) {
+    for (const tex of ['chip', 'dot', 'spark', 'snow']) {
       this.fx[tex] = scene.add
         .particles(0, 0, tex, { speed: { min: 40, max: 110 }, angle: { min: 200, max: 340 }, gravityY: 260, lifespan: 600, scale: { start: 1, end: 0.4 }, emitting: false })
         .setDepth(DEPTH.WORLD_UI - 1);
     }
+  }
+
+  static texKey(p) {
+    return p.generation > 1 ? `player_g${p.generation}` : 'player';
+  }
+
+  /** A new generation: new face, new place (called after succession). */
+  refreshLook() {
+    const p = this.sim.state.player;
+    this.cancelAction?.();
+    this.tex = ensureCharacter(this.scene, PlayerController.texKey(p), p.look);
+    this.sprite.setTexture(this.tex, idleFrame(p.facing || 'down'));
+    this.sprite.setPosition(p.x, p.y);
+    this.sprite.body.reset(p.x, p.y);
   }
 
   get x() {
@@ -92,6 +106,10 @@ export class PlayerController {
 
     if (this.action) {
       this.updateAction(delta, blocked);
+    } else if (this.working) {
+      // Long work (building, shifts outdoors): keep the tool swinging.
+      this.sprite.setVelocity(0, 0);
+      this.sprite.anims.play(`${this.tex}_work_${this.facing}`, true);
     } else if (vx || vy) {
       const len = Math.hypot(vx, vy);
       const tile = this.sim.world.toTile(this.sprite.x, this.sprite.y);

@@ -67,6 +67,8 @@ export const BALANCE = {
     mine: { ms: 3000, energy: 6, xp: 7, skill: 'mining', skillXp: 9 },
     harvest: { ms: 900, energy: 1.5, xp: 2, skill: 'farming', skillXp: 4 },
     forage: { ms: 1200, energy: 1, xp: 2, skill: 'foraging', skillXp: 5 },
+    fish: { ms: 3800, energy: 2, xp: 4, skill: 'fishing', skillXp: 8 },
+    hunt: { ms: 900, energy: 4, xp: 6, skill: 'hunting', skillXp: 10 },
   },
 
   resources: {
@@ -111,6 +113,8 @@ export const BALANCE = {
     greedyOwnerMarkup: 0.05,
     friendDiscount: 0.05,
     trustedDiscount: 0.1,
+    wariMarkup: 0.05, // owners who distrust you charge more…
+    hostileMarkup: 0.12, // …and much more if they can't stand you
     maxStockMultiplier: 3, // shops stop buying above target × this
     outsideTradeDrift: 0.12, // daily import/export pulls stock toward targets
     caravanDrift: 0.5,
@@ -127,13 +131,17 @@ export const BALANCE = {
     ownerWageAbove: 150, // owners pay themselves a basic wage only once the business has this cushion
     ownerDrawAbove: 250, // owners take a share of profit only when the business has more than this
     ownerDrawShare: 0.1, // …and then 10% of the excess per day
-    exportPerDay: 30, // units of surplus traders take from each producer per day
+    exportPerDay: 24, // units of surplus traders take from each producer per day (the more they buy, the less they pay)
     exportPriceFactor: 0.6, // at 60% of the base price
+    depotBuyFactor: 0.66, // a warehouse pays producers this share of the base price…
+    depotExportFactor: 0.78, // …and gets a better price than they would from traders, dealing in bulk
     toolWearPerWorkerDay: 0.12, // producers buy a new tool from the smithy as crews wear them out
     wealthySpendAbove: 200, // villagers richer than this buy extra (nicer) food
     elderPension: 6, // the retired elder's small daily income
     luxuryAbove: 600, // very rich villagers spend part of their wealth on imported goods…
     luxuryShare: 0.05, // …5% of the excess per day
+    furnitureBuyAbove: 120, // villagers with this much money sometimes buy furniture…
+    furnitureBuyChance: 0.12, // …with this chance per day
     tavernLunchChance: 0.35, // chance a villager with food at home still eats lunch at the tavern
     producerStockLimit: 3, // workers stop gathering when stock exceeds target × this
     repairCostPerPoint: 0.4,
@@ -169,11 +177,27 @@ export const BALANCE = {
 
   npc: {
     walkSpeed: 72,
+    roadSpeedBonus: 0.25, // villagers walk faster on roads, bridges and the plaza
     thinkEveryMinutes: 5,
-    fullSimRadius: 1100, // NPCs farther than this from the player run the cheaper "abstract" simulation
+    // Simulation levels by distance from the player (pixels):
+    fullSimRadius: 1100, // full: smooth movement, animation, thought icons
+    statisticalRadius: 2600, // beyond this: no pathfinding — arrive instantly (cheap)
+    // Needs (per game hour)
+    energyDrainPerHour: 4.5,
+    energyDrainWorkingPerHour: 6,
+    energySleepPerHour: 12,
+    energyRestPerHour: 8,
+    starvingHealthPerHour: 3,
+    exhaustedHealthPerHour: 1,
+    healthRegenPerHour: 1,
+    sickBelow: 35, // health below this → stay home and recover
+    exhaustedBelow: 12, // energy below this → go home and rest, even from work
+    thoughtRadius: 520, // show thought icons (hungry, tired...) within this distance
+    homelessInnPrice: 5,
     hungerPerHour: 4,
     eatAt: 40,
     xpPerWorkDay: 12,
+    ranks: { regular: 5, skilled: 10, master: 20 }, // NPC level needed for each professional rank
     xpBase: 50,
     xpExponent: 1.3,
     quitAfterUnpaidDays: 3,
@@ -182,6 +206,14 @@ export const BALANCE = {
     mineMinutes: 90,
     tendMinutes: [20, 40],
     searchRadius: 32,
+    // Company (loneliness)
+    socialDrainPerHour: 2.5, // lost per waking hour alone (more for outgoing people)
+    socialHomePerHour: 3, // gained at home with family
+    socialPerChat: 8,
+    gossipChance: 0.15, // chance per chat to pass on news about the player
+    argueChance: 0.025, // base chance a chat turns into an argument
+    fishMinutes: 110, // a fisher's session at the water…
+    fishAttempts: 4, // …and how many catches they try for
   },
 
   events: {

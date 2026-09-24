@@ -9,13 +9,16 @@
  *   dev.press('e')               tap a key
  *   dev.teleport(tx, ty)         move the player to a tile
  *   dev.skip(minutes)            fast-forward the clock
+ *
+ * F9 opens the debug panel (stats, performance, world controls) — see DebugPanel.js.
  */
 import { setLanguage } from '../i18n/i18n.js';
 import { Simulation } from '../core/Simulation.js';
+import { installDebugPanel } from './DebugPanel.js';
 
 const KEYS = {
   w: ['w', 'KeyW', 87], a: ['a', 'KeyA', 65], s: ['s', 'KeyS', 83], d: ['d', 'KeyD', 68],
-  e: ['e', 'KeyE', 69], i: ['i', 'KeyI', 73], c: ['c', 'KeyC', 67], j: ['j', 'KeyJ', 74], m: ['m', 'KeyM', 77], q: ['q', 'KeyQ', 81],
+  e: ['e', 'KeyE', 69], f: ['f', 'KeyF', 70], i: ['i', 'KeyI', 73], c: ['c', 'KeyC', 67], j: ['j', 'KeyJ', 74], m: ['m', 'KeyM', 77], q: ['q', 'KeyQ', 81], k: ['k', 'KeyK', 75], b: ['b', 'KeyB', 66],
   esc: ['Escape', 'Escape', 27], 1: ['1', 'Digit1', 49], 2: ['2', 'Digit2', 50], 3: ['3', 'Digit3', 51], 4: ['4', 'Digit4', 52], 5: ['5', 'Digit5', 53],
 };
 
@@ -68,6 +71,20 @@ const dev = {
     s.player.teleport(c.x, c.y);
     dev.pump(2);
   },
+  give(item, qty = 1) {
+    dev.sim.inventory.add(item, qty, { force: true });
+    dev.pump(1);
+  },
+  money(amount = 100) {
+    dev.sim.state.player.money += amount;
+  },
+  levelTo(level) {
+    const sim = dev.sim;
+    while (sim.state.player.level < level) sim.progression.addXp(sim.progression.xpForNext() - sim.state.player.xp + 1);
+    dev.pump(1);
+    return sim.state.player.level;
+  },
+
   /** Fast-forward using the real game mechanism (NPCs keep living their lives). */
   skip(minutes) {
     const sim = dev.sim;
@@ -79,3 +96,4 @@ const dev = {
 };
 
 window.dev = dev;
+installDebugPanel(dev);

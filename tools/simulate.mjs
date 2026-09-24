@@ -29,7 +29,7 @@ console.log('\nVillagers:');
 for (const n of sim.state.npcs) {
   const tile = sim.world.toTile(n.x, n.y);
   const stuck = !n.inside && sim.world.isBlocked(tile.tx, tile.ty) ? ' [ON BLOCKED TILE]' : '';
-  console.log(`  ${n.id.padEnd(8)} ${n.occupation.padEnd(15)} lvl ${n.level} $${Math.round(n.money).toString().padStart(4)} hunger ${Math.round(n.hunger).toString().padStart(3)} pantry ${n.pantry} task ${n.task?.type}/${n.task?.stage} ${n.inside ? `inside ${n.inside}` : 'outside'}${stuck}`);
+  console.log(`  ${n.id.padEnd(8)} ${n.occupation.padEnd(15)} lvl ${n.level} $${Math.round(n.money).toString().padStart(4)} hun ${Math.round(n.hunger).toString().padStart(3)} en ${Math.round(n.energy).toString().padStart(3)} hp ${Math.round(n.health).toString().padStart(3)} mood ${String(n.mood).padStart(3)} pantry ${n.pantry} task ${n.task?.type}/${n.task?.stage} ${n.inside ? `inside ${n.inside}` : 'outside'}${stuck}`);
 }
 const stumps = Object.values(sim.state.objects).filter((o) => o.kind === 'tree' && o.state === 'stump').length;
 const rubble = Object.values(sim.state.objects).filter((o) => o.kind === 'rock' && o.state === 'rubble').length;

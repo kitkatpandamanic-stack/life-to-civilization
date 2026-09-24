@@ -6,10 +6,9 @@
  */
 import { Panel } from '../Panel.js';
 import { t, tPick, npcName, occupationName, itemName, fmtMoney, cap } from '../../i18n/i18n.js';
-import { tr, escapeHtml, buildingLabel } from '../format.js';
+import { tr, escapeHtml, buildingLabel, workLabel, resolveParams } from '../format.js';
 import { button, portrait, hearts, icon } from '../widgets.js';
 import { ITEMS } from '../../data/items.js';
-import { BUSINESSES } from '../../data/businesses.js';
 import { JobBoardPanel } from './JobBoardPanel.js';
 
 export class DialoguePanel extends Panel {
@@ -34,19 +33,8 @@ export class DialoguePanel extends Panel {
 
   /** Localized line with this NPC's gender and the player's name available. */
   say(key, params = {}) {
-    return tPick(key, { gender: this.npc.gender, player: this.sim.state.player.name, name: npcName(this.npc), ...this.resolve(params) });
-  }
-  resolve(params) {
-    const out = {};
-    for (const [k, v] of Object.entries(params)) {
-      if (k === 'item') out.item = itemName(v);
-      else if (k === 'occ') out.occ = occupationName(v, this.npc.gender);
-      else if (k.startsWith('npc')) out[k] = npcName(this.sim.npcs.byId(v));
-      else if (k === 'money') out.money = fmtMoney(v);
-      else if (k === 'building') out.building = buildingLabel(this.sim, v);
-      else out[k] = v;
-    }
-    return out;
+    const p = { gender: this.npc.gender, ...params };
+    return tPick(key, { player: npcName(this.sim.state.player), name: npcName(this.npc), ...resolveParams(this.sim, p) });
   }
 
   ownedBusiness() {
@@ -58,35 +46,23 @@ export class DialoguePanel extends Panel {
     const h = this.sim.time.hour;
     if (npc.task?.type === 'sleep') return this.say('dialog.sleepy');
     if (npc.hunger < 20) return this.say('dialog.hungry');
+    const kin = this.sim.family.kinship(npc, this.sim.lineage.person());
+    const p = this.sim.state.player;
+    if (kin === 'spouse' || kin === 'sibling') return this.say(`dialog.greet.kin_${kin}`);
+    if (kin === 'parent' || kin === 'grandparent') return this.say(`dialog.greet.kin_${kin}_${p.gender}`);
+    if (kin === 'child' || kin === 'grandchild') return this.say(`dialog.greet.kin_${kin}`);
+    if (p.partner === npc.id) return this.say('dialog.greet.partner');
     const tier = this.sim.social.tier(npc);
+    // Someone who distrusts you skips the pleasantries.
+    if (tier === 'wary' || tier === 'hostile') return this.say(`dialog.greet.${tier}`);
     const tod = h < 12 ? 'morning' : h < 18 ? 'day' : 'evening';
     return `${this.say(`dialog.hello.${tod}`)} ${this.say(`dialog.greet.${tier}`)}`;
   }
 
-  /** Something to talk about, chosen from what's actually going on. */
-  chatLine() {
-    const sim = this.sim;
-    const npc = this.npc;
-    const pool = [];
-    const news = sim.state.chronicle.filter((e) => sim.time.day - e.day <= 5 && !Object.values(e.params).includes(npc.id) && e.key !== 'chronicle.player_arrived');
-    if (news.length) {
-      const e = news[Math.floor(Math.random() * news.length)];
-      pool.push(`${this.say('dialog.gossip_prefix')} ${tr(sim, e.key, e.params)}`);
-    }
-    pool.push(this.say(`dialog.occ.${npc.occupation}`));
-    pool.push(this.say(`dialog.weather.${sim.weather.type}`));
-    pool.push(this.say(`dialog.season.${sim.time.season}`));
-    const prices = sim.economy.priceNews();
-    if (prices.expensive.length) pool.push(this.say('dialog.price_high', { item: prices.expensive[0] }));
-    if (prices.cheap.length) pool.push(this.say('dialog.price_low', { item: prices.cheap[0] }));
-    if (npc.money < 10 && npc.age >= 16) pool.push(this.say('dialog.poor'));
-    if (npc.unpaidDays > 0) pool.push(this.say('dialog.unpaid'));
-    if (npc.pantry <= 0 && npc.age >= 16) pool.push(this.say('dialog.empty_pantry'));
-    const trait = npc.traits[Math.floor(Math.random() * npc.traits.length)];
-    if (trait) pool.push(this.say(`dialog.trait.${trait}`));
-    const friend = sim.social.bestFriend(npc);
-    if (friend) pool.push(this.say(npc.family.includes(friend.id) ? 'dialog.family' : 'dialog.friend', { npc: friend.id }));
-    return pool[Math.floor(Math.random() * pool.length)];
+  /** Something to talk about, generated from the villager's actual life (see DialogueSystem). */
+  topicLine(mode = 'chat') {
+    const topic = this.sim.dialogue.pick(this.npc, mode);
+    return this.say(topic.key, topic.params);
   }
 
   title() {
@@ -123,6 +99,8 @@ export class DialoguePanel extends Panel {
     if (this.view === 'main') {
       const canChat = sim.social.canChat(npc);
       opt(t('dialog.opt.chat'), 'chat', {}, false, canChat ? '' : t('dialog.opt.chat_done'));
+      opt(t('dialog.opt.news'), 'news');
+      opt(t('dialog.opt.life'), 'life');
       opt(t('dialog.opt.work'), 'work');
       const req = sim.jobs.requestFor(npc.id);
       if (req && !req.accepted) opt(t('dialog.opt.help'), 'request');
@@ -131,13 +109,34 @@ export class DialoguePanel extends Panel {
         opt(tr(sim, 'dialog.opt.give_request', { qty: req.qty, item: req.item }), 'fulfill', { id: req.id }, !ok, ok ? '' : t('dialog.opt.have_n', { have: sim.inventory.count(req.item), qty: req.qty }));
       }
       opt(t('dialog.opt.gift'), 'gift_menu', {}, !sim.social.canGift(npc), sim.social.canGift(npc) ? '' : t('dialog.opt.gift_done'));
+      const L = sim.lineage;
+      if (sim.state.player.partner === npc.id) {
+        const c = L.canPropose(npc);
+        opt(t('dialog.opt.propose'), 'propose', {}, !c.ok, c.ok ? '' : t(`reason.love_${c.reason || 'not_ready'}`));
+      } else if (L.canCourt(npc).ok && npc.courtRefusedDay !== sim.time.day) opt(t('dialog.opt.court'), 'court');
+      if (sim.workers.contract(npc.id)) {
+        opt(t('dialog.opt.how_is_work'), 'how_work');
+        opt(t('dialog.opt.manage_workers'), 'manage');
+      } else if (npc.age >= 16 && !['child', 'elder'].includes(npc.occupation) && !npc.owns) {
+        const chk = sim.workers.canHire(npc);
+        opt(t('dialog.opt.hire'), 'hire_view', {}, !chk.ok, chk.ok ? '' : tr(sim, `reason.${chk.reason}`, chk.params || {}));
+      }
       const biz = this.ownedBusiness();
-      if (biz && BUSINESSES[biz].kind === 'shop') {
+      if (biz && sim.economy.def(biz).kind === 'shop') {
         const open = sim.economy.isOpen(biz);
-        opt(t('dialog.opt.trade'), 'trade', {}, !open, open ? '' : tr(sim, 'reason.closed', { hour: BUSINESSES[biz].openHours[0] }));
+        opt(t('dialog.opt.trade'), 'trade', {}, !open, open ? '' : tr(sim, 'reason.closed', { hour: sim.economy.def(biz).openHours[0] }));
       }
       opt(t('dialog.opt.about'), 'about');
       opt(t('dialog.opt.bye'), 'close');
+      return opts.join('');
+    }
+
+    if (this.view === 'hire') {
+      const expected = sim.workers.expectedSalary(npc);
+      const low = Math.max(1, Math.round(expected * 0.85));
+      opt(t('dialog.opt.hire_at', { money: fmtMoney(expected) }), 'hire_offer', { salary: expected });
+      opt(t('dialog.opt.hire_haggle', { money: fmtMoney(low) }), 'hire_offer', { salary: low });
+      opt(t('dialog.opt.never_mind'), 'back');
       return opts.join('');
     }
 
@@ -175,7 +174,7 @@ export class DialoguePanel extends Panel {
     const sim = this.sim;
     const npc = this.npc;
     const kv = (k, v) => `<div class="kv"><span>${escapeHtml(k)}</span><b>${escapeHtml(v)}</b></div>`;
-    const work = npc.owns ? t('ui.owner_of', { place: buildingLabel(sim, BUSINESSES[npc.owns].building) }) : npc.employer ? buildingLabel(sim, BUSINESSES[npc.employer].building) : '—';
+    const work = workLabel(sim, npc);
     const family = npc.family.map((id) => npcName(sim.npcs.byId(id))).join(', ') || '—';
     const friend = sim.social.bestFriend(npc);
     const wealth = npc.money > 150 ? 'rich' : npc.money > 50 ? 'comfortable' : npc.money > 15 ? 'modest' : 'poor';
@@ -195,8 +194,24 @@ export class DialoguePanel extends Panel {
     const npc = this.npc;
     switch (action) {
       case 'chat':
-        if (sim.social.chat(npc)) this.line = this.chatLine();
+        if (sim.social.chat(npc)) this.line = this.topicLine('chat');
         else this.line = this.say('dialog.chat_again');
+        break;
+      case 'news':
+        this.line = this.topicLine('news');
+        break;
+      case 'court':
+        if (sim.lineage.court(npc)) this.line = this.say('dialog.court_yes');
+        else {
+          npc.courtRefusedDay = sim.time.day;
+          this.line = this.say('dialog.court_no');
+        }
+        break;
+      case 'propose':
+        this.line = this.say(sim.lineage.propose(npc) ? 'dialog.propose_yes' : 'dialog.propose_no');
+        break;
+      case 'life':
+        this.line = this.topicLine('life');
         break;
       case 'work': {
         const biz = this.ownedBusiness();
@@ -204,10 +219,10 @@ export class DialoguePanel extends Panel {
           this.ui.openPanel(new JobBoardPanel(this.ui, biz, npc.id));
           return;
         }
-        const employers = Object.entries(BUSINESSES).filter(([id]) => sim.jobs.jobsForBusiness(id).some((j) => (sim.state.jobs.openings[j] || 0) > 0));
+        const employers = sim.economy.active().map((id) => [id, sim.economy.def(id)]).filter(([id]) => sim.jobs.jobsForBusiness(id).some((j) => (sim.state.jobs.openings[j] || 0) > 0));
         if (employers.length) {
-          const [, def] = employers[Math.floor(Math.random() * employers.length)];
-          this.line = this.say('dialog.work_hint', { npc: def.owner, building: def.building });
+          const [bizId, def] = employers[Math.floor(Math.random() * employers.length)];
+          this.line = this.say('dialog.work_hint', { npc: sim.economy.ownerId(bizId), building: def.building });
         } else this.line = this.say('dialog.work_none');
         break;
       }
@@ -242,6 +257,32 @@ export class DialoguePanel extends Panel {
         this.view = 'about';
         this.line = this.say('dialog.about_intro');
         break;
+      case 'hire_view': {
+        const expected = sim.workers.expectedSalary(npc);
+        this.line = this.say(npc.employer ? 'dialog.hire_employed' : 'dialog.hire_ask', { money: expected });
+        this.view = 'hire';
+        break;
+      }
+      case 'hire_offer': {
+        const r = sim.workers.offer(npc, Number(data.salary));
+        if (r.accepted) {
+          this.line = this.say('dialog.hire_yes');
+          this.view = 'main';
+        } else {
+          this.line = r.reason === 'offer_refused' ? this.say('dialog.hire_no') : tr(sim, `reason.${r.reason}`, r.params || {});
+          this.view = 'main';
+        }
+        break;
+      }
+      case 'how_work': {
+        const c = sim.workers.contract(npc.id);
+        const key = c.unpaid > 0 ? 'dialog.worker_unpaid' : c.satisfaction >= 70 ? 'dialog.worker_happy' : c.satisfaction >= 40 ? 'dialog.worker_ok' : 'dialog.worker_raise';
+        this.line = this.say(key, { money: sim.workers.expectedSalary(npc, c.rank) });
+        break;
+      }
+      case 'manage':
+        this.ui.openWorkers();
+        return;
       case 'back':
         this.view = 'main';
         break;

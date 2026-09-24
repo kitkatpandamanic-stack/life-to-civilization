@@ -23,7 +23,7 @@ export class ObjectiveIndicator {
       this.cacheAt = now;
     }
     const target = this.cache?.target;
-    if (!target) {
+    if (!target || this.scene.inside) {
       this.marker.setVisible(false);
       this.arrow.setVisible(false);
       return;

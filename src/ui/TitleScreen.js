@@ -40,7 +40,8 @@ export class TitleScreen {
         <button class="btn big" data-action="load" ${latest ? '' : 'disabled'}>${escapeHtml(t('titlescreen.load'))}</button>`;
     } else if (this.view === 'new') {
       content = `
-        <label class="field">${escapeHtml(t('titlescreen.your_name'))}<input type="text" maxlength="16" value="${escapeHtml(this.name || t('titlescreen.default_name'))}" class="name-input"></label>
+        <label class="field">${escapeHtml(t('titlescreen.your_name'))}<input type="text" maxlength="16" value="${escapeHtml(this.name || t(this.gender === 'f' ? 'titlescreen.default_name_f' : 'titlescreen.default_name'))}" class="name-input"></label>
+        <div class="gender-pick">${['m', 'f'].map((g) => `<button class="lang-btn${(this.gender || 'm') === g ? ' active' : ''}" data-action="gender" data-g="${g}">${escapeHtml(t(`titlescreen.gender_${g}`))}</button>`).join('')}</div>
         <p class="intro">${escapeHtml(t('titlescreen.intro'))}</p>
         <button class="btn big primary" data-action="start">${escapeHtml(t('titlescreen.start'))}</button>
         <button class="btn" data-action="back">${escapeHtml(t('titlescreen.back'))}</button>`;
@@ -88,12 +89,21 @@ export class TitleScreen {
     else if (a === 'continue') this.loadSlot(SaveSystem.latest()?.slot);
     else if (a === 'load_slot') this.loadSlot(b.dataset.slot);
     else if (a === 'lang') setLanguage(b.dataset.code);
+    else if (a === 'gender') {
+      const input = this.el.querySelector('.name-input');
+      const wasDefault = !this.name || this.name === t(this.gender === 'f' ? 'titlescreen.default_name_f' : 'titlescreen.default_name');
+      this.gender = b.dataset.g;
+      if (wasDefault) this.name = t(this.gender === 'f' ? 'titlescreen.default_name_f' : 'titlescreen.default_name');
+      else if (input) this.name = input.value;
+      this.render();
+    }
   }
 
   startNew() {
     const input = this.el.querySelector('.name-input');
-    const name = (input?.value || '').trim() || t('titlescreen.default_name');
-    this.onStart(Simulation.newGame(name));
+    const gender = this.gender || 'm';
+    const name = (input?.value || '').trim() || t(gender === 'f' ? 'titlescreen.default_name_f' : 'titlescreen.default_name');
+    this.onStart(Simulation.newGame(name, undefined, { gender }));
   }
 
   loadSlot(slot) {

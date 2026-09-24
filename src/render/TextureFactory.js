@@ -8,6 +8,11 @@
 import { T, TILE_COUNT } from '../world/WorldGenerator.js';
 import { BUILDING_TYPES, HOUSE_VARIANTS } from '../data/buildings.js';
 import { mulberry32 } from '../core/rng.js';
+import { ITEMS } from '../data/items.js';
+import { EXTRA_ICONS, createExtraTextures } from './ExtraArt.js';
+import { NATURE_ICONS, createNatureTextures } from './NatureArt.js';
+import { createTransportTextures } from './TransportArt.js';
+import { createSiteTextures } from './SiteArt.js';
 
 const TS = 32;
 export const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
@@ -1106,11 +1111,15 @@ const ICON_DRAW = {
 export const ICON_URLS = {};
 
 function buildItemIcons() {
-  for (const id of ['wood', 'stone', 'iron_ore', 'coal', 'wheat', 'berries', 'apple', 'bread', 'cheese', 'pie', 'stew', 'worn_axe', 'axe', 'pickaxe', 'package']) {
+  // Every item in data/items.js gets an icon (V1 drawers here, V2 drawers in ExtraArt.js).
+  for (const id of Object.keys(ITEMS)) {
     const c = makeCanvas(32, 32);
     const ctx = c.getContext('2d');
     if (id === 'worn_axe') ICON_DRAW.axe(ctx, true);
-    else ICON_DRAW[id](ctx);
+    else if (ICON_DRAW[id]) ICON_DRAW[id](ctx);
+    else if (EXTRA_ICONS[id]) EXTRA_ICONS[id](ctx);
+    else if (NATURE_ICONS[id]) NATURE_ICONS[id](ctx);
+    else circle(ctx, 16, 16, 10, '#999');
     ICON_URLS[id] = c.toDataURL();
   }
 }
@@ -1227,11 +1236,118 @@ export function createAllTextures(scene) {
   }));
 
   buildItemIcons();
+  createExtraTextures(scene, addCanvas);
+  createNatureTextures(scene, addCanvas);
+  createTransportTextures(scene, addCanvas);
+  createSiteTextures(scene, addCanvas);
+}
+
+/**
+ * Construction-site texture for a building type at a given stage:
+ *   0 foundation (stone outline, stakes)  1 timber frame  2 walls going up  3 roof under scaffolding
+ * Uses the finished building's own drawing, so every building type gets matching stages.
+ */
+export function drawSite(type, variant, stage) {
+  const def = BUILDING_TYPES[type];
+  const { canvas: done } = drawBuilding(type, variant);
+  const W = done.width;
+  const H = done.height;
+  const footH = def.h * TS;
+  const c = makeCanvas(W, H);
+  const ctx = c.getContext('2d');
+  const wallH = def.wall === 'open' ? 50 : Math.min(62, Math.max(40, Math.round(def.h * TS * 0.48)));
+  const groundTop = H - footH;
+  const wallTop = H - wallH - 6;
+
+  // Cleared ground + stone foundation
+  ctx.fillStyle = '#9a7650';
+  ctx.fillRect(2, groundTop + 6, W - 4, footH - 8);
+  ctx.fillStyle = '#7d7a72';
+  ctx.fillRect(2, H - 9, W - 4, 7);
+  ctx.fillRect(2, groundTop + 6, W - 4, 5);
+  ctx.fillRect(2, groundTop + 6, 5, footH - 8);
+  ctx.fillRect(W - 7, groundTop + 6, 5, footH - 8);
+  ctx.fillStyle = '#5c5750';
+  for (let x = 6; x < W; x += 12) ctx.fillRect(x, H - 9, 1, 7);
+  if (stage === 0) {
+    // stakes and string lines
+    ctx.strokeStyle = '#e8e2d0';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(1.5, groundTop + 3.5, W - 3, footH - 5);
+    ctx.fillStyle = '#6b4a2b';
+    for (const [x, y] of [[0, groundTop], [W - 4, groundTop], [0, H - 10], [W - 4, H - 10]]) ctx.fillRect(x, y, 4, 10);
+    return c;
+  }
+
+  if (stage >= 2) {
+    // The finished walls, revealed from the bottom up (no roof yet at stage 2).
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, stage === 2 ? wallTop + wallH * 0.35 : 0, W, H);
+    ctx.clip();
+    ctx.globalAlpha = stage === 3 ? 0.92 : 1;
+    ctx.drawImage(done, 0, 0);
+    ctx.restore();
+  }
+
+  // Timber frame: posts, top beam and the outline of the roof
+  ctx.strokeStyle = '#8a5a32';
+  ctx.lineWidth = 3;
+  const posts = [4, W - 4, ...Array.from({ length: Math.max(0, Math.floor(W / 40) - 1) }, (_, i) => ((i + 1) * W) / Math.floor(W / 40))];
+  if (stage <= 2) {
+    for (const x of posts) {
+      ctx.beginPath();
+      ctx.moveTo(x, H - 8);
+      ctx.lineTo(x, wallTop);
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.moveTo(2, wallTop);
+    ctx.lineTo(W - 2, wallTop);
+    ctx.stroke();
+    // roof rafters
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(4, wallTop + 6);
+    ctx.lineTo(8, 6);
+    ctx.lineTo(W - 8, 6);
+    ctx.lineTo(W - 4, wallTop + 6);
+    for (let x = 16; x < W - 10; x += 16) {
+      ctx.moveTo(x, 6);
+      ctx.lineTo(x - 3, wallTop + 6);
+    }
+    ctx.stroke();
+  }
+  // Scaffolding on the last two stages
+  if (stage >= 2) {
+    ctx.strokeStyle = '#c9a06a';
+    ctx.lineWidth = 2;
+    for (const x of [1, W - 2]) {
+      ctx.beginPath();
+      ctx.moveTo(x, H);
+      ctx.lineTo(x, 10);
+      ctx.stroke();
+    }
+    for (let y = H - 20; y > 14; y -= 22) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(W, y);
+      ctx.stroke();
+    }
+  }
+  return c;
+}
+
+export function ensureSiteTexture(scene, type, variant, stage) {
+  const key = `site_${type}_${variant}_${stage}`;
+  if (!scene.textures.exists(key)) addCanvas(scene, key, drawSite(type, variant, stage));
+  return key;
 }
 
 /** Builds (or reuses) the texture for a specific building instance. */
 export function ensureBuildingTexture(scene, building) {
-  const key = `bld_${building.id}`;
+  // Player buildings change look when upgraded, so their key includes the type.
+  const key = building.player ? `bld_${building.id}_${building.type}` : `bld_${building.id}`;
   if (!scene.textures.exists(key)) {
     const { canvas, windows, chimney } = drawBuilding(building.type, building.variant);
     addCanvas(scene, key, canvas);

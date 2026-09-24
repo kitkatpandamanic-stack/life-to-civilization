@@ -9,6 +9,7 @@
 import { BALANCE } from '../config/balance.js';
 import { ITEMS } from '../data/items.js';
 import { Mod, skill } from './Modifiers.js';
+import { rand } from '../core/rng.js';
 
 const A = BALANCE.actions;
 const KIND_BY_OBJECT = { tree: 'chop', rock: 'mine', bush: 'forage', crop: 'harvest' };
@@ -34,6 +35,9 @@ export class PlayerActionSystem {
     const p = this.p;
     const toolKind = TOOL_BY_ACTION[kind];
     if (toolKind && !this.sim.inventory.bestTool(toolKind)) return { ok: false, reason: `need_${toolKind}` };
+    if (kind === 'mine' && obj.variant === 'iron' && !this.sim.progression.hasUnlock('advanced_gathering')) {
+      return { ok: false, reason: 'locked', params: { level: this.sim.progression.unlockLevel('advanced_gathering') } };
+    }
     if (kind === 'mine' && obj.variant !== 'stone') {
       const need = BALANCE.resources.oreSkillRequired[obj.variant] || 0;
       if (skill(p, 'mining') < need) return { ok: false, reason: 'need_skill', params: { skill: 'mining', level: need } };
@@ -81,6 +85,8 @@ export class PlayerActionSystem {
         item = r.item;
         qty = r.qty + Mod.extraYield(this.p, 'mine');
         this.sim.state.stats.rocksMined++;
+        // A geologist's eye: sometimes you spot a new seam nearby.
+        if (rand.chance(Mod.perk(this.p, 'vein_find'))) this.sim.nature.discoverVein(rand.pick(['iron', 'coal', 'stone']), { tx: obj.tx, ty: obj.ty });
         break;
       }
       case 'forage':
@@ -105,6 +111,71 @@ export class PlayerActionSystem {
     return true;
   }
 
+  // ---------- Fishing and hunting ----------
+
+  checkFish() {
+    if (!this.sim.inventory.bestTool('fishing_rod')) return { ok: false, reason: 'need_fishing_rod' };
+    if (this.p.energy < A.fish.energy) return { ok: false, reason: 'too_tired' };
+    if (!this.sim.inventory.canAdd('fish', 1)) return { ok: false, reason: 'too_heavy' };
+    return { ok: true };
+  }
+
+  fishDuration() {
+    const speed = (1 + skill(this.p, 'fishing') * 0.06) * (1 + Mod.perk(this.p, 'fish_speed')) * this.sim.needs.productivity() * this.sim.weather.mods().action;
+    return Math.round(A.fish.ms / Math.max(0.2, speed));
+  }
+
+  /** Cast a line: whether anything bites depends on how many fish are left in this water. */
+  fish(tx, ty) {
+    const c = this.checkFish();
+    if (!c.ok) return this.fail(c.reason);
+    const inv = this.sim.inventory;
+    const caught = this.sim.nature.catchFish(tx, ty, skill(this.p, 'fishing') * 0.03);
+    inv.useTool('fishing_rod');
+    this.sim.needs.spendEnergy(A.fish.energy);
+    this.sim.progression.addSkillXp('fishing', caught ? A.fish.skillXp : Math.round(A.fish.skillXp / 3));
+    if (caught) {
+      // A good cast sometimes brings in two (Net Caster).
+      inv.add('fish', 1 + (rand.chance(Mod.perk(this.p, 'fish_extra')) ? 1 : 0));
+      this.sim.progression.addXp(A.fish.xp);
+      this.sim.toast('toast.gained', { qty: 1, item: 'fish' }, 'gain');
+    } else this.sim.toast(this.sim.nature.fishChance(this.sim.nature.waterBody(tx, ty)) < 0.3 ? 'toast.fish_scarce' : 'toast.no_bite', {}, 'info');
+    this.sim.bus.emit('player:action', { kind: 'fish', item: 'fish', qty: caught });
+    this.sim.bus.emit('player:changed');
+    return !!caught;
+  }
+
+  checkHunt() {
+    if (!this.sim.inventory.bestTool('bow')) return { ok: false, reason: 'need_bow' };
+    if (this.p.energy < A.hunt.energy) return { ok: false, reason: 'too_tired' };
+    if (!this.sim.inventory.canAdd('meat', 3)) return { ok: false, reason: 'too_heavy' };
+    return { ok: true };
+  }
+
+  /** Loose an arrow at an animal. Returns true on a hit. */
+  hunt(kind) {
+    const c = this.checkHunt();
+    if (!c.ok) return this.fail(c.reason);
+    const inv = this.sim.inventory;
+    inv.useTool('bow');
+    this.sim.needs.spendEnergy(A.hunt.energy);
+    const hit = rand.chance(Math.min(0.95, 0.4 + skill(this.p, 'hunting') * 0.05 + (this.p.attributes.agility || 0) * 0.01 + Mod.perk(this.p, 'hunt_success'))) && this.sim.nature.hunted(kind);
+    this.sim.progression.addSkillXp('hunting', hit ? A.hunt.skillXp : Math.round(A.hunt.skillXp / 3));
+    if (!hit) {
+      this.sim.toast('toast.missed', {}, 'info');
+      return false;
+    }
+    const meat = kind === 'deer' ? 3 : 1;
+    inv.add('meat', meat);
+    const hides = (kind === 'deer' ? 1 : 0) + Mod.perk(this.p, 'hide_bonus');
+    if (hides) inv.add('hide', hides);
+    this.sim.progression.addXp(A.hunt.xp * (kind === 'deer' ? 2 : 1));
+    this.sim.toast('toast.gained', { qty: meat, item: 'meat' }, 'gain');
+    this.sim.bus.emit('player:action', { kind: 'hunt', item: 'meat', qty: meat });
+    this.sim.bus.emit('player:changed');
+    return true;
+  }
+
   // ---------- Other actions ----------
 
   canDrinkWell() {
@@ -124,14 +195,15 @@ export class PlayerActionSystem {
   }
 
   /** Buy a hot meal at the tavern and eat it on the spot. */
-  eatAtTavern() {
-    const price = this.sim.economy.playerBuyPrice('tavern', 'stew');
-    const b = this.sim.economy.biz('tavern');
+  eatAtTavern(bizId = 'tavern') {
+    const price = this.sim.economy.playerBuyPrice(bizId, 'stew');
+    const b = this.sim.economy.biz(bizId);
     if ((b.stock.stew || 0) <= 0) return this.fail('out_of_stock');
     if (this.p.money < price) return this.fail('no_money');
     this.p.money -= price;
     b.money += price;
     b.stock.stew--;
+    this.sim.economy.ledger(bizId, 'rev', price);
     this.sim.needs.applyFood(ITEMS.stew.food);
     this.sim.toast('toast.ate_meal', { money: price }, 'info');
     this.sim.bus.emit('economy:changed');
@@ -139,11 +211,12 @@ export class PlayerActionSystem {
   }
 
   /** Pay for a bed at the tavern. Returns true if paid. */
-  payTavernBed() {
+  payTavernBed(bizId = 'tavern') {
     const price = BALANCE.tavernBedPrice;
     if (this.p.money < price) return this.fail('no_money');
     this.p.money -= price;
-    this.sim.economy.biz('tavern').money += price;
+    this.sim.economy.biz(bizId).money += price;
+    this.sim.economy.ledger(bizId, 'rev', price);
     return true;
   }
 

@@ -2,11 +2,13 @@
  * Journal — current tasks, the people you know, village news (the chronicle
  * of emergent stories) and the state of the world.
  */
+import { AMBITIONS, MAX_TRACKED } from '../../systems/AmbitionSystem.js';
+import { contractCard, contractAction } from '../contracts.js';
+import { BALANCE } from '../../config/balance.js';
 import { Panel } from '../Panel.js';
 import { t, npcName, occupationName, fmtMoney, itemName, cap } from '../../i18n/i18n.js';
-import { tr, escapeHtml, buildingLabel, dateString } from '../format.js';
-import { button, tabs, portrait, hearts } from '../widgets.js';
-import { BUSINESSES } from '../../data/businesses.js';
+import { tr, escapeHtml, buildingLabel, dateString, rumorText } from '../format.js';
+import { button, tabs, portrait, hearts, bar } from '../widgets.js';
 import { WEATHER_ICONS } from '../../systems/WeatherSystem.js';
 
 export class JournalPanel extends Panel {
@@ -28,9 +30,31 @@ export class JournalPanel extends Panel {
       ['people', t('ui.tab_people')],
       ['news', t('ui.tab_news')],
       ['world', t('ui.tab_world')],
+      ['history', t('ui.tab_history')],
     ];
-    const body = { tasks: () => this.renderTasks(), people: () => this.renderPeople(), news: () => this.renderNews(), world: () => this.renderWorld() }[this.tab]();
+    const body = { tasks: () => this.renderTasks(), people: () => this.renderPeople(), news: () => this.renderNews(), world: () => this.renderWorld(), history: () => this.renderHistory() }[this.tab]();
     return tabs(list, this.tab) + body;
+  }
+
+  /** Your ambitions: the ones you track, then (on request) all the others. */
+  renderAmbitions() {
+    const sim = this.sim;
+    const A = sim.ambitions;
+    const p = sim.state.player;
+    const row = (id, clickable) => {
+      const pr = A.progress(id);
+      const tracked = p.ambitions.includes(id);
+      const mark = pr.done ? '✓' : tracked ? '★' : '☆';
+      return `<div class="ambition${pr.done ? ' done' : ''}${clickable ? ' clickable' : ''}" ${clickable && !pr.done ? `data-action="track" data-id="${id}"` : ''} title="${escapeHtml(t(`ambition.${id}.desc`))}">
+        <span>${mark} ${AMBITIONS[id].icon} ${escapeHtml(t(`ambition.${id}.name`))}</span>${bar(pr.pct * 100, 'xp', `${Math.min(pr.value, pr.target)} / ${pr.target}`)}</div>`;
+    };
+    let html = `<h3>${escapeHtml(t('ambition.title'))} <span class="muted small">(${p.ambitions.length}/${MAX_TRACKED})</span></h3>`;
+    html += p.ambitions.map((id) => row(id, true)).join('') || `<div class="muted small">${escapeHtml(t('ambition.none'))}</div>`;
+    if (this.showAmbitions) {
+      html += Object.keys(AMBITIONS).filter((id) => !p.ambitions.includes(id)).map((id) => row(id, true)).join('');
+      html += `<div class="btn-row">${button(t('ambition.hide'), 'ambitions_toggle')}</div>`;
+    } else html += `<div class="btn-row">${button(t('ambition.choose'), 'ambitions_toggle')}</div>`;
+    return html;
   }
 
   renderTasks() {
@@ -49,6 +73,10 @@ export class JournalPanel extends Panel {
     } else {
       html += `<div class="muted">${escapeHtml(t('ui.no_job'))}</div>`;
     }
+    // Contracts you've taken on.
+    const contracts = sim.state.contracts.active;
+    if (contracts.length) html += `<h3>${escapeHtml(t('contract.yours'))}</h3>` + contracts.map((c) => contractCard(sim, c, 'active')).join('');
+    html += this.renderAmbitions();
     const reqs = sim.state.jobs.requests.filter((r) => r.accepted);
     if (reqs.length) {
       html += `<h3>${escapeHtml(t('ui.favours'))}</h3>`;
@@ -82,10 +110,38 @@ export class JournalPanel extends Panel {
 
   renderNews() {
     const sim = this.sim;
+    const heard = (sim.state.rumors?.heardByPlayer || []).map((id) => sim.rumors.get(id)).filter(Boolean).slice(-8).reverse();
+    const rumors = heard.length
+      ? `<h3>${escapeHtml(t('ui.rumors_heard'))}</h3>${heard.map((r) => `<div class="rumor">🗣️ ${escapeHtml(rumorText(sim, r))} <span class="muted small">(${escapeHtml(dateString(r.born))})</span></div>`).join('')}`
+      : '';
+    return rumors + this.renderChronicle();
+  }
+
+  renderChronicle() {
+    const sim = this.sim;
     const entries = [...sim.state.chronicle].reverse();
     if (!entries.length) return `<div class="muted">${escapeHtml(t('ui.no_news'))}</div>`;
     return `<div class="muted small">${escapeHtml(t('ui.news_hint'))}</div><div class="chronicle">${entries
       .map((e) => `<div class="chron"><span class="chron-date">${escapeHtml(dateString(e.day))}</span> ${escapeHtml(tr(sim, e.key, e.params))}</div>`)
+      .join('')}</div>`;
+  }
+
+  /** The village's history book: firsts, milestones, disasters, your family's generations. */
+  renderHistory() {
+    const sim = this.sim;
+    const { daysPerSeason, seasons } = BALANCE.time;
+    const years = sim.history.byYear((d) => Math.floor(d / (daysPerSeason * seasons.length)) + 1);
+    if (!years.length) return `<div class="muted">${escapeHtml(t('ui.no_history'))}</div>`;
+    return `<div class="muted small">${escapeHtml(t('ui.history_hint'))}</div><div class="chronicle">${years
+      .map(
+        ([y, list]) =>
+          `<h3>${escapeHtml(t('ui.year_n', { n: y }))}</h3>` +
+          list
+            .slice()
+            .reverse()
+            .map((e) => `<div class="chron">${e.first ? `<span class="chip">${escapeHtml(t('ui.history_first'))}</span> ` : ''}<span class="chron-date">${escapeHtml(dateString(e.day))}</span> ${escapeHtml(tr(sim, e.key, e.params))}</div>`)
+            .join(''),
+      )
       .join('')}</div>`;
   }
 
@@ -104,14 +160,21 @@ export class JournalPanel extends Panel {
       ${kv(t('ui.employed'), `${employed} / ${adults.length}`)}
       ${kv(t('ui.season'), `${t(`season.${time.season}`)} · ${t('ui.day_n', { day: time.dayOfSeason })}`)}
       ${kv(t('ui.weather'), `${WEATHER_ICONS[sim.weather.type]} ${t(`weather.${sim.weather.type}`)}`)}
+      <h3>${escapeHtml(t('expedition.beyond'))}</h3>
+      ${kv(t('expedition.valley_mapped'), `${Math.round(sim.exploration.valleyExplored() * 100)}%`)}
+      ${sim.exploration.known().map((id) => kv(t(`region_name.${id}`), `${sim.exploration.region(id).explored}%${sim.exploration.region(id).partner ? ' · 🤝' : ''}`)).join('')}
+      ${sim.state.knowledge.points ? kv(t('expedition.knowledge'), sim.state.knowledge.points) : ''}
+      <h3>${escapeHtml(t('tech.know_how'))}</h3>
+      ${sim.tech.overview().filter((x) => x.known || x.ready).map((x) => `<div class="kv" title="${escapeHtml(t(`tech.${x.id}.desc`))}"><span>${x.icon} ${escapeHtml(t(`tech.${x.id}.name`))}</span><b>${x.known ? '✓' : escapeHtml(t('tech.working_on', { n: Math.round(x.progress * 100) }))}</b></div>`).join('') || `<div class="muted small">${escapeHtml(t('tech.none_yet'))}</div>`}
+      <div class="muted small">${escapeHtml(t('tech.hint'))}</div>
       <h3>${escapeHtml(t('ui.events'))}</h3>
       ${events.length ? events.map((e) => `<div class="rumor">⚡ <b>${escapeHtml(t(`event.${e.id}.name`))}</b> — ${escapeHtml(t(`event.${e.id}.desc`))}</div>`).join('') : `<div class="muted">${escapeHtml(t('ui.no_events'))}</div>`}
     </div><div class="col">
       <h3>${escapeHtml(t('ui.businesses'))}</h3>`;
-    for (const [id, def] of Object.entries(BUSINESSES)) {
+    for (const id of econ.active()) {
       const money = econ.biz(id).money;
       const state = money > 400 ? 'thriving' : money > 120 ? 'steady' : 'struggling';
-      html += `<div class="kv"><span>${escapeHtml(buildingLabel(sim, def.building))}</span><b class="biz-${state}">${escapeHtml(t(`biz_state.${state}`))}</b></div>`;
+      html += `<div class="kv clickable" data-action="property" data-id="${econ.biz(id).building}"><span>${escapeHtml(buildingLabel(sim, econ.biz(id).building))}</span><b class="biz-${state}">${escapeHtml(t(`biz_state.${state}`))}</b></div>`;
     }
     html += `<h3>${escapeHtml(t('ui.store_prices'))}</h3>`;
     for (const item of ['bread', 'apple', 'wood', 'stone', 'wheat']) {
@@ -124,6 +187,9 @@ export class JournalPanel extends Panel {
   }
 
   onAction(action, data) {
+    if (contractAction(this.sim, action, data)) return;
+    if (action === 'track') return void this.sim.ambitions.track(data.id);
+    if (action === 'ambitions_toggle') return void (this.showAmbitions = !this.showAmbitions);
     if (action === 'tab') {
       this.tab = data.tab;
       this.confirmAbandon = false;
@@ -132,6 +198,6 @@ export class JournalPanel extends Panel {
     else if (action === 'abandon_yes') {
       this.confirmAbandon = false;
       this.sim.jobs.abandon();
-    }
+    } else if (action === 'property') this.ui.openProperty(data.id);
   }
 }

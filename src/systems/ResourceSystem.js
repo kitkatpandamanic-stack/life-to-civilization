@@ -34,7 +34,7 @@ export class ResourceSystem {
     if (!obj) return false;
     switch (obj.kind) {
       case 'tree':
-        return obj.state === 'grown';
+        return obj.state === 'grown' || obj.state === 'young';
       case 'rock':
         return obj.state === 'full';
       case 'bush':
@@ -54,24 +54,38 @@ export class ResourceSystem {
   fellTree(id) {
     const obj = this.get(id);
     if (!this.isHarvestable(obj) || obj.kind !== 'tree') return 0;
-    obj.state = 'stump';
-    obj.regrowDay = this.sim.time.day + rand.int(R.treeRegrowDays[0], R.treeRegrowDays[1]);
+    const young = obj.state === 'young';
+    // Trees felled on your own land are cleared for good (so you can build there).
+    // Elsewhere a stump remains — and the forest may (or may not) grow back (see NatureSystem).
+    obj.state = this.sim.land?.ownsTile(obj.tx, obj.ty) ? 'cleared' : 'stump';
+    obj.felledDay = this.sim.time.day;
+    delete obj.sproutDay;
+    delete obj.triedSprout;
     delete obj.reservedBy;
     this.changed(obj);
-    return rand.int(R.treeWood[0], R.treeWood[1]);
+    this.sim.bus.emit('nature:felled', obj);
+    return young ? rand.int(1, 2) : rand.int(R.treeWood[0], R.treeWood[1]);
   }
 
   /** Returns { item, qty }. */
   mineRock(id) {
     const obj = this.get(id);
     if (!this.isHarvestable(obj) || obj.kind !== 'rock') return { item: null, qty: 0 };
-    obj.state = 'rubble';
+    obj.state = this.sim.land?.ownsTile(obj.tx, obj.ty) ? 'cleared' : 'rubble';
     obj.regrowDay = this.sim.time.day + rand.int(R.rockRegrowDays[0], R.rockRegrowDays[1]);
     delete obj.reservedBy;
+    let out;
+    if (obj.variant === 'iron') out = { item: 'iron_ore', qty: rand.int(R.oreAmount[0], R.oreAmount[1]) };
+    else if (obj.variant === 'coal') out = { item: 'coal', qty: rand.int(R.oreAmount[0], R.oreAmount[1]) };
+    else out = { item: 'stone', qty: rand.int(R.rockStone[0], R.rockStone[1]) };
+    // Deposits are finite: take what's left, and a worked-out outcrop stays worked out.
+    if (this.sim.nature && obj.state === 'rubble') {
+      this.sim.nature.normalize(obj);
+      out.qty = Math.max(1, Math.min(out.qty, obj.reserve));
+      this.sim.nature.extracted(obj, out.qty);
+    }
     this.changed(obj);
-    if (obj.variant === 'iron') return { item: 'iron_ore', qty: rand.int(R.oreAmount[0], R.oreAmount[1]) };
-    if (obj.variant === 'coal') return { item: 'coal', qty: rand.int(R.oreAmount[0], R.oreAmount[1]) };
-    return { item: 'stone', qty: rand.int(R.rockStone[0], R.rockStone[1]) };
+    return out;
   }
 
   forageBush(id) {
@@ -129,13 +143,8 @@ export class ResourceSystem {
     for (const id in this.objects) {
       const o = this.objects[id];
       let changed = false;
-      if (o.kind === 'tree' && o.state === 'stump' && day >= o.regrowDay) {
-        // Don't regrow a tree on top of the player.
-        if (Math.abs(ptile.tx - o.tx) > 0 || Math.abs(ptile.ty - o.ty) > 0) {
-          o.state = 'grown';
-          changed = true;
-        }
-      } else if (o.kind === 'rock' && o.state === 'rubble' && day >= o.regrowDay) {
+      // (Trees regrow through NatureSystem: stump → sapling → young → grown.)
+      if (o.kind === 'rock' && o.state === 'rubble' && day >= o.regrowDay && (o.reserve === undefined || o.reserve > 0)) {
         if (ptile.tx !== o.tx || ptile.ty !== o.ty) {
           o.state = 'full';
           changed = true;
@@ -146,7 +155,7 @@ export class ResourceSystem {
         changed = true;
       } else if (o.kind === 'crop' && season !== 'winter' && o.stage < 3) {
         const chance = growth <= 0 ? 0 : drought ? 0.5 : Math.min(1, 0.85 * growth);
-        if (Math.random() < chance) {
+        if (rand.chance(chance)) {
           o.stage++;
           changed = true;
         }

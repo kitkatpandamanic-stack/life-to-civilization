@@ -80,6 +80,12 @@ export class Atmosphere {
     scene.scale.on('resize', this.onResize, this);
   }
 
+  /** Indoors: lamps keep it bright, and no rain falls inside. */
+  setIndoor(indoor) {
+    this.indoor = indoor;
+    this.weather = null; // re-evaluate weather effects next frame
+  }
+
   onResize(size) {
     this.night.setSize(size.width, size.height);
     this.gloom.setSize(size.width, size.height);
@@ -92,9 +98,10 @@ export class Atmosphere {
     const [h0, c0, a0] = SKY[i];
     const [h1, c1, a1] = SKY[i + 1];
     const t = Math.max(0, Math.min(1, (h - h0) / (h1 - h0)));
-    this.night.setFillStyle(lerpColor(c0, c1, t), a0 + (a1 - a0) * t);
+    const indoorDim = this.indoor ? 0.3 : 1;
+    this.night.setFillStyle(this.indoor ? 0x2a1a08 : lerpColor(c0, c1, t), (a0 + (a1 - a0) * t) * indoorDim);
 
-    const type = this.sim.weather.type;
+    const type = this.indoor ? 'sunny' : this.sim.weather.type;
     const [gc, ga] = GLOOM[type] || GLOOM.sunny;
     this.gloom.setFillStyle(gc, ga);
     if (type !== this.weather) {
@@ -106,13 +113,13 @@ export class Atmosphere {
       if (type === 'snow') this.snow.start();
       else this.snow.stop();
     }
-    if (type === 'storm' && this.scene.time.now > this.nextLightning) {
+    if (type === 'storm' && !this.indoor && this.scene.time.now > this.nextLightning) {
       this.nextLightning = this.scene.time.now + 5000 + Math.random() * 9000;
       this.scene.cameras.main.flash(140, 230, 235, 255);
     }
 
     const darkness = this.sim.time.darkness();
-    this.lantern.setPosition(this.player.x, this.player.y - 16).setAlpha(this.player.hidden ? 0 : darkness * 0.28);
+    this.lantern.setPosition(this.player.x, this.player.y - 16).setAlpha(this.player.hidden || this.indoor ? 0 : darkness * 0.28);
     return darkness;
   }
 

@@ -6,10 +6,11 @@
  * ("abstract" simulation level) villagers skip animation work entirely.
  */
 import { npcName } from '../i18n/i18n.js';
+import { BALANCE } from '../config/balance.js';
 import { ensureCharacter, idleFrame, CHAR_ORIGIN_Y } from './characters.js';
 import { DEPTH } from './depth.js';
 
-const WORK_FX = { chop: 'chip', mine: 'dot', spot: 'spark' };
+const WORK_FX = { chop: 'chip', mine: 'dot', spot: 'spark', build: 'chip' };
 
 export class NPCViews {
   constructor(scene, sim) {
@@ -23,21 +24,48 @@ export class NPCViews {
         .particles(0, 0, tex, { speed: { min: 30, max: 90 }, angle: { min: 200, max: 340 }, gravityY: 240, lifespan: 500, scale: { start: 0.8, end: 0.3 }, emitting: false })
         .setDepth(DEPTH.WORLD_UI - 1);
     }
-    this.unsubs = [sim.bus.on('npc:chat', ({ a, b }) => this.showBubble(a, b))];
+    this.unsubs = [
+      sim.bus.on('npc:chat', ({ a, b }) => this.showBubble(a, b)),
+      sim.bus.on('npc:argue', ({ a, b }) => this.showAngry(a, b)),
+      // Villagers are born, arrive and pass away while you play.
+      sim.bus.on('npc:added', (id) => {
+        const npc = sim.npcs.byId(id);
+        if (npc && !this.views.has(id)) this.create(npc);
+      }),
+      sim.bus.on('npc:removed', (id) => this.destroyView(id)),
+    ];
   }
 
   create(npc) {
     // Seed in the key: a different save = different villagers' looks.
     const tex = ensureCharacter(this.scene, `npc_${this.sim.state.seed}_${npc.id}`, npc.look);
     const sprite = this.scene.add.sprite(npc.x, npc.y, tex, idleFrame(npc.facing)).setOrigin(0.5, CHAR_ORIGIN_Y);
-    if (npc.age < 14) sprite.setScale(0.78);
+    sprite.setScale(this.scaleFor(npc));
     const tag = this.scene.add
       .text(0, 0, '', { fontFamily: 'Nunito, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#fff8e8', stroke: '#2a1d14', strokeThickness: 3 })
       .setOrigin(0.5, 1)
       .setDepth(DEPTH.WORLD_UI)
       .setVisible(false);
     const bubble = this.scene.add.image(0, 0, 'bubble').setOrigin(0.5, 1).setDepth(DEPTH.WORLD_UI).setVisible(false);
-    this.views.set(npc.id, { npc, tex, sprite, tag, bubble, bubbleUntil: 0, fxTimer: 0, anim: '' });
+    // Thought icon: hungry, tired, sick, job hunting, unpaid, carrying goods...
+    const thought = this.scene.add.text(0, 0, '', { fontFamily: '"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif', fontSize: '15px' }).setOrigin(0.5, 1).setDepth(DEPTH.WORLD_UI).setVisible(false);
+    this.views.set(npc.id, { npc, tex, sprite, tag, bubble, thought, thoughtText: '', bubbleUntil: 0, fxTimer: 0, anim: '' });
+  }
+
+  destroyView(id) {
+    const v = this.views.get(id);
+    if (!v) return;
+    for (const o of [v.sprite, v.tag, v.bubble, v.thought]) o.destroy();
+    this.views.delete(id);
+  }
+
+  /** An argument: an angry mark over both heads for a moment. */
+  showAngry(...ids) {
+    const until = this.scene.time.now + 2500;
+    for (const id of ids) {
+      const v = this.views.get(id);
+      if (v) v.angryUntil = until;
+    }
   }
 
   showBubble(...ids) {
@@ -48,10 +76,30 @@ export class NPCViews {
     }
   }
 
+  /** Children are smaller; the youngest smaller still. */
+  scaleFor(npc) {
+    if (npc.age < 5) return 0.55;
+    if (npc.age < 10) return 0.7;
+    if (npc.age < 14) return 0.78;
+    if (npc.age < 16) return 0.88;
+    return 1;
+  }
+
   isWorking(npc) {
     const t = npc.task;
+    if (t?.type === 'firefight' && t.stage === 'fighting') return 'build';
+    // Evenings spent raising a house.
+    if (t?.type === 'leisure' && t.plan === 'build' && t.stage === 'idle' && !npc.moving) return 'build';
     if (!t || t.type !== 'work' || npc.moving) return null;
-    const act = this.sim.npcs.occ(npc).activity;
+    if (npc.employer === 'player') {
+      // Your workers: chopping, mining, building, crafting, farming.
+      if (t.stage === 'doing') return this.sim.workers.contract(npc.id)?.assignment.type === 'gather_stone' ? 'mine' : 'chop';
+      if (t.stage === 'building' || t.stage === 'crafting') return 'build';
+      if (t.stage === 'farming') return 'farm';
+      return null;
+    }
+    const act = this.sim.npcs.activityOf(npc);
+    if (act === 'build') return t.stage === 'doing' ? 'build' : null;
     if (act === 'chop' || act === 'mine') return t.stage === 'doing' ? act : null;
     if (act === 'farm') return t.stage === 'doing' ? 'farm' : null;
     if (act === 'spot' && npc.occupation === 'blacksmith') return t.stage === 'working' ? 'spot' : null;
@@ -68,6 +116,7 @@ export class NPCViews {
       if (!visible) {
         v.tag.setVisible(false);
         v.bubble.setVisible(false);
+        v.thought.setVisible(false);
         continue;
       }
       v.sprite.setPosition(npc.x, npc.y).setDepth(npc.y);
@@ -107,6 +156,19 @@ export class NPCViews {
       const bubble = now < v.bubbleUntil;
       v.bubble.setVisible(bubble);
       if (bubble) v.bubble.setPosition(npc.x + 10, npc.y - (npc.age < 14 ? 40 : 50) - (near ? 12 : 0));
+
+      const dist = Math.hypot(npc.x - p.x, npc.y - p.y);
+      const angry = now < (v.angryUntil || 0);
+      const icon = angry ? '💢' : !bubble && dist < BALANCE.npc.thoughtRadius ? this.sim.npcs.thought(npc) : null;
+      // Children grow up in front of you.
+      const scale = this.scaleFor(npc);
+      if (v.sprite.scaleX !== scale) v.sprite.setScale(scale);
+      if (icon !== v.thoughtText) {
+        v.thoughtText = icon;
+        v.thought.setText(icon || '');
+      }
+      v.thought.setVisible(!!icon);
+      if (icon) v.thought.setPosition(npc.x + (near ? 22 : 0), npc.y - (npc.age < 14 ? 38 : 48) + Math.sin(now / 300) * 2);
     }
   }
 

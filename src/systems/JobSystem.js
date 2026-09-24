@@ -16,7 +16,6 @@
 import { BALANCE } from '../config/balance.js';
 import { JOBS } from '../data/jobs.js';
 import { ITEMS } from '../data/items.js';
-import { BUSINESSES } from '../data/businesses.js';
 import { REQUEST_TEMPLATES } from '../data/requests.js';
 import { traitValue } from '../data/traits.js';
 import { rand } from '../core/rng.js';
@@ -45,10 +44,10 @@ export class JobSystem {
   }
 
   employerBuilding(jobId) {
-    return this.sim.world.buildings[BUSINESSES[JOBS[jobId].employer].building];
+    return this.sim.economy.buildingOf(JOBS[jobId].employer);
   }
   employerNpc(jobId) {
-    return this.sim.npcs.byId(BUSINESSES[JOBS[jobId].employer].owner);
+    return this.sim.economy.owner(JOBS[jobId].employer);
   }
 
   ensureOpenings() {
@@ -232,7 +231,10 @@ export class JobSystem {
     if (d.skill) this.sim.progression.addSkillXp(d.skill, d.skillXp || 0);
     this.sim.progression.addReputation(d.rep || BALANCE.reputation.jobComplete);
     const owner = this.employerNpc(job.jobId);
-    if (owner) this.sim.social.addRel(owner, this.sim.social.relGain(owner, 4));
+    if (owner) {
+      this.sim.social.addRel(owner, this.sim.social.relGain(owner, 4));
+      this.sim.memory.remember(owner, 'player_did_job', { who: 'player', params: { job: job.jobId } });
+    }
     if (!p.firstJobDone) {
       p.firstJobDone = true;
       this.sim.chronicle('chronicle.player_first_job', { job: job.jobId });
@@ -250,7 +252,10 @@ export class JobSystem {
     if (job.type === 'courier') this.sim.inventory.remove('package', 1);
     this.sim.progression.addReputation(BALANCE.reputation.jobFail);
     const owner = this.employerNpc(job.jobId);
-    if (owner) this.sim.social.addRel(owner, -5);
+    if (owner) {
+      this.sim.social.addRel(owner, -5);
+      this.sim.memory.remember(owner, 'player_failed_job', { who: 'player', params: { job: job.jobId } });
+    }
     this.js.active = null;
     this.sim.toast(`toast.job_failed_${reasonKey}`, { job: job.jobId }, 'danger');
     this.sim.bus.emit('jobs:changed');
@@ -265,6 +270,10 @@ export class JobSystem {
     if (job && job.acceptedDay < this.sim.time.day && job.stage !== 'working') this.fail('expired');
     const day = this.sim.time.day;
     const before = this.js.requests.length;
+    // A favour you promised and never delivered is remembered.
+    for (const r of this.js.requests) {
+      if (r.expiresDay <= day && r.accepted) this.sim.memory.remember(this.sim.npcs.byId(r.npcId), 'player_let_down', { who: 'player', params: { item: r.item } });
+    }
     this.js.requests = this.js.requests.filter((r) => r.expiresDay > day);
     if (before !== this.js.requests.length) this.sim.bus.emit('jobs:changed');
   }
@@ -326,7 +335,7 @@ export class JobSystem {
     let item = tpl.item;
     if (item === 'shortage') {
       const store = this.sim.economy;
-      const buys = BUSINESSES.store.buys;
+      const buys = store.def('store').buys;
       item = buys.reduce((best, it) => (store.stock('store', it) / store.target('store', it) < store.stock('store', best) / store.target('store', best) ? it : best), buys[0]);
     }
     const qty = rand.int(tpl.qty[0], tpl.qty[1]);
@@ -366,6 +375,7 @@ export class JobSystem {
     this.sim.progression.addXp(R.xp);
     this.sim.progression.addReputation(BALANCE.reputation.requestComplete);
     this.sim.social.addRel(npc, this.sim.social.relGain(npc, R.relationship));
+    this.sim.memory.remember(npc, 'player_helped', { who: 'player', params: { item: r.item, qty: r.qty } });
     this.sim.state.stats.requestsDone++;
     this.js.requests = this.js.requests.filter((q) => q.id !== id);
     this.sim.toast('toast.request_done', { npc: npc.id, money: pay }, 'good');

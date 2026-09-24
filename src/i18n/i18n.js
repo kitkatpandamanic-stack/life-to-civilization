@@ -52,8 +52,20 @@ function interpolate(str, params) {
   return str.replace(/\{(\w+)\}/g, (m, p) => (params[p] !== undefined ? String(params[p]) : m));
 }
 
+/** Plural category for n in the current language. */
+function pluralForm(n) {
+  if (current !== 'ru') return n === 1 ? 'one' : 'other';
+  const n10 = n % 10;
+  const n100 = n % 100;
+  if (n10 === 1 && n100 !== 11) return 'one';
+  if (n10 >= 2 && n10 <= 4 && (n100 < 12 || n100 > 14)) return 'few';
+  return 'many';
+}
+
 function pickForm(v, params) {
   if (v && typeof v === 'object' && !Array.isArray(v)) {
+    // Plural forms { one, few, many } / { one, other } when a count is given.
+    if (v.one !== undefined && typeof params.n === 'number') return v[pluralForm(params.n)] ?? v.other ?? v.many ?? v.one;
     return v[params.gender] ?? v.m ?? v.other ?? Object.values(v)[0];
   }
   return v;
@@ -140,8 +152,23 @@ export function itemName(id) {
 
 export function npcName(npc) {
   if (!npc) return '?';
+  if (npc.customName) return npc.customName;
+  if (typeof npc.name === 'string' && npc.name) return npc.name; // the player (first generation)
   const list = resolve(npc.gender === 'f' ? 'names.female' : 'names.male');
   return Array.isArray(list) ? list[npc.nameIdx % list.length] : '?';
+}
+
+/** Family name (gendered in Russian: Кузнецов / Кузнецова). */
+export function surname(npc) {
+  if (!npc) return '';
+  const list = resolve('names.surnames');
+  if (!Array.isArray(list) || !list.length) return '';
+  return pickForm(list[(npc.surnameIdx || 0) % list.length], { gender: npc.gender }) || '';
+}
+
+export function npcFullName(npc) {
+  const s = surname(npc);
+  return s ? `${npcName(npc)} ${s}` : npcName(npc);
 }
 
 export function occupationName(occupation, gender = 'm') {

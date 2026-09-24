@@ -11,6 +11,7 @@ import { BALANCE } from '../config/balance.js';
 import { Rng, fbm, hash2 } from '../core/rng.js';
 import { BUILDING_TYPES } from '../data/buildings.js';
 import { VILLAGE_BUILDINGS, AREAS, ROADS, DECOR } from '../data/villageLayout.js';
+import { PLOTS } from '../data/land.js';
 
 /** Tile ids — the index into the generated tileset texture. */
 export const T = {
@@ -95,6 +96,33 @@ export class World {
     }
     return { tx, ty };
   }
+  // ---------- Runtime changes (player construction) ----------
+
+  /** Register a building built during play (blocks its footprint, gets a door). */
+  addBuilding(rec) {
+    rec.door ??= { tx: rec.tx + Math.floor(rec.w / 2), ty: rec.ty + rec.h };
+    rec.workSpots ??= [];
+    this.buildings[rec.id] = rec;
+    if (!this.buildingList.includes(rec)) this.buildingList.push(rec);
+    this.blockRect(rec.tx, rec.ty, rec.w, rec.h, 1);
+    return rec;
+  }
+
+  blockRect(tx, ty, w, h, value) {
+    for (let y = ty; y < ty + h; y++) for (let x = tx; x < tx + w; x++) if (this.inBounds(x, y)) this.staticBlocked[this.idx(x, y)] = value;
+  }
+
+  /** Turn a tile into road (roads are cheaper to walk on for everyone). */
+  setRoad(tx, ty) {
+    if (!this.inBounds(tx, ty)) return;
+    this.tiles[this.idx(tx, ty)] = T.ROAD;
+  }
+
+  isWater(tx, ty) {
+    const t = this.tileAt(tx, ty);
+    return t === T.WATER || t === T.DEEP;
+  }
+
   /** Re-mark dynamic blocking from the current resource objects. */
   rebuildDynamicBlocking(objects) {
     this.dynBlocked.fill(0);
@@ -103,7 +131,7 @@ export class World {
   updateObjectBlocking(obj) {
     if (obj.kind !== 'tree' && obj.kind !== 'rock') return;
     if (!this.inBounds(obj.tx, obj.ty)) return;
-    const solid = obj.kind === 'tree' ? obj.state === 'grown' : obj.state === 'full';
+    const solid = obj.kind === 'tree' ? obj.state === 'grown' || obj.state === 'young' : obj.state === 'full';
     this.dynBlocked[this.idx(obj.tx, obj.ty)] = solid ? 1 : 0;
   }
 }
@@ -241,6 +269,8 @@ export function generateWorld(seed) {
     decor.push({ type: 'fence_v', tx: F.x1 - 1, ty: y, block: true });
     if (y !== 70 && y !== 71) decor.push({ type: 'fence_v', tx: F.x2 + 1, ty: y, block: true });
   }
+  // "Land for sale" signs on every plot.
+  for (const pl of PLOTS) decor.push({ type: 'land_sign', tx: pl.sign[0], ty: pl.sign[1], w: 1, block: true, interact: 'land_sign', plotId: pl.id });
   for (const d of decor) {
     if (!d.block) continue;
     for (let x = d.tx; x < d.tx + d.w; x++) world.staticBlocked[world.idx(x, d.ty)] = 1;

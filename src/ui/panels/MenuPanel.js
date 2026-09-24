@@ -2,7 +2,7 @@
  * Game menu (Esc) — save, load, language, controls, quit to title.
  */
 import { Panel } from '../Panel.js';
-import { t, LANGUAGES, getLanguage, setLanguage } from '../../i18n/i18n.js';
+import { t, LANGUAGES, getLanguage, setLanguage, npcName } from '../../i18n/i18n.js';
 import { escapeHtml } from '../format.js';
 import { button, tabs } from '../widgets.js';
 import { SaveSystem } from '../../systems/SaveSystem.js';
@@ -11,7 +11,7 @@ import { Simulation } from '../../core/Simulation.js';
 export function slotDescription(meta) {
   if (!meta) return t('ui.empty_slot');
   const when = new Date(meta.savedAt).toLocaleString(getLanguage() === 'ru' ? 'ru-RU' : 'en-GB', { dateStyle: 'short', timeStyle: 'short' });
-  return t('ui.slot_meta', { name: meta.name, level: meta.level, day: meta.day, season: t(`season.${meta.season}`), year: meta.year, when });
+  return t('ui.slot_meta', { name: npcName(meta), level: meta.level, day: meta.day, season: t(`season.${meta.season}`), year: meta.year, when });
 }
 
 export class MenuPanel extends Panel {

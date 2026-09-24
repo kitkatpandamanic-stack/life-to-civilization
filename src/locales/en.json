@@ -1,11 +1,205 @@
 {
-  "fmt": { "money": "${v}" },
-
-  "names": {
-    "male": ["Alexei", "Ivan", "Boris", "Oleg", "Pavel", "Timofey", "Gregory", "Egor", "Mitya", "Stepan", "Fyodor", "Nikita", "Yakov", "Lev", "Matvey"],
-    "female": ["Maria", "Anna", "Vera", "Nina", "Olga", "Daria", "Sofia", "Alena", "Polina", "Ksenia", "Yulia", "Tatiana", "Irina", "Lyuba", "Zoya"]
+  "fmt": {
+    "money": "${v}"
   },
-
+  "names": {
+    "male": [
+      "Alexei",
+      "Ivan",
+      "Boris",
+      "Oleg",
+      "Pavel",
+      "Timofey",
+      "Gregory",
+      "Egor",
+      "Mitya",
+      "Stepan",
+      "Fyodor",
+      "Nikita",
+      "Yakov",
+      "Lev",
+      "Matvey",
+      "Andrei",
+      "Dmitri",
+      "Sergei",
+      "Mikhail",
+      "Anton",
+      "Kirill",
+      "Roman",
+      "Artem",
+      "Vadim",
+      "Yuri",
+      "Semyon",
+      "Arkady",
+      "Konstantin",
+      "Filipp",
+      "Vasily",
+      "Gleb",
+      "Ilya",
+      "Maxim",
+      "Denis",
+      "Savva"
+    ],
+    "female": [
+      "Maria",
+      "Anna",
+      "Vera",
+      "Nina",
+      "Olga",
+      "Daria",
+      "Sofia",
+      "Alena",
+      "Polina",
+      "Ksenia",
+      "Yulia",
+      "Tatiana",
+      "Irina",
+      "Lyuba",
+      "Zoya",
+      "Ekaterina",
+      "Natalia",
+      "Svetlana",
+      "Elena",
+      "Galina",
+      "Marina",
+      "Valentina",
+      "Varvara",
+      "Lidia",
+      "Kira",
+      "Yana",
+      "Nadezhda",
+      "Larisa",
+      "Antonina",
+      "Evdokia",
+      "Alisa",
+      "Vasilisa",
+      "Milana",
+      "Oksana",
+      "Raisa"
+    ],
+    "surnames": [
+      {
+        "m": "Morozov",
+        "f": "Morozova"
+      },
+      {
+        "m": "Lebedev",
+        "f": "Lebedeva"
+      },
+      {
+        "m": "Volkov",
+        "f": "Volkova"
+      },
+      {
+        "m": "Orlov",
+        "f": "Orlova"
+      },
+      {
+        "m": "Belov",
+        "f": "Belova"
+      },
+      {
+        "m": "Zaitsev",
+        "f": "Zaitseva"
+      },
+      {
+        "m": "Stepanov",
+        "f": "Stepanova"
+      },
+      {
+        "m": "Pavlov",
+        "f": "Pavlova"
+      },
+      {
+        "m": "Kuznetsov",
+        "f": "Kuznetsova"
+      },
+      {
+        "m": "Sokolov",
+        "f": "Sokolova"
+      },
+      {
+        "m": "Petrov",
+        "f": "Petrova"
+      },
+      {
+        "m": "Smirnov",
+        "f": "Smirnova"
+      },
+      {
+        "m": "Popov",
+        "f": "Popova"
+      },
+      {
+        "m": "Vasiliev",
+        "f": "Vasilieva"
+      },
+      {
+        "m": "Fedorov",
+        "f": "Fedorova"
+      },
+      {
+        "m": "Nikolaev",
+        "f": "Nikolaeva"
+      },
+      {
+        "m": "Egorov",
+        "f": "Egorova"
+      },
+      {
+        "m": "Kozlov",
+        "f": "Kozlova"
+      },
+      {
+        "m": "Novikov",
+        "f": "Novikova"
+      },
+      {
+        "m": "Makarov",
+        "f": "Makarova"
+      },
+      {
+        "m": "Andreev",
+        "f": "Andreeva"
+      },
+      {
+        "m": "Zakharov",
+        "f": "Zakharova"
+      },
+      {
+        "m": "Romanov",
+        "f": "Romanova"
+      },
+      {
+        "m": "Frolov",
+        "f": "Frolova"
+      },
+      {
+        "m": "Gusev",
+        "f": "Guseva"
+      },
+      {
+        "m": "Baranov",
+        "f": "Baranova"
+      },
+      {
+        "m": "Medvedev",
+        "f": "Medvedeva"
+      },
+      {
+        "m": "Tikhonov",
+        "f": "Tikhonova"
+      },
+      {
+        "m": "Komarov",
+        "f": "Komarova"
+      },
+      {
+        "m": "Grachev",
+        "f": "Gracheva"
+      }
+    ]
+  },
   "occupation": {
     "elder": "Village Elder",
     "child": "Child",
@@ -20,9 +214,34 @@
     "woodcutter": "Woodcutter",
     "quarry_foreman": "Quarry Foreman",
     "miner": "Quarry Worker",
-    "blacksmith": "Blacksmith"
+    "blacksmith": "Blacksmith",
+    "hired_hand": "Hired hand",
+    "baker": "Baker",
+    "baker_hand": "Baker's hand",
+    "carpenter": "Carpenter",
+    "carpenter_hand": "Carpenter's hand",
+    "smith_hand": "Smith's hand",
+    "fisherman": "Fisherman",
+    "fisher": "Fisher",
+    "master_builder": "Master builder",
+    "builder": "Builder",
+    "merchant": "Merchant",
+    "warehouse_hand": "Warehouse hand",
+    "carter_master": "Master carter",
+    "carter": "Carter",
+    "miller": {
+      "m": "Miller",
+      "f": "Miller"
+    },
+    "mill_hand": {
+      "m": "Mill hand",
+      "f": "Mill hand"
+    },
+    "hunter": {
+      "m": "Hunter",
+      "f": "Huntress"
+    }
   },
-
   "building": {
     "hall": "Village Hall",
     "store": "General Store",
@@ -33,51 +252,321 @@
     "quarry_hut": "Quarry",
     "shack": "Your Shack",
     "house": "House",
-    "house_of": "{name}'s house"
+    "house_of": "{name}'s house",
+    "your_home": "Your home"
   },
-
   "item": {
-    "wood": { "name": "Wood", "desc": "Logs from felled trees. Builders and households always need it — especially in winter." },
-    "stone": { "name": "Stone", "desc": "Rough stone from rocks and the quarry." },
-    "iron_ore": { "name": "Iron Ore", "desc": "Rusty-red ore. The blacksmith turns it into tools." },
-    "coal": { "name": "Coal", "desc": "Black fuel that keeps the forge hot." },
-    "wheat": { "name": "Wheat", "desc": "Golden grain. The store bakes it into bread." },
-    "berries": { "name": "Berries", "desc": "Wild berries from forest bushes. Free food, if not very filling." },
-    "apple": { "name": "Apple", "desc": "A crisp apple brought in by traders." },
-    "bread": { "name": "Bread", "desc": "A fresh loaf. Cheap and filling." },
-    "cheese": { "name": "Cheese", "desc": "A wedge of aged cheese. Filling and good for you." },
-    "pie": { "name": "Berry Pie", "desc": "Baked at the tavern. Restores a little energy too." },
-    "stew": { "name": "Hot Stew", "desc": "A hearty tavern meal. Very filling and warming." },
-    "worn_axe": { "name": "Worn Axe", "desc": "Your old axe. Dull and chipped, but it still cuts." },
-    "axe": { "name": "Axe", "desc": "A sharp axe from the smithy. Chops faster and lasts longer." },
-    "pickaxe": { "name": "Pickaxe", "desc": "Needed to break rocks and mine ore." },
-    "package": { "name": "Package", "desc": "A parcel from the store. Deliver it to the right house." }
+    "wood": {
+      "name": "Wood",
+      "desc": "Logs from felled trees. Builders and households always need it — especially in winter."
+    },
+    "stone": {
+      "name": "Stone",
+      "desc": "Rough stone from rocks and the quarry."
+    },
+    "iron_ore": {
+      "name": "Iron Ore",
+      "desc": "Rusty-red ore. The blacksmith turns it into tools."
+    },
+    "coal": {
+      "name": "Coal",
+      "desc": "Black fuel that keeps the forge hot."
+    },
+    "wheat": {
+      "name": "Wheat",
+      "desc": "Golden grain. The store bakes it into bread."
+    },
+    "berries": {
+      "name": "Berries",
+      "desc": "Wild berries from forest bushes. Free food, if not very filling."
+    },
+    "apple": {
+      "name": "Apple",
+      "desc": "A crisp apple brought in by traders."
+    },
+    "bread": {
+      "name": "Bread",
+      "desc": "A fresh loaf. Cheap and filling."
+    },
+    "cheese": {
+      "name": "Cheese",
+      "desc": "A wedge of aged cheese. Filling and good for you."
+    },
+    "pie": {
+      "name": "Berry Pie",
+      "desc": "Baked at the tavern. Restores a little energy too."
+    },
+    "stew": {
+      "name": "Hot Stew",
+      "desc": "A hearty tavern meal. Very filling and warming."
+    },
+    "worn_axe": {
+      "name": "Worn Axe",
+      "desc": "Your old axe. Dull and chipped, but it still cuts."
+    },
+    "axe": {
+      "name": "Axe",
+      "desc": "A sharp axe from the smithy. Chops faster and lasts longer."
+    },
+    "pickaxe": {
+      "name": "Pickaxe",
+      "desc": "Needed to break rocks and mine ore."
+    },
+    "package": {
+      "name": "Package",
+      "desc": "A parcel from the store. Deliver it to the right house."
+    },
+    "clay": {
+      "name": "Clay",
+      "desc": "Soft river clay. Fired into bricks."
+    },
+    "planks": {
+      "name": "Planks",
+      "desc": "Sawn boards. Used for furniture and buildings."
+    },
+    "bricks": {
+      "name": "Bricks",
+      "desc": "Fired clay bricks for sturdy buildings."
+    },
+    "carrot": {
+      "name": "Carrot",
+      "desc": "A crunchy carrot."
+    },
+    "potato": {
+      "name": "Potato",
+      "desc": "A humble, filling potato."
+    },
+    "cabbage": {
+      "name": "Cabbage",
+      "desc": "A big head of cabbage."
+    },
+    "pumpkin": {
+      "name": "Pumpkin",
+      "desc": "A heavy autumn pumpkin. Very filling."
+    },
+    "vegetable_soup": {
+      "name": "Vegetable Soup",
+      "desc": "Hearty home-cooked soup. Restores energy and health."
+    },
+    "wheat_seeds": {
+      "name": "Wheat Seeds",
+      "desc": "Plant on tilled soil. Grows in spring and summer."
+    },
+    "carrot_seeds": {
+      "name": "Carrot Seeds",
+      "desc": "Plant on tilled soil. Quick to grow."
+    },
+    "potato_seeds": {
+      "name": "Potato Seeds",
+      "desc": "Plant on tilled soil. Reliable yield."
+    },
+    "cabbage_seeds": {
+      "name": "Cabbage Seeds",
+      "desc": "Plant on tilled soil. Slow, but valuable."
+    },
+    "pumpkin_seeds": {
+      "name": "Pumpkin Seeds",
+      "desc": "Plant on tilled soil. Grows in summer and autumn."
+    },
+    "stool": {
+      "name": "Stool",
+      "desc": "A simple wooden stool. Keep it at home for comfort, or sell it."
+    },
+    "chair": {
+      "name": "Chair",
+      "desc": "A sturdy chair. Villagers with money like to buy these."
+    },
+    "table": {
+      "name": "Table",
+      "desc": "A handsome dining table. Valuable furniture."
+    },
+    "iron_axe": {
+      "name": "Iron Axe",
+      "desc": "A heavy iron axe. Much faster and very durable."
+    },
+    "iron_pickaxe": {
+      "name": "Iron Pickaxe",
+      "desc": "A heavy iron pickaxe. Much faster and very durable."
+    },
+    "hammer": {
+      "name": "Hammer",
+      "desc": "Needed for construction work."
+    },
+    "saw": {
+      "name": "Saw",
+      "desc": "Needed to make furniture. Speeds up carpentry."
+    },
+    "hoe": {
+      "name": "Hoe",
+      "desc": "Needed to till soil for planting."
+    },
+    "watering_can": {
+      "name": "Watering Can",
+      "desc": "Water your crops. Refill at a well or the river."
+    },
+    "fish": {
+      "name": "Fish",
+      "desc": "Fresh from the water. Better grilled."
+    },
+    "grilled_fish": {
+      "name": "Grilled fish",
+      "desc": "Crispy skin, flaky flesh. A proper meal."
+    },
+    "meat": {
+      "name": "Game meat",
+      "desc": "From the hunt. Cook it before eating."
+    },
+    "roast_meat": {
+      "name": "Roast meat",
+      "desc": "Hot, hearty and filling."
+    },
+    "hide": {
+      "name": "Deer hide",
+      "desc": "Tanners and shops pay for good hides."
+    },
+    "fishing_rod": {
+      "name": "Fishing rod",
+      "desc": "Stand at the water's edge and press E to fish."
+    },
+    "bow": {
+      "name": "Hunting bow",
+      "desc": "Hunt deer and rabbits in the woods. They bolt if you come too close — stand still."
+    },
+    "relic": {
+      "name": "Ancient relic",
+      "desc": "A bronze amulet from the old fort's time. Worth a lot to the right buyer — and full of history."
+    },
+    "iron_ingot": {
+      "name": "Iron ingot",
+      "desc": "Smelted from iron ore and coal at a forge. Tools and fittings are made from it."
+    },
+    "cabinet": {
+      "name": "Cabinet",
+      "desc": "A tall cabinet with iron fittings. Very comfortable to own — and valuable."
+    },
+    "flour": {
+      "name": "Flour",
+      "desc": "Wheat ground at the mill. Bakers make twice the bread from it than from grinding wheat by hand."
+    },
+    "gemstone": {
+      "name": "Gemstone",
+      "desc": "A clear blue stone from deep in a cave. Traders pay well for it."
+    }
   },
-  "item_cat": { "resource": "Resource", "food": "Food", "tool": "Tool", "quest": "Job item" },
-
+  "item_cat": {
+    "resource": "Resource",
+    "food": "Food",
+    "tool": "Tool",
+    "quest": "Job item",
+    "seed": "Seeds",
+    "material": "Material",
+    "furniture": "Furniture"
+  },
   "skill": {
-    "woodcutting": { "name": "Woodcutting", "desc": "Chop trees faster; every 3 levels gives +1 wood per tree." },
-    "mining": { "name": "Mining", "desc": "Mine faster. Coal needs level 1, iron needs level 2." },
-    "foraging": { "name": "Foraging", "desc": "Gather berries faster; every 2 levels gives +1 berry." },
-    "farming": { "name": "Farming", "desc": "Harvest faster, with a chance of extra wheat." },
-    "trading": { "name": "Trading", "desc": "Better prices when buying and selling (+2% per level)." },
-    "negotiation": { "name": "Negotiation", "desc": "Employers pay you more (+4% per level)." },
-    "smithing": { "name": "Smithing", "desc": "Cheaper tool repairs (−8% per level). Improves at the smithy." },
-    "learning": { "name": "Learning", "desc": "Gain more XP and skill XP from everything (+5% per level)." }
+    "woodcutting": {
+      "name": "Woodcutting",
+      "desc": "Chop trees faster; every 3 levels gives +1 wood per tree."
+    },
+    "mining": {
+      "name": "Mining",
+      "desc": "Mine faster. Coal needs level 1, iron needs level 2."
+    },
+    "foraging": {
+      "name": "Foraging",
+      "desc": "Gather berries faster; every 2 levels gives +1 berry."
+    },
+    "farming": {
+      "name": "Farming",
+      "desc": "Harvest faster, with a chance of extra wheat."
+    },
+    "trading": {
+      "name": "Trading",
+      "desc": "Better prices when buying and selling (+2% per level)."
+    },
+    "negotiation": {
+      "name": "Negotiation",
+      "desc": "Employers pay you more (+4% per level)."
+    },
+    "smithing": {
+      "name": "Smithing",
+      "desc": "Smelt iron and forge tools at a forge; finer tools as you improve. Cheaper repairs (−8% per level)."
+    },
+    "learning": {
+      "name": "Learning",
+      "desc": "Gain more XP and skill XP from everything (+5% per level)."
+    },
+    "construction": {
+      "name": "Construction",
+      "desc": "Build faster (+8% per level). Needed for bigger buildings."
+    },
+    "carpentry": {
+      "name": "Carpentry",
+      "desc": "Craft planks and furniture faster; unlocks better furniture."
+    },
+    "leadership": {
+      "name": "Leadership",
+      "desc": "Manage more workers; your whole team works better."
+    },
+    "fishing": {
+      "name": "Fishing",
+      "desc": "Fish bite more often for you, and you fish faster."
+    },
+    "hunting": {
+      "name": "Hunting",
+      "desc": "Your arrows find their mark more often."
+    },
+    "cooking": {
+      "name": "Cooking",
+      "desc": "Cook at a stove: better meals that restore more and sell for more. More recipes as you improve."
+    },
+    "exploration": {
+      "name": "Exploration",
+      "desc": "Safer expeditions that map more and find more. Improves on the road and walking unknown country."
+    }
   },
-  "skill_cat": { "gathering": "Gathering", "agriculture": "Agriculture", "commerce": "Commerce", "crafting": "Crafting", "knowledge": "Knowledge" },
-
+  "skill_cat": {
+    "gathering": "Gathering",
+    "agriculture": "Agriculture",
+    "commerce": "Commerce",
+    "crafting": "Crafting",
+    "knowledge": "Knowledge",
+    "construction": "Construction",
+    "leadership": "Leadership"
+  },
   "attr": {
-    "strength": { "name": "Strength", "desc": "+5 kg carrying capacity; chop and mine faster." },
-    "endurance": { "name": "Endurance", "desc": "Energy drains more slowly." },
-    "agility": { "name": "Agility", "desc": "Walk faster; work a little faster." },
-    "intelligence": { "name": "Intelligence", "desc": "Skills improve faster; more XP." },
-    "charisma": { "name": "Charisma", "desc": "Relationships grow faster; slightly higher pay." },
-    "craftsmanship": { "name": "Craftsmanship", "desc": "Better shift work pay; chance of extra harvest." },
-    "trading": { "name": "Trading", "desc": "Better prices at every shop." },
-    "leadership": { "name": "Leadership", "desc": "Reputation grows faster. Later: manage workers." }
+    "strength": {
+      "name": "Strength",
+      "desc": "+5 kg carrying capacity; chop and mine faster."
+    },
+    "endurance": {
+      "name": "Endurance",
+      "desc": "Energy drains more slowly."
+    },
+    "agility": {
+      "name": "Agility",
+      "desc": "Walk faster; work a little faster."
+    },
+    "intelligence": {
+      "name": "Intelligence",
+      "desc": "Skills improve faster; more XP."
+    },
+    "charisma": {
+      "name": "Charisma",
+      "desc": "Relationships grow faster; slightly higher pay."
+    },
+    "craftsmanship": {
+      "name": "Craftsmanship",
+      "desc": "Better shift work pay; chance of extra harvest."
+    },
+    "trading": {
+      "name": "Trading",
+      "desc": "Better prices at every shop."
+    },
+    "leadership": {
+      "name": "Leadership",
+      "desc": "Reputation grows faster. Later: manage workers."
+    }
   },
-
   "title": {
     "nobody": "Nobody",
     "citizen": "Citizen",
@@ -85,22 +574,55 @@
     "skilled_worker": "Skilled Worker",
     "craftsman": "Craftsman"
   },
-
-  "season": { "spring": "Spring", "summer": "Summer", "autumn": "Autumn", "winter": "Winter" },
-  "weekday": { "0": "Mon", "1": "Tue", "2": "Wed", "3": "Thu", "4": "Fri", "5": "Sat", "6": "Sun" },
-  "weather": { "sunny": "Sunny", "cloudy": "Cloudy", "rain": "Rain", "storm": "Storm", "snow": "Snow", "fog": "Fog" },
-
+  "season": {
+    "spring": "Spring",
+    "summer": "Summer",
+    "autumn": "Autumn",
+    "winter": "Winter"
+  },
+  "weekday": {
+    "0": "Mon",
+    "1": "Tue",
+    "2": "Wed",
+    "3": "Thu",
+    "4": "Fri",
+    "5": "Sat",
+    "6": "Sun"
+  },
+  "weather": {
+    "sunny": "Sunny",
+    "cloudy": "Cloudy",
+    "rain": "Rain",
+    "storm": "Storm",
+    "snow": "Snow",
+    "fog": "Fog"
+  },
   "stat": {
-    "health": "Health", "energy": "Energy", "hunger": "Satiety", "comfort": "Comfort", "money": "Money",
-    "reputation": "Reputation", "carry": "Carrying", "speed": "Walk speed", "trade_bonus": "Trade bonus", "jobs_done": "Jobs done"
+    "health": "Health",
+    "energy": "Energy",
+    "hunger": "Satiety",
+    "comfort": "Comfort",
+    "money": "Money",
+    "reputation": "Reputation",
+    "carry": "Carrying",
+    "speed": "Walk speed",
+    "trade_bonus": "Trade bonus",
+    "jobs_done": "Jobs done"
   },
-
   "object": {
-    "tree_oak": "Oak tree", "tree_pine": "Pine tree", "rock_stone": "Rock", "rock_iron": "Iron deposit", "rock_coal": "Coal deposit",
-    "bush_berry": "Berry bush", "crop_wheat": "Wheat"
+    "tree_oak": "Oak tree",
+    "tree_pine": "Pine tree",
+    "rock_stone": "Rock",
+    "rock_iron": "Iron deposit",
+    "rock_coal": "Coal deposit",
+    "bush_berry": "Berry bush",
+    "crop_wheat": "Wheat"
   },
-  "decor": { "well": "Well", "notice_board": "Notice board" },
-
+  "decor": {
+    "well": "Well",
+    "notice_board": "Notice board",
+    "expedition": "Waymark — the road out of the valley"
+  },
   "action": {
     "chop": "Chop tree",
     "mine": "Mine",
@@ -122,9 +644,49 @@
     "repair": "Repair tools",
     "ask_work": "Ask about work",
     "talk_to": "Talk to {npc}",
-    "knock": "Knock on the door"
+    "knock": "Knock on the door",
+    "inspect": "Inspect",
+    "enter_home": "Go inside",
+    "open_storage": "Open the chest",
+    "eat_table": "Sit down and eat",
+    "craft_workbench": "Craft at the workbench",
+    "craft_stove": "Cook",
+    "leave_home": "Go outside",
+    "build": "Build here",
+    "land_info": "Look at the land",
+    "work_site": "Work on it (1 h)",
+    "deliver_materials": "Deliver materials",
+    "inspect_site": "Construction details",
+    "move_in": "Move in",
+    "upgrade_home": "Upgrade your home",
+    "farm_till": "Till the soil",
+    "farm_plant": "Plant: {item}",
+    "farm_water": "Water",
+    "farm_harvest": "Harvest",
+    "farm_clear": "Clear the withered plants",
+    "fill_can": "Fill the watering can",
+    "manage_business": "Manage the workshop",
+    "work_business": "Work at the bench (1 h)",
+    "deliver_input": "Unload {item}",
+    "fish": "Fish",
+    "hunt": "Shoot an arrow",
+    "fight_fire": "Fight the fire",
+    "expedition": "Plan an expedition",
+    "rent_forge": "Use the forge ({money} for the day)",
+    "use_forge": "Work at the forge",
+    "use_own_forge": "Work at your forge",
+    "contract_collect": "Collect {item} ×{qty} (contract)",
+    "contract_deliver": "Hand over {item} ×{qty} (contract)",
+    "manage_enterprise": "Manage your business",
+    "work_own_shift": "Work a shift here",
+    "business_dealings": "Talk business (buy, invest, lend)",
+    "open_business_here": "Open a business here",
+    "read_books": "Read for a while",
+    "warm_up": "Warm up by the fire",
+    "explore_site": "Explore",
+    "found_outpost": "Found a {building_type} here ({money})",
+    "look_around": "Look around"
   },
-
   "reason": {
     "nothing_here": "Nothing to do here.",
     "need_axe": "You need an axe.",
@@ -150,9 +712,77 @@
     "shop_full": "They have plenty of this already.",
     "shop_broke": "They can't afford to buy right now.",
     "not_thirsty": "You're not thirsty yet.",
-    "asleep": "Asleep"
+    "asleep": "Asleep",
+    "locked": "Unlocks at level {level}.",
+    "missing_materials": "Not enough {item} (need {qty}).",
+    "need_hammer": "You need a hammer (smithy).",
+    "need_saw": "You need a saw (smithy).",
+    "need_hoe": "You need a hoe (smithy).",
+    "need_watering_can": "You need a watering can (store).",
+    "already_owned": "You already own this land.",
+    "not_your_land": "Not your land.",
+    "bad_ground": "You can't build here.",
+    "obstructed": "Something is in the way (trees, rocks, buildings).",
+    "door_blocked": "The door would be blocked.",
+    "need_materials": "Deliver more materials to continue.",
+    "nothing_to_deliver": "You're not carrying anything this site needs.",
+    "all_delivered": "All materials delivered.",
+    "cant_upgrade": "Your home can't be upgraded.",
+    "upgrade_in_progress": "An upgrade is already under way.",
+    "road_must_connect": "Roads must connect to an existing road or path.",
+    "too_far": "Too far away — walk closer.",
+    "no_land": "Buy a plot of land first.",
+    "chest_far": "Your chest is at home — go there, or have a worker haul it.",
+    "already_tilled": "Already tilled.",
+    "no_seeds": "You have no seeds (the store sells them).",
+    "wrong_season_crop": "{item} won't grow this season.",
+    "already_watered": "Already watered today.",
+    "can_empty": "Your watering can is empty — fill it at a well or the river.",
+    "not_ripe": "Not ripe yet.",
+    "cant_hire_person": "Can't hire this person.",
+    "owns_business": "Runs their own business.",
+    "already_yours": "Already works for you.",
+    "too_many_workers": "You can manage only {n} workers (Leadership).",
+    "dont_know_you": "Get to know them first.",
+    "offer_refused": "They turned down your offer.",
+    "max_rank": "Highest rank already.",
+    "need_npc_level": "Needs level {level}.",
+    "no_materials_ws": "Nothing to work on — bring {item}.",
+    "offer_refused_grudge": "They remember how you treated them. The answer is no.",
+    "not_for_sale": "It's not for sale.",
+    "not_yours": "That isn't yours.",
+    "no_repair_needed": "It's in perfect condition.",
+    "need_item": "Need {qty} × {item}.",
+    "need_fishing_rod": "You need a fishing rod.",
+    "need_bow": "You need a bow.",
+    "love_too_soon": "it's too soon",
+    "love_not_ready": "they're not ready yet",
+    "region_unknown": "Nobody knows the way there yet.",
+    "already_away": "You're already on an expedition.",
+    "too_many_companions": "Too many people for one party.",
+    "need_food": "You need {n} food for the road (anything edible).",
+    "too_weak": "You're too weak for a long journey.",
+    "too_many_contracts": "You can take on at most {n} contracts at a time.",
+    "contract_gone": "That offer is gone.",
+    "contract_quality": "You have no {item} of the required quality.",
+    "contract_nothing": "You have no {item} to hand over.",
+    "forge_refused": "The smith won't let you near the forge.",
+    "owner_refuses": "The owner won't do business with you.",
+    "already_invested": "You already have a stake in it.",
+    "already_has_loan": "It already has a loan to pay off.",
+    "not_your_premises": "These aren't your premises.",
+    "premises_in_use": "The premises are already in use.",
+    "premises_occupied": "People live here.",
+    "premises_unsuitable": "That business can't be run from these premises.",
+    "business_locked": "You need to reach level 10 to run a business.",
+    "read_enough": "You've read enough for today — it's not sinking in any more.",
+    "loan_outstanding": "You're still paying off a loan.",
+    "fund_too_small": "The village fund can't spare that much.",
+    "site_unknown": "You haven't found it yet.",
+    "site_explored": "Already explored.",
+    "no_outpost_here": "Nothing to build here.",
+    "need_explored_site": "Outposts go beside a place you've explored."
   },
-
   "toast": {
     "hungry": "You're getting hungry. Press Q to eat.",
     "starving": "You're starving! Your health is dropping.",
@@ -186,7 +816,16 @@
       "heavy_rain": "Heavy rain! The fields are soaking it up.",
       "storm_front": "A storm is rolling in.",
       "cold_snap": "A cold snap! Everyone needs more firewood.",
-      "berry_year": "The bushes are heavy with berries this year."
+      "berry_year": "The bushes are heavy with berries this year.",
+      "flood": "Flood! The river has burst its banks.",
+      "blight": "Blight! Crops are withering.",
+      "poor_harvest": "It's going to be a poor harvest.",
+      "sickness": "A sickness is going round the village.",
+      "mine_collapse": "The quarry has collapsed!",
+      "boom": "Trade is booming — traders pay more for local goods.",
+      "slump": "Trade has slumped.",
+      "migration_wave": "A group of newcomers has arrived.",
+      "trade_fair": "Trade fair! Shops pay top price for {item}."
     },
     "good_morning": "Good morning! A new day begins.",
     "autosaved": "Game autosaved.",
@@ -202,9 +841,74 @@
     "repaired": "Your {item} is as good as new.",
     "saved": "Game saved.",
     "save_failed": "Saving failed (browser storage full or blocked).",
-    "load_failed": "Couldn't load that save."
+    "load_failed": "Couldn't load that save.",
+    "ate_table": "A proper meal at the table: {item}. +Energy",
+    "crafted": "Crafted: {item} ×{qty}",
+    "storage_full": "The chest is full.",
+    "land_bought": "You bought {plot} for {money}!",
+    "site_placed": "Construction site marked out: {building_type}. Deliver materials and start building.",
+    "upgrade_started": "Upgrade started: {tier}.",
+    "upgrade_done": "Your home is now a {tier}!",
+    "building_done": "Finished building: {building_type}!",
+    "site_cancelled": "Construction cancelled. Materials returned to your chest.",
+    "moved_in": "You moved into your own house! No more rent.",
+    "worked_on_site": "An hour of hard work (+{hours} h of progress).",
+    "delivered": "Delivered {qty} units of materials.",
+    "can_filled": "Watering can filled.",
+    "hired": "{npc} now works for you ({money} a day).",
+    "fired": "You let {npc} go.",
+    "worker_unpaid": "You couldn't pay {npc}! Unpaid workers get unhappy fast.",
+    "worker_quit": "{npc} quit working for you.",
+    "promoted": "{npc} promoted: {worker_rank}!",
+    "business_opened": "Your workshop is open for business! Assign workers to it and bring wood.",
+    "customer_bought": "{npc} bought {item} at your workshop for {money}.",
+    "took_products": "You took {qty} items from the workshop.",
+    "rel_wary": "{npc} doesn't trust you any more.",
+    "rel_hostile": "{npc} now sees you as an enemy.",
+    "rent_received": "Rent collected: {money} ({building}).",
+    "property_bought": "You bought {building}.",
+    "property_restored": "{building} is as good as new.",
+    "worker_left_business": "{npc} left your service to open their own {biz_type}.",
+    "no_bite": "Nothing's biting. Try again.",
+    "fish_scarce": "Hardly any fish left here — the water has been overfished.",
+    "missed": "Missed! The animal bolts.",
+    "fire": "🔥 Fire at {building}! Villagers are running to help.",
+    "fought_fire": "You threw water on the flames.",
+    "player_child": {
+      "m": "A son is born: {npc}!",
+      "f": "A daughter is born: {npc}!"
+    },
+    "tech_discovered": "New know-how: {tech}!",
+    "donated": "You gave {money} to the village fund.",
+    "crafted_q": "Crafted: {item} ×{qty} ({quality})",
+    "perk_available": "{skill}: choose a perk (Character, C)",
+    "perk_chosen": "New perk: {perk}",
+    "contract_delivered": {
+      "one": "Delivered {qty} × {item}. {left} to go.",
+      "other": "Delivered {qty} × {item}. {left} to go."
+    },
+    "contract_collected": "Collected {qty} × {item} to carry.",
+    "contract_done": "Contract fulfilled! You were paid {money}.",
+    "contract_short": "Contract fulfilled — but they could only pay {money} of {money2}.",
+    "contract_failed": "A contract fell through. People will remember.",
+    "ambition": "Ambition achieved: {ambition}!",
+    "bought_business": "{building} is yours now!",
+    "dividend": "Your share of the profits from {building}: {money}",
+    "loan_repaid": "{building} paid back {money} of your loan.",
+    "your_business_trouble": "{building} is in trouble: it can't cover its costs.",
+    "your_business_closed": "{building} has gone under. What was left in the till came back to you.",
+    "order_shipped": "Order sent: {item} ×{qty} (a cart is on its way). {left} to go.",
+    "read_books": "You read for a while. (Learning)",
+    "warm": "You sit by the fire for a bit.",
+    "warm_winter": "You warm yourself by the fire. Much better.",
+    "your_business_short": "{building} is out of {item}: production has stopped.",
+    "taxes_paid": "You paid {money} in village taxes this week.",
+    "loan_cleared": "Your loan from the village fund is paid off.",
+    "loan_payment": "Loan payment: {money}. Still owed: {left}.",
+    "loan_missed": "You missed a loan payment of {money}. People talk.",
+    "site_discovered": "You've found something: {site}! (it's on your map)",
+    "outpost_ready": "{building} is open! Put money in its till so it can pay wages."
   },
-
   "objective": {
     "harvest": "Harvest ripe wheat in the farm fields ({have}/{qty})",
     "collect_wood": "Gather wood by chopping trees ({have}/{qty})",
@@ -216,17 +920,36 @@
     "request": "{npc} needs {item} ×{qty} (you have {have})",
     "first_tip": "You arrived with almost nothing. Find work: read the notice board on the plaza, or talk to villagers."
   },
-
   "job": {
-    "farm_harvest": { "name": "Harvest help", "desc": "Farmer Gregory needs hands. Harvest ripe wheat from the fields and bring it to the farmhouse." },
-    "lumber_delivery": { "name": "Wood delivery", "desc": "The lumberyard is behind on orders. Chop wood and bring it to the yard." },
-    "courier": { "name": "Courier run", "desc": "Pick up a package at the store and deliver it to a villager's home." },
-    "dishwasher": { "name": "Evening dishwashing", "desc": "The tavern gets busy in the evening. Wash dishes for a few hours." },
-    "store_assistant": { "name": "Store assistant", "desc": "Help Vera stock shelves and serve customers. You'll learn a lot about trading." },
-    "quarry_miner": { "name": "Quarry work", "desc": "Break stone for the quarry. Bring your own pickaxe." },
-    "smith_apprentice": { "name": "Smith's apprentice", "desc": "Work the bellows and swing the hammer at the forge. Hard work, good pay." }
+    "farm_harvest": {
+      "name": "Harvest help",
+      "desc": "Farmer Gregory needs hands. Harvest ripe wheat from the fields and bring it to the farmhouse."
+    },
+    "lumber_delivery": {
+      "name": "Wood delivery",
+      "desc": "The lumberyard is behind on orders. Chop wood and bring it to the yard."
+    },
+    "courier": {
+      "name": "Courier run",
+      "desc": "Pick up a package at the store and deliver it to a villager's home."
+    },
+    "dishwasher": {
+      "name": "Evening dishwashing",
+      "desc": "The tavern gets busy in the evening. Wash dishes for a few hours."
+    },
+    "store_assistant": {
+      "name": "Store assistant",
+      "desc": "Help Vera stock shelves and serve customers. You'll learn a lot about trading."
+    },
+    "quarry_miner": {
+      "name": "Quarry work",
+      "desc": "Break stone for the quarry. Bring your own pickaxe."
+    },
+    "smith_apprentice": {
+      "name": "Smith's apprentice",
+      "desc": "Work the bellows and swing the hammer at the forge. Hard work, good pay."
+    }
   },
-
   "chronicle": {
     "player_arrived": "{name} arrived in the village with almost nothing.",
     "player_level": "You reached level {level}.",
@@ -247,39 +970,263 @@
       "heavy_rain": "Heavy rains soaked the valley.",
       "storm_front": "A fierce storm swept through the village.",
       "cold_snap": "A bitter cold snap gripped the village.",
-      "berry_year": "The forest bushes bloomed with berries."
+      "berry_year": "The forest bushes bloomed with berries.",
+      "flood": "The river flooded — {n} buildings were damaged by the water.",
+      "blight": "Blight struck the fields. Crops withered overnight.",
+      "poor_harvest": "A poor harvest this autumn. Farmers are worried.",
+      "sickness": "A sickness is going round the village.",
+      "mine_collapse": "Part of the quarry collapsed. {npc} was hurt.",
+      "boom": "Traders are paying well — good times for the village's producers.",
+      "slump": "Trade has slumped: the traders are paying next to nothing.",
+      "migration_wave": "A wave of newcomers arrived: {n} people looking for a new home.",
+      "trade_fair": "A trade fair: a merchant is buying {item} at top prices."
+    },
+    "npc_rank_skilled": "{npc} is now a skilled {occ}.",
+    "npc_rank_master": "{npc} has become a true master {occ}.",
+    "player_land": "You bought land: {plot}.",
+    "player_built": "You finished building: {building_type}.",
+    "player_upgraded": "You upgraded your home: {tier}.",
+    "player_moved_in": "You moved out of the rented shack into a house of your own.",
+    "player_hired": "{npc} started working for you.",
+    "player_fired": "You fired {npc}.",
+    "worker_promoted": "You promoted {npc}: {worker_rank}.",
+    "worker_quit": "{npc} quit working for you — unhappy with the job.",
+    "business_opened": "You opened your own business: {building_type}.",
+    "npc_feud": "{npc} and {npc2} have fallen out.",
+    "npc_courting": "{npc} and {npc2} have been seen walking together in the evenings.",
+    "npc_married": "{npc} and {npc2} got married! The whole village celebrated.",
+    "npc_baby": "{npc} and {npc2} had a baby: {npc3}.",
+    "npc_died": "{npc} passed away at the age of {n}.",
+    "npc_retired": "{npc} has retired after a long working life.",
+    "npc_moved_out": "{npc} moved out of the family home ({building}).",
+    "npc_bought_home": "{npc} bought a home: {building}.",
+    "npc_evicted": "{npc} was evicted for not paying rent ({building}).",
+    "business_handed_over": "{npc} handed {building} over to {npc2}.",
+    "business_inherited": "{npc2} inherited {building} from {npc}.",
+    "business_taken_over": "With no family to take over, {npc2} now runs {building}.",
+    "business_closed": "{building} has closed its doors.",
+    "building_abandoned": "{building} stands empty and abandoned.",
+    "building_ruined": "{building} has fallen into ruin.",
+    "building_restored": "{building} has been restored.",
+    "player_bought_property": "You bought a property: {building} ({money}).",
+    "business_expanding": "{building} is doing well and taking on more staff.",
+    "npc_manager": "{npc} has been made manager at {building}.",
+    "npc_changed_jobs": "{npc} left {building} for a better job at {building2}.",
+    "business_opened_npc": "{npc} opened a new {biz_type}: {building}!",
+    "business_failed": "{building} has gone out of business.",
+    "business_partners": "{npc2} put money into a new {biz_type} run by {npc} and became a partner.",
+    "deposit_found": "A new {item} deposit was discovered in {region}!",
+    "forest_thinning": "The forests are thinning — about {n}% of the old trees are gone.",
+    "forest_growing": "The forests are thicker than anyone can remember.",
+    "fish_scarce": "Fishermen complain: the river and lake are nearly fished out.",
+    "deer_scarce": "Hunters say the deer have all but vanished from the woods.",
+    "iron_running_out": "The iron seams are running out.",
+    "replanting": "With the nearby woods cut back, the lumberyard's crew has started planting saplings.",
+    "npc_building": "{npc} has started building a {vbuilding} — {purpose}.",
+    "village_building": "The village has started building a {vbuilding}.",
+    "npc_built_home": "{npc} moved into a house they built themselves ({building}).",
+    "new_rental": "A new house is up for rent: {building}.",
+    "village_well": "A new well has been dug for the new street.",
+    "migrants_arrived": "Newcomers arrived looking for work: {npc} ({n} in all).",
+    "npc_left_village": "{npc} packed up and left the village ({n} in all).",
+    "district_changed": "The {district} has changed — once {from}, now {to}.",
+    "building_abandoned_site": "A half-built {vbuilding} has been abandoned.",
+    "fire_started": "Fire! {building} is burning!",
+    "fire_out": "The fire at {building} was put out ({n} people fought it).",
+    "fire_destroyed": "{building} burned to the ground.",
+    "building_repaired": "{building} has been repaired.",
+    "population_milestone": "The village has grown to {n} people.",
+    "player_courting": "You and {npc} have started walking out together.",
+    "player_married": "You married {npc}!",
+    "player_child": {
+      "m": "Your son {npc} was born!",
+      "f": "Your daughter {npc} was born!"
+    },
+    "player_died": "{name} died at the age of {n}. The whole village came to say goodbye.",
+    "player_retired": "{name} handed on the family's affairs at the age of {n}.",
+    "heir_continues": "{name} now carries the family on — generation {n}.",
+    "line_ended": "{name} left no children to carry on. The family's estate passed to the village.",
+    "newcomer_arrives": "A newcomer, {name}, arrived in the village to start a new life.",
+    "expedition_left": {
+      "one": "You set out for {region_name} with {n} companion.",
+      "other": "You set out for {region_name} with {n} companions."
+    },
+    "expedition_back": "You came back from {region_name} with news and finds.",
+    "expedition_empty": "You came back from {region_name} empty-handed.",
+    "region_discovered": "The way to {region_name} is known now.",
+    "exp_ruins": "You explored ruins out in {region_name}.",
+    "exp_ruins_npc": "{npc} explored ruins out in {region_name}.",
+    "exp_relic": "You brought an ancient relic back from {region_name}.",
+    "exp_relic_npc": "{npc} brought an ancient relic back from {region_name}.",
+    "exp_partner": "Merchants from {region_name} will trade with the village from now on.",
+    "exp_partner_npc": "Thanks to {npc}, merchants from {region_name} will trade with the village.",
+    "exp_settlers": {
+      "one": "A newcomer from {region_name} has arrived, having heard about the village.",
+      "other": "{n} newcomers from {region_name} have arrived, having heard about the village."
+    },
+    "exp_companion_died": "{npc} died on the road ({region_name}).",
+    "npc_expedition_left": "{npc} set off exploring: {region_name}.",
+    "npc_expedition_back": "{npc} is back from {region_name} with news.",
+    "npc_expedition_empty": "{npc} came back from {region_name} with nothing to show for it.",
+    "tech_discovered": "The village has learned something new: {tech}.",
+    "tech_discovered_by": "{npc} worked it out — the village now has {tech}!",
+    "new_teacher": {
+      "m": "{npc} is the village's new schoolteacher.",
+      "f": "{npc} is the village's new schoolteacher."
+    },
+    "npc_apprentice": "{npc} is learning the trade from {npc2}.",
+    "craft_passed_on": "{npc} is gone, but the craft lives on: {npc2} learned it.",
+    "craft_recorded": "{npc} is gone, but what they knew is kept in the library.",
+    "craft_lost": "{npc} took a lifetime of know-how to the grave — nobody had learned it.",
+    "village_school": "The village school is open! Children will learn their letters there.",
+    "village_library": "The village has a library now — what people know won't be lost.",
+    "village_mill": "The new mill is turning. Grain will go further now.",
+    "relic_donated": "You gave an ancient relic to {building}.",
+    "player_benefactor": "Folk are saying you've been generous to the village fund.",
+    "player_ambition": "You achieved an ambition: {ambition}.",
+    "player_bought_business": "You bought {building} from {npc}.",
+    "player_opened_business": "You opened a new {biz_type}: {building}.",
+    "player_invested": "You took a stake in {building} ({npc}'s business).",
+    "business_short": "{building} has run out of {item} — no {item2} until a supplier delivers.",
+    "site_explored": "You explored a place out in the valley: {site}.",
+    "outpost_founded": "Your outpost is ready: a {building_type} by the {site}.",
+    "hamlet_founded": "The houses round your outpost have become a hamlet: {hamlet}."
+  },
+  "event": {
+    "good_harvest": {
+      "name": "Good harvest",
+      "desc": "Farm output +60%."
+    },
+    "drought": {
+      "name": "Drought",
+      "desc": "Farm output −60%, crops grow slowly."
+    },
+    "heavy_rain": {
+      "name": "Heavy rain",
+      "desc": "Farm output +20%, work is slower outdoors."
+    },
+    "storm_front": {
+      "name": "Storm",
+      "desc": "Hard to work outside; villagers stay home."
+    },
+    "cold_snap": {
+      "name": "Cold snap",
+      "desc": "Double firewood demand, hunger grows faster."
+    },
+    "berry_year": {
+      "name": "Berry year",
+      "desc": "Bushes regrow with extra berries."
+    },
+    "flood": {
+      "name": "Flood",
+      "desc": "The river burst its banks: riverside buildings damaged, crops by the water lost."
+    },
+    "blight": {
+      "name": "Blight",
+      "desc": "A crop disease — farm output halved, crops wither."
+    },
+    "poor_harvest": {
+      "name": "Poor harvest",
+      "desc": "Farm output −40% this autumn."
+    },
+    "sickness": {
+      "name": "Sickness",
+      "desc": "An illness is going round. The crowded, the old and the young suffer most."
+    },
+    "mine_collapse": {
+      "name": "Mine collapse",
+      "desc": "Part of the quarry caved in. Work has stopped."
+    },
+    "boom": {
+      "name": "Boom",
+      "desc": "Traders pay far more for the village's goods; newcomers are drawn in."
+    },
+    "slump": {
+      "name": "Slump",
+      "desc": "Traders are paying little. Times are hard and people drift away."
+    },
+    "migration_wave": {
+      "name": "Newcomers",
+      "desc": "Families from elsewhere arrived, looking for a new home."
+    },
+    "trade_fair": {
+      "name": "Trade fair",
+      "desc": "A merchant is paying top price for one kind of goods — any shop will buy it."
     }
   },
-
-  "event": {
-    "good_harvest": { "name": "Good harvest", "desc": "Farm output +60%." },
-    "drought": { "name": "Drought", "desc": "Farm output −60%, crops grow slowly." },
-    "heavy_rain": { "name": "Heavy rain", "desc": "Farm output +20%, work is slower outdoors." },
-    "storm_front": { "name": "Storm", "desc": "Hard to work outside; villagers stay home." },
-    "cold_snap": { "name": "Cold snap", "desc": "Double firewood demand, hunger grows faster." },
-    "berry_year": { "name": "Berry year", "desc": "Bushes regrow with extra berries." }
-  },
-
   "trait": {
-    "hard_worker": { "name": "Hard worker", "desc": "Improves at their job faster; rarely quits." },
-    "lazy": { "name": "Lazy", "desc": "Sleeps in and learns slowly." },
-    "greedy": { "name": "Greedy", "desc": "Charges more; offers smaller rewards." },
-    "generous": { "name": "Generous", "desc": "Warms up to people quickly; pays well for favours." },
-    "loyal": { "name": "Loyal", "desc": "Sticks with their employer even in hard times." },
-    "ambitious": { "name": "Ambitious", "desc": "Dreams big; learns quickly." },
-    "entrepreneur": { "name": "Entrepreneur", "desc": "Wants to run their own business one day." },
-    "friendly": { "name": "Friendly", "desc": "Loves to chat; makes friends easily." },
-    "aggressive": { "name": "Short-tempered", "desc": "Hard to get close to." },
-    "scholar": { "name": "Scholar", "desc": "Curious and quick to learn." },
-    "natural_leader": { "name": "Natural leader", "desc": "People listen when they speak." },
-    "risk_taker": { "name": "Risk-taker", "desc": "Makes bold decisions — sometimes rash ones." },
-    "careful": { "name": "Careful", "desc": "Thinks twice before acting." }
+    "hard_worker": {
+      "name": "Hard worker",
+      "desc": "Improves at their job faster; rarely quits."
+    },
+    "lazy": {
+      "name": "Lazy",
+      "desc": "Sleeps in and learns slowly."
+    },
+    "greedy": {
+      "name": "Greedy",
+      "desc": "Charges more; offers smaller rewards."
+    },
+    "generous": {
+      "name": "Generous",
+      "desc": "Warms up to people quickly; pays well for favours."
+    },
+    "loyal": {
+      "name": "Loyal",
+      "desc": "Sticks with their employer even in hard times."
+    },
+    "ambitious": {
+      "name": "Ambitious",
+      "desc": "Dreams big; learns quickly."
+    },
+    "entrepreneur": {
+      "name": "Entrepreneur",
+      "desc": "Wants to run their own business one day."
+    },
+    "friendly": {
+      "name": "Friendly",
+      "desc": "Loves to chat; makes friends easily."
+    },
+    "aggressive": {
+      "name": "Short-tempered",
+      "desc": "Hard to get close to."
+    },
+    "scholar": {
+      "name": "Scholar",
+      "desc": "Curious and quick to learn."
+    },
+    "natural_leader": {
+      "name": "Natural leader",
+      "desc": "People listen when they speak."
+    },
+    "risk_taker": {
+      "name": "Risk-taker",
+      "desc": "Makes bold decisions — sometimes rash ones."
+    },
+    "careful": {
+      "name": "Careful",
+      "desc": "Thinks twice before acting."
+    }
   },
-
-  "rel_tier": { "stranger": "Stranger", "acquaintance": "Acquaintance", "friend": "Friend", "trusted": "Trusted" },
-  "wealth": { "rich": "Well off", "comfortable": "Comfortable", "modest": "Getting by", "poor": "Struggling" },
-  "biz_state": { "thriving": "Thriving", "steady": "Steady", "struggling": "Struggling" },
-
+  "rel_tier": {
+    "stranger": "Stranger",
+    "acquaintance": "Acquaintance",
+    "friend": "Friend",
+    "trusted": "Trusted",
+    "wary": "Wary of you",
+    "hostile": "Hostile"
+  },
+  "wealth": {
+    "rich": "Well off",
+    "comfortable": "Comfortable",
+    "modest": "Getting by",
+    "poor": "Struggling"
+  },
+  "biz_state": {
+    "thriving": "Thriving",
+    "steady": "Steady",
+    "struggling": "Struggling"
+  },
   "levelup": {
     "heading": "Level {level}!",
     "points": "+{a} attribute point, +{s} skill point",
@@ -287,14 +1234,15 @@
     "job": "New job available: {job}",
     "hint": "Press C to spend your points."
   },
-
   "status": {
     "sleep": "Sleeping… zZz",
     "work": "Working: {job}",
     "passout": "You passed out…",
-    "collapse": "The healer is looking after you…"
+    "collapse": "The healer is looking after you…",
+    "travel": "On the road: {region_name}",
+    "own_shift": "Working at {building}",
+    "exploring": "Exploring: {site}"
   },
-
   "tips": {
     "tip1": "The notice board on the plaza lists all work. Talking to employers works too.",
     "tip2": "Eat before you're starving (Q). Bread at the store is cheap; berries are free.",
@@ -302,16 +1250,32 @@
     "tip4": "Prices follow supply and demand — don't flood one shop with the same goods.",
     "tip5": "Chat with villagers every day. Friends pay more and give discounts."
   },
-
   "controls": {
-    "move": { "keys": "W A S D / Arrows", "what": "Walk" },
-    "interact": { "keys": "E / Space", "what": "Interact with what's in front of you" },
-    "menu_keys": { "keys": "I · C · J · M", "what": "Inventory · Character · Journal · Map" },
-    "numbers": { "keys": "1–9", "what": "Choose an option in menus and conversations" },
-    "eat": { "keys": "Q", "what": "Eat the most suitable food" },
-    "esc": { "keys": "Esc", "what": "Close window / game menu" }
+    "move": {
+      "keys": "W A S D / Arrows",
+      "what": "Walk"
+    },
+    "interact": {
+      "keys": "E / Space",
+      "what": "Interact with what's in front of you"
+    },
+    "menu_keys": {
+      "keys": "I · C · J · M",
+      "what": "Inventory · Character · Journal · Map"
+    },
+    "numbers": {
+      "keys": "1–9",
+      "what": "Choose an option in menus and conversations"
+    },
+    "eat": {
+      "keys": "Q",
+      "what": "Eat the most suitable food"
+    },
+    "esc": {
+      "keys": "Esc",
+      "what": "Close window / game menu"
+    }
   },
-
   "titlescreen": {
     "game_name": "From Nothing",
     "subtitle": "Life · Settlement · City · Civilization",
@@ -324,9 +1288,11 @@
     "intro": "You arrive in a small river village with $25, a worn axe and two loaves of bread. You rent a leaky shack by the river. Everything else is up to you.",
     "start": "Begin",
     "back": "Back",
-    "footer": "Phase 1–2 prototype · WASD to move · E to interact"
+    "footer": "Phase 1–2 prototype · WASD to move · E to interact",
+    "default_name_f": "Katya",
+    "gender_m": "♂ Man",
+    "gender_f": "♀ Woman"
   },
-
   "ui": {
     "key_interact": "Interact",
     "inventory": "Inventory",
@@ -447,81 +1413,599 @@
     "save_hint": "The game also autosaves every time you sleep.",
     "load_hint": "Loading replaces your current game.",
     "language": "Language",
-    "language_hint": "The language switches instantly — no restart needed."
+    "language_hint": "The language switches instantly — no restart needed.",
+    "key_inspect": "Inspect",
+    "open_until": "open until {hour}",
+    "closed_opens": "closed · opens {hour}",
+    "needs": "Needs",
+    "mood": "Mood",
+    "productivity": "Productivity",
+    "life": "Life",
+    "homeless": "No home",
+    "unpaid_days": "Days without pay",
+    "personality": "Personality",
+    "daily_routine": "Daily routine",
+    "relationships": "Relationships",
+    "no_relationships": "Hasn't made close ties yet.",
+    "with_you": "With you",
+    "inspect_hint": "Villagers improve with experience: apprentice → regular → skilled (level {r}) → master.",
+    "storage": "Storage",
+    "pockets": "Your pockets",
+    "chest": "Chest",
+    "storage_empty": "The chest is empty.",
+    "store_one": "Put one in the chest",
+    "store_all": "Put all in the chest",
+    "take_one": "Take one",
+    "take_all": "Take all",
+    "store_resources": "Store all resources",
+    "storage_hint": "Furniture kept at home makes it cozier. Home comfort: {comfort} (better sleep).",
+    "craft": "Craft",
+    "craft_n": "Craft ×{n}",
+    "craft_hint": "Materials are taken from your pockets first, then from your chest.",
+    "unlocks": "Progression",
+    "req_tool_saw": "Saw",
+    "req_tool_hammer": "Hammer",
+    "req_tool_hoe": "Hoe",
+    "key_build": "Build",
+    "site_of": "Construction: {name}",
+    "site_progress": "{pct}% built · {mat}% materials",
+    "your_land": "your land",
+    "land_for_sale": "for sale · {money}",
+    "land_size": "Size",
+    "land_buildable": "Buildable tiles",
+    "land_trees": "Trees",
+    "land_to_centre": "To the village centre",
+    "tiles_n": "{n} tiles",
+    "land_price": "Price",
+    "status": "Status",
+    "for_sale": "For sale",
+    "land_features": "Location",
+    "on_this_land": "On this land",
+    "finished": "Finished",
+    "under_construction": "Under construction",
+    "buy_land": "Buy for {money}",
+    "land_hint": "Trees you cut on your own land don't grow back — clear space to build.",
+    "build_title": "Build",
+    "hours_short": "h",
+    "place_blueprint": "Place blueprint",
+    "per_tile": "per tile",
+    "road_tool": "Lay roads",
+    "current_home": "Current home",
+    "home_shack_hint": "You rent this shack. Build a Small House on your land and move in to upgrade it later.",
+    "start_upgrade": "Start upgrade",
+    "home_max": "Your home can't be improved further (yet).",
+    "build_hint": "Buildings go up in stages: foundation → frame → walls → roof. Deliver materials and work with a hammer — or put workers on it.",
+    "work_progress": "Work",
+    "hours_left": "{h} h of work left",
+    "your_rate": "One hour of your work = {h} h of progress (construction skill, craftsmanship, strength, hammer).",
+    "materials": "Materials",
+    "builders": "Builders",
+    "no_builders": "Nobody is assigned. Work on it yourself, or assign workers.",
+    "deliver_from_chest": "Deliver from chest",
+    "cancel_confirm": "Cancel construction? Money is not refunded.",
+    "cancel_site": "Cancel construction",
+    "site_hint": "Work can only get a little ahead of the materials.",
+    "you_carry": "carrying {n}",
+    "placing": "Placing: {name}",
+    "road_hint": "Click tiles next to a road to extend it (1 stone each) · Right-click / Esc to stop",
+    "place_hint": "Click on your land to place · Right-click / Esc to cancel",
+    "cancel": "Cancel",
+    "build_click": "Click to place",
+    "tilled_soil": "Tilled soil",
+    "your_land_tile": "Your land",
+    "water_source": "Water",
+    "crop_dead": "withered",
+    "crop_ripe": "ripe!",
+    "crop_growing": "growing {d}/{days} days",
+    "watered": "watered",
+    "water_level": "Water",
+    "works_for_you": "Works for you",
+    "workers": "Workers",
+    "team": "Team",
+    "payroll": "Payroll",
+    "per_day": "/ day",
+    "team_bonus": "Team bonus (Leadership, supervisors)",
+    "no_workers": "No workers yet. Talk to villagers — the unemployed are easiest to hire.",
+    "workers_locked": "Hiring unlocks at level {level}.",
+    "satisfaction": "Satisfaction",
+    "days_worked": "{n} days worked",
+    "expects": "expects {money}",
+    "assignment": "Assignment",
+    "promote_to": "Promote to {rank}",
+    "promote": "Promote",
+    "fire_confirm": "Fire them?",
+    "fire": "Fire",
+    "workers_hint": "Workers bring goods to your storage shed (or home). Pay them well and they work better; ignore them and they quit. Supervisors boost the whole team.",
+    "biz_overview": "Overview",
+    "biz_production": "Production",
+    "biz_books": "Books",
+    "biz_open": "Open (customers welcome)",
+    "biz_closed": "Closed for the day",
+    "biz_reputation": "Reputation",
+    "biz_today": "Today",
+    "biz_stock": "Stock",
+    "biz_workers": "Workers here",
+    "biz_no_workers": "Nobody works here yet — assign workers (K) to “Workshop”.",
+    "biz_deliver": "Unload {item} ({n})",
+    "biz_take": "Take the products",
+    "biz_plan_hint": "Workers make whatever is furthest below the stock you want to keep.",
+    "biz_price": "sells for {money}",
+    "biz_keep": "keep",
+    "on": "On",
+    "off": "Off",
+    "biz_pricing": "Prices",
+    "biz_options": "Supply & sales",
+    "biz_autobuy": "Buy {item} from the lumberyard when low",
+    "biz_surplus": "Sell surplus to the general store",
+    "day": "Day",
+    "revenue": "Revenue",
+    "expenses": "Expenses",
+    "profit": "Profit",
+    "biz_week_profit": "Profit over the last days",
+    "biz_total_revenue": "Total revenue",
+    "distrust_markup": "distrust: prices +{pct}%",
+    "memories": "Memories",
+    "no_memories": "Nothing notable yet.",
+    "habits": "Habits",
+    "hobby": "Hobby",
+    "rhythm": "Rhythm",
+    "tavern_night": "Tavern night",
+    "market_day": "Market day",
+    "family_day": "Family day",
+    "favourite_place": "Favourite place",
+    "company": "Company",
+    "trust": "Trust",
+    "respect": "Respect",
+    "tension": "Tension",
+    "goal": "Goal",
+    "full_name": "{name} {surname}",
+    "view_of_you": "What they think of you",
+    "property": "Property",
+    "owner": "Owner",
+    "residents": "Residents",
+    "nobody_lives_here": "Nobody lives here.",
+    "condition": "Condition",
+    "market_value": "Market value",
+    "weekly_rent": "Weekly rent",
+    "for_sale_tag": "For sale",
+    "abandoned_tag": "Abandoned",
+    "ruin_tag": "Ruin",
+    "capacity_n": "{n} / {cap} people",
+    "ownership_history": "Ownership history",
+    "buy_for": "Buy for {money}",
+    "restore_for": "Restore ({money} + materials)",
+    "set_rent": "Rent",
+    "put_on_market": "Put up for sale",
+    "employees": "Workers",
+    "cash": "Cash",
+    "business_closed": "Closed down",
+    "late": "{name} †",
+    "rent_arrears": "Rent unpaid for {n} week(s)",
+    "inspect": "Inspect",
+    "restore_needs": "Needs: {list}",
+    "age_years": "{n} years old",
+    "life_stage": "Life stage",
+    "partner": "Seeing",
+    "born_on": "Born",
+    "family_tree": "Family",
+    "biz_label": "{name} ({type})",
+    "business": "Business",
+    "business_type": "Trade",
+    "partner_label": "Partner",
+    "manager_label": "Manager",
+    "pay_level": "Pay",
+    "price_level_label": "Prices",
+    "reputation_label": "Reputation",
+    "morale_label": "Staff morale",
+    "week_books": "Last 7 days",
+    "revenue_label": "Revenue",
+    "expenses_label": "Expenses",
+    "profit_label": "Profit",
+    "customers_label": "Customers",
+    "on_shelves": "On the shelves",
+    "opened_on": "Opened",
+    "loan_left": "Owes {money} to {npc}",
+    "job_satisfaction": "Job satisfaction",
+    "career": "Career",
+    "closed_since": "Closed since {date}",
+    "long_hours": "Long hours",
+    "pct_of_usual": "{pct}% of usual",
+    "fish_plenty": "Fish: plenty",
+    "fish_some": "Fish: some",
+    "fish_few": "Fish: scarce",
+    "purpose": "For",
+    "district": "District",
+    "give_materials": "Give materials",
+    "site_hint_theirs": "You can lend a hand (with a hammer) or give materials — they won't forget it.",
+    "show_districts": "Show districts",
+    "hide_districts": "Hide districts",
+    "on_fire": "ON FIRE",
+    "gazette_title": "The {name} Gazette",
+    "gazette_issue": "Issue {n} · {date}",
+    "bread_price": "Bread",
+    "village_notices": "News from {name}",
+    "notices": "Notices",
+    "notice_home": "To let: {building} — {money} a week",
+    "notice_hiring": "{building} is looking for a {occ}",
+    "tab_jobs": "Jobs",
+    "tab_gazette": "Gazette",
+    "tab_village_news": "Village news",
+    "rumors_heard": "Rumors you've heard",
+    "tab_history": "History",
+    "no_history": "Nothing has gone down in history yet.",
+    "history_hint": "What the village will remember: firsts, milestones, hard times and your family's generations.",
+    "year_n": "Year {n}",
+    "history_first": "First",
+    "education": "Schooling",
+    "mentor": "Learning from",
+    "role": "Role",
+    "village_teacher": "Village schoolteacher",
+    "village_fund": "Village fund",
+    "treasury": "In the fund",
+    "village_fund_hint": "Rent from village-owned homes pays pensions, poor relief, wells, the teacher — and big projects. You can chip in.",
+    "village_saving_for": "The village is saving for a {what} (needs {money} to start).",
+    "village_building_now": "The village is building a {what}.",
+    "donate_n": "Donate {money}",
+    "quality": "Quality",
+    "quality_hint": "Skill, craftsmanship, a good tool, rest and a little luck decide the quality: crude, standard, fine or masterwork.",
+    "craft_hint_forge": "At a forge you work with what's in your pockets.",
+    "perks_hint": "At levels 3 and 7 of a skill you choose one of two perks — the other is gone for good.",
+    "perks_waiting": {
+      "one": "{n} perk choice waiting below.",
+      "other": "{n} perk choices waiting below."
+    },
+    "better_price_at": "{building} pays {money}",
+    "your_loan": "Your loan",
+    "loan_weekly": "{money} a week",
+    "repay_n": "Pay back {money}",
+    "borrow_n": "Borrow {money}",
+    "loan_terms": "{n}% interest, paid back over {weeks} weeks",
+    "taxes_last_week": "Taxes last week",
+    "taxes_you": "you paid {money}",
+    "taxes_hint": "Every week businesses pay {n}% of their profit and owners of bigger properties a small levy. It all goes into the fund."
   },
-
   "dialog": {
     "intro": [
       "Oh, a new face! I'm {name}, {occ}. Welcome to our village.",
       "Hello there, stranger. Name's {name}. I'm the {occ} around here.",
       "You must be the newcomer everyone's talking about. I'm {name}."
     ],
-    "sleepy": ["*yawn* It's the middle of the night… what do you want?", "Mmh… come back in the morning, please."],
-    "hungry": ["Sorry, I can barely think — I haven't eaten all day.", "My stomach is growling louder than I can talk."],
+    "sleepy": [
+      "*yawn* It's the middle of the night… what do you want?",
+      "Mmh… come back in the morning, please."
+    ],
+    "hungry": [
+      "Sorry, I can barely think — I haven't eaten all day.",
+      "My stomach is growling louder than I can talk."
+    ],
     "hello": {
-      "morning": ["Good morning!", "Morning!", "Up early, I see."],
-      "day": ["Hello!", "Good day!", "Oh, hi!"],
-      "evening": ["Good evening.", "Evening!", "Long day, huh?"]
+      "morning": [
+        "Good morning!",
+        "Morning!",
+        "Up early, I see."
+      ],
+      "day": [
+        "Hello!",
+        "Good day!",
+        "Oh, hi!"
+      ],
+      "evening": [
+        "Good evening.",
+        "Evening!",
+        "Long day, huh?"
+      ]
     },
     "greet": {
-      "stranger": ["Can I help you?"],
-      "acquaintance": ["How are you settling in, {player}?", "Nice to see you, {player}.", "What brings you by?"],
-      "friend": ["{player}! Always good to see you.", "There's my friend! How's life?", "Hey, {player}! Got a minute to chat?"],
-      "trusted": ["{player}! You know my door is always open for you.", "My dear friend! What can I do for you?"]
+      "stranger": [
+        "Can I help you?"
+      ],
+      "acquaintance": [
+        "How are you settling in, {player}?",
+        "Nice to see you, {player}.",
+        "What brings you by?"
+      ],
+      "friend": [
+        "{player}! Always good to see you.",
+        "There's my friend! How's life?",
+        "Hey, {player}! Got a minute to chat?"
+      ],
+      "trusted": [
+        "{player}! You know my door is always open for you.",
+        "My dear friend! What can I do for you?"
+      ],
+      "wary": [
+        "What do you want?",
+        "Oh. It's you."
+      ],
+      "hostile": [
+        "I've got nothing to say to you.",
+        "You've got some nerve showing your face here."
+      ],
+      "kin_spouse": [
+        "There you are, love.",
+        "Home at last! How was your day?",
+        "{player}! I missed you."
+      ],
+      "kin_sibling": [
+        "Hey, it's you!",
+        "Well, if it isn't my own flesh and blood."
+      ],
+      "kin_parent_m": [
+        "Dad!",
+        "Hi, Dad!",
+        "Dad, guess what!"
+      ],
+      "kin_parent_f": [
+        "Mum!",
+        "Hi, Mum!",
+        "Mum, guess what!"
+      ],
+      "kin_grandparent_m": [
+        "Grandpa!",
+        "Hello, Grandpa!"
+      ],
+      "kin_grandparent_f": [
+        "Grandma!",
+        "Hello, Grandma!"
+      ],
+      "kin_child": [
+        "My dear child! Come here.",
+        "Look at you — all grown up and still coming to see me."
+      ],
+      "kin_grandchild": [
+        "My dear! How's the family?"
+      ],
+      "partner": [
+        "{player}! I was just thinking about you.",
+        "Oh — hello, you."
+      ]
     },
-    "gossip_prefix": ["Did you hear?", "News around the village:", "People are saying…", "Guess what?"],
+    "gossip_prefix": [
+      "Did you hear?",
+      "News around the village:",
+      "People are saying…",
+      "Guess what?"
+    ],
     "occ": {
-      "elder": ["I've watched this village grow for sixty years. It could become something great, you know.", "A village needs more than houses. It needs people who care."],
-      "child": ["Wanna race to the well? I always win!", "When I grow up I'm going to have the biggest house in the village!", "Mum says I can't go into the forest alone. Is it true there are wolves?"],
-      "unemployed": ["I've been asking around for work. Nothing yet…", "If only someone would give me a chance."],
-      "store_clerk": ["Stacking shelves all day. At least I get to hear all the gossip.", "Vera counts every coin twice. I count them three times, just to be safe."],
-      "tavern_server": ["Stew for table three! Oh — sorry, habit.", "The evenings are busy, but the tips are decent."],
-      "shopkeeper": ["Business is business — prices go up when stock runs low.", "Everyone needs bread. That's why I sell bread."],
-      "innkeeper": ["A warm meal fixes most problems. The rest, a warm bed does.", "The tavern is the heart of this village. Everyone ends up here eventually."],
-      "farmer": ["The soil here is good. Give it care and it gives you bread.", "Winter's hard on a farm. Nothing grows, but the mouths still need feeding."],
-      "farmhand": ["My back aches, but the fields don't harvest themselves.", "Planting, weeding, harvesting… it never ends."],
-      "lumber_foreman": ["Wood is what this village is built on. Literally.", "Chop smart, not hard. And never cut the young trees."],
-      "woodcutter": ["Every tree I fell grows back, given time. The forest is patient.", "My arms are like iron from all this chopping."],
-      "quarry_foreman": ["Stone lasts forever. Wood rots. Remember that when you build.", "There's iron in those mountains. Good money, if you know how to mine it."],
-      "miner": ["The quarry is dusty work, but it pays.", "I found a vein of coal yesterday. The blacksmith will be happy."],
-      "blacksmith": ["A good tool is worth ten bad ones.", "Bring me iron and coal and I'll forge you anything."]
+      "elder": [
+        "I've watched this village grow for sixty years. It could become something great, you know.",
+        "A village needs more than houses. It needs people who care."
+      ],
+      "child": [
+        "Wanna race to the well? I always win!",
+        "When I grow up I'm going to have the biggest house in the village!",
+        "Mum says I can't go into the forest alone. Is it true there are wolves?"
+      ],
+      "unemployed": [
+        "I've been asking around for work. Nothing yet…",
+        "If only someone would give me a chance."
+      ],
+      "store_clerk": [
+        "Stacking shelves all day. At least I get to hear all the gossip.",
+        "Vera counts every coin twice. I count them three times, just to be safe."
+      ],
+      "tavern_server": [
+        "Stew for table three! Oh — sorry, habit.",
+        "The evenings are busy, but the tips are decent."
+      ],
+      "shopkeeper": [
+        "Business is business — prices go up when stock runs low.",
+        "Everyone needs bread. That's why I sell bread."
+      ],
+      "innkeeper": [
+        "A warm meal fixes most problems. The rest, a warm bed does.",
+        "The tavern is the heart of this village. Everyone ends up here eventually."
+      ],
+      "farmer": [
+        "The soil here is good. Give it care and it gives you bread.",
+        "Winter's hard on a farm. Nothing grows, but the mouths still need feeding."
+      ],
+      "farmhand": [
+        "My back aches, but the fields don't harvest themselves.",
+        "Planting, weeding, harvesting… it never ends."
+      ],
+      "lumber_foreman": [
+        "Wood is what this village is built on. Literally.",
+        "Chop smart, not hard. And never cut the young trees."
+      ],
+      "woodcutter": [
+        "Every tree I fell grows back, given time. The forest is patient.",
+        "My arms are like iron from all this chopping."
+      ],
+      "quarry_foreman": [
+        "Stone lasts forever. Wood rots. Remember that when you build.",
+        "There's iron in those mountains. Good money, if you know how to mine it."
+      ],
+      "miner": [
+        "The quarry is dusty work, but it pays.",
+        "I found a vein of coal yesterday. The blacksmith will be happy."
+      ],
+      "blacksmith": [
+        "A good tool is worth ten bad ones.",
+        "Bring me iron and coal and I'll forge you anything."
+      ],
+      "hired_hand": [
+        "Working for you keeps me busy, that's for sure.",
+        "Whatever needs doing, I'll do it."
+      ],
+      "baker": [
+        "Up before dawn every day — bread doesn't bake itself.",
+        "The smell of fresh bread never gets old."
+      ],
+      "baker_hand": [
+        "Kneading dough all morning. My arms are like a blacksmith's!",
+        "We start baking at five. The whole street smells of bread."
+      ],
+      "carpenter": [
+        "Good timber, sharp tools, steady hands — that's all a carpenter needs.",
+        "A well-made chair outlives its maker."
+      ],
+      "carpenter_hand": [
+        "I'm learning to make joints that don't need a single nail.",
+        "Sawdust everywhere. In my hair, in my boots, in my bread."
+      ],
+      "smith_hand": [
+        "I work the bellows and swing the sledge. Hot work.",
+        "One day I'll forge my own tools. For now, I hold the tongs."
+      ],
+      "fisherman": [
+        "The river gives, if you're patient.",
+        "Early mornings on the water — the best time of day."
+      ],
+      "fisher": [
+        "Nets to mend, lines to set. A fisher's work never ends.",
+        "Some days the nets come up heavy, some days empty."
+      ],
+      "master_builder": [
+        "Every house in this village tells me something about its builder.",
+        "Measure twice, cut once. And never skimp on the foundations."
+      ],
+      "builder": [
+        "Walls up by winter — that's the plan.",
+        "My back aches from hauling stone, but look at that roof!"
+      ],
+      "merchant": [
+        "Buy low from the producers, sell steady to the shops — that's trade.",
+        "A full warehouse means nobody goes hungry in a bad month."
+      ],
+      "warehouse_hand": [
+        "Sacks in, sacks out. My shoulders know every one of them.",
+        "We keep the village's stock. If it's not here, it's not anywhere."
+      ],
+      "carter_master": [
+        "Good roads, good carts, and trade flows like a river.",
+        "Every rut in these roads costs me a wheel eventually."
+      ],
+      "carter": [
+        "From the lumberyard to the store, the quarry to the smithy — I know every road.",
+        "The cart creaks, but it carries."
+      ]
     },
     "weather": {
-      "sunny": ["Beautiful day, isn't it?", "Sun's out — perfect weather for work."],
-      "cloudy": ["Looks like it might rain later.", "Grey skies today."],
-      "rain": ["What a downpour! Good for the crops, at least.", "I'm soaked to the bone."],
-      "storm": ["This storm is terrible! Stay indoors if you can.", "Did you hear that thunder?"],
-      "snow": ["Snow again… I hope we have enough firewood.", "Everything looks so peaceful under the snow."],
-      "fog": ["Can barely see my own hand in this fog.", "Strange, quiet weather today."]
+      "sunny": [
+        "Beautiful day, isn't it?",
+        "Sun's out — perfect weather for work."
+      ],
+      "cloudy": [
+        "Looks like it might rain later.",
+        "Grey skies today."
+      ],
+      "rain": [
+        "What a downpour! Good for the crops, at least.",
+        "I'm soaked to the bone."
+      ],
+      "storm": [
+        "This storm is terrible! Stay indoors if you can.",
+        "Did you hear that thunder?"
+      ],
+      "snow": [
+        "Snow again… I hope we have enough firewood.",
+        "Everything looks so peaceful under the snow."
+      ],
+      "fog": [
+        "Can barely see my own hand in this fog.",
+        "Strange, quiet weather today."
+      ]
     },
     "season": {
-      "spring": ["Spring is when everything starts again.", "Fields are coming alive again."],
-      "summer": ["Long days, warm nights. Summer is the best.", "Plenty of work in summer — the fields are busy."],
-      "autumn": ["Harvest season! Busiest time of the year.", "Leaves are turning. Winter will be here before we know it."],
-      "winter": ["Winter is long here. Stock up on food and firewood.", "No work on the farms now. Times are lean."]
+      "spring": [
+        "Spring is when everything starts again.",
+        "Fields are coming alive again."
+      ],
+      "summer": [
+        "Long days, warm nights. Summer is the best.",
+        "Plenty of work in summer — the fields are busy."
+      ],
+      "autumn": [
+        "Harvest season! Busiest time of the year.",
+        "Leaves are turning. Winter will be here before we know it."
+      ],
+      "winter": [
+        "Winter is long here. Stock up on food and firewood.",
+        "No work on the farms now. Times are lean."
+      ]
     },
-    "price_high": ["{item} has gotten so expensive lately!", "Have you seen the price of {item}? Outrageous."],
-    "price_low": ["{item} is dirt cheap right now — there's plenty of it.", "Nobody wants to buy {item} these days, there's too much of it."],
-    "poor": ["Money's tight. I'm counting every coin.", "I barely have enough for bread this week."],
-    "unpaid": ["My employer hasn't paid me. How am I supposed to live?", "No wages again… I might have to look elsewhere."],
-    "empty_pantry": ["My pantry is empty. I really need to go shopping.", "Not a crumb of food at home."],
+    "price_high": [
+      "{item} has gotten so expensive lately!",
+      "Have you seen the price of {item}? Outrageous."
+    ],
+    "price_low": [
+      "{item} is dirt cheap right now — there's plenty of it.",
+      "Nobody wants to buy {item} these days, there's too much of it."
+    ],
+    "poor": [
+      "Money's tight. I'm counting every coin.",
+      "I barely have enough for bread this week."
+    ],
+    "unpaid": [
+      "My employer hasn't paid me. How am I supposed to live?",
+      "No wages again… I might have to look elsewhere."
+    ],
+    "empty_pantry": [
+      "My pantry is empty. I really need to go shopping.",
+      "Not a crumb of food at home."
+    ],
     "trait": {
-      "hard_worker": ["Hard work never killed anyone. Well, almost never."],
-      "lazy": ["Why rush? The work will still be there tomorrow.", "I'd rather be napping right now, honestly."],
-      "greedy": ["Everything has a price, friend. Everything.", "A coin saved is a coin earned — and two coins are better."],
-      "generous": ["If you ever need anything, just ask.", "What's mine is yours, neighbour."],
-      "loyal": ["I don't abandon people who stand by me.", "I've worked in the same place for years. I like it that way."],
-      "ambitious": ["One day I'll have my own business. You'll see.", "I won't be a nobody forever."],
-      "entrepreneur": ["This village needs more shops. Someone should open one.", "I have so many ideas, I just need the money."],
-      "friendly": ["Isn't it nice to just chat for a bit?", "I love meeting new people!"],
-      "aggressive": ["What? Make it quick.", "I don't have all day."],
-      "scholar": ["Did you know the river flows all the way to the sea?", "I wish we had a library here."],
-      "natural_leader": ["Someone has to keep this village organised.", "People need someone to look up to."],
-      "risk_taker": ["Nothing ventured, nothing gained!", "Sometimes you just have to jump."],
-      "careful": ["Better safe than sorry.", "I like to plan things out properly."]
+      "hard_worker": [
+        "Hard work never killed anyone. Well, almost never."
+      ],
+      "lazy": [
+        "Why rush? The work will still be there tomorrow.",
+        "I'd rather be napping right now, honestly."
+      ],
+      "greedy": [
+        "Everything has a price, friend. Everything.",
+        "A coin saved is a coin earned — and two coins are better."
+      ],
+      "generous": [
+        "If you ever need anything, just ask.",
+        "What's mine is yours, neighbour."
+      ],
+      "loyal": [
+        "I don't abandon people who stand by me.",
+        "I've worked in the same place for years. I like it that way."
+      ],
+      "ambitious": [
+        "One day I'll have my own business. You'll see.",
+        "I won't be a nobody forever."
+      ],
+      "entrepreneur": [
+        "This village needs more shops. Someone should open one.",
+        "I have so many ideas, I just need the money."
+      ],
+      "friendly": [
+        "Isn't it nice to just chat for a bit?",
+        "I love meeting new people!"
+      ],
+      "aggressive": [
+        "What? Make it quick.",
+        "I don't have all day."
+      ],
+      "scholar": [
+        "Did you know the river flows all the way to the sea?",
+        "I wish we had a library here."
+      ],
+      "natural_leader": [
+        "Someone has to keep this village organised.",
+        "People need someone to look up to."
+      ],
+      "risk_taker": [
+        "Nothing ventured, nothing gained!",
+        "Sometimes you just have to jump."
+      ],
+      "careful": [
+        "Better safe than sorry.",
+        "I like to plan things out properly."
+      ]
     },
-    "family": ["{npc} and I are family. We look after each other.", "Have you met {npc}? Family means everything to me."],
-    "friend": ["{npc} is my best friend. We talk every evening.", "You should meet {npc} — good person."],
+    "family": [
+      "{npc} and I are family. We look after each other.",
+      "Have you met {npc}? Family means everything to me."
+    ],
+    "friend": [
+      "{npc} is my best friend. We talk every evening.",
+      "You should meet {npc} — good person."
+    ],
     "goal": {
       "business": "I'm saving up. Someday I'll open my own business — just wait.",
       "job": "What I need most is steady work.",
@@ -542,18 +2026,2261 @@
       "bye": "Goodbye",
       "accept_request": "Sure, I'll bring it.",
       "decline": "Sorry, not now.",
-      "back": "Back"
+      "back": "Back",
+      "talk_instead": "Talk",
+      "how_is_work": "How's work going?",
+      "manage_workers": "Manage my workers",
+      "hire": "Would you work for me?",
+      "hire_at": "Deal — {money} a day",
+      "hire_haggle": "How about {money} a day?",
+      "never_mind": "Never mind",
+      "news": "Any news?",
+      "life": "How's life?",
+      "court": "Would you like to walk out with me?",
+      "propose": "Will you marry me?"
     },
     "no_gifts": "You have nothing suitable to give.",
-    "chat_again": ["We already talked today — but I appreciate the company.", "Ha, you again! Come back tomorrow for more gossip."],
-    "work_hint": ["I don't hire, but {npc} at the {building} might need help.", "Try asking {npc} — the {building} has been busy."],
-    "work_none": ["Honestly, nobody's hiring today. Try tomorrow morning.", "Work's scarce today. Check the notice board tomorrow."],
-    "request_ask": ["Actually, yes! Could you bring me {item} ×{qty}? I'll pay you {money}.", "I need {item} ×{qty}. I can offer {money} for your trouble."],
-    "request_ask_free": ["Could you bring me {item} ×{qty}? I can't pay much… but I'd be really grateful."],
-    "request_thanks": ["Thank you! I'll be waiting.", "Wonderful, you're a lifesaver!"],
-    "request_done": ["Exactly what I needed! Thank you so much.", "You're a true neighbour. Thank you!"],
-    "gift_love": ["{item}? For me? Oh, I love it!", "How did you know I love {item}? Thank you!"],
-    "gift_ok": ["That's kind of you, thanks.", "Oh, a gift! Thank you."],
-    "about_intro": ["Me? Well, there's not much to tell…", "What would you like to know?"]
+    "chat_again": [
+      "We already talked today — but I appreciate the company.",
+      "Ha, you again! Come back tomorrow for more gossip."
+    ],
+    "work_hint": [
+      "I don't hire, but {npc} at the {building} might need help.",
+      "Try asking {npc} — the {building} has been busy."
+    ],
+    "work_none": [
+      "Honestly, nobody's hiring today. Try tomorrow morning.",
+      "Work's scarce today. Check the notice board tomorrow."
+    ],
+    "request_ask": [
+      "Actually, yes! Could you bring me {item} ×{qty}? I'll pay you {money}.",
+      "I need {item} ×{qty}. I can offer {money} for your trouble."
+    ],
+    "request_ask_free": [
+      "Could you bring me {item} ×{qty}? I can't pay much… but I'd be really grateful."
+    ],
+    "request_thanks": [
+      "Thank you! I'll be waiting.",
+      "Wonderful, you're a lifesaver!"
+    ],
+    "request_done": [
+      "Exactly what I needed! Thank you so much.",
+      "You're a true neighbour. Thank you!"
+    ],
+    "gift_love": [
+      "{item}? For me? Oh, I love it!",
+      "How did you know I love {item}? Thank you!"
+    ],
+    "gift_ok": [
+      "That's kind of you, thanks.",
+      "Oh, a gift! Thank you."
+    ],
+    "about_intro": [
+      "Me? Well, there's not much to tell…",
+      "What would you like to know?"
+    ],
+    "hire_ask": [
+      "Work for you? I'd want {money} a day.",
+      "Sure, I could use the work. {money} a day and we have a deal."
+    ],
+    "hire_employed": [
+      "I already have a job, you know. It would take a good offer… {money} a day, at least."
+    ],
+    "hire_yes": [
+      "You've got yourself a worker. When do I start?",
+      "Deal! I won't let you down."
+    ],
+    "hire_no": [
+      "No, sorry. That's not enough.",
+      "I'll have to pass on that."
+    ],
+    "worker_happy": [
+      "I like working for you. Fair pay, good boss.",
+      "Couldn't ask for a better job!"
+    ],
+    "worker_ok": [
+      "It's alright. Work is work.",
+      "Can't complain. Much."
+    ],
+    "worker_raise": [
+      "Honestly? I'd like a raise. Others pay better — {money} a day would be fair.",
+      "I've been thinking about my pay… {money} a day would feel right."
+    ],
+    "worker_unpaid": [
+      "You haven't paid me! I can't work for nothing.",
+      "Where's my money? I have a family to feed."
+    ],
+    "court_yes": [
+      {
+        "m": "I… yes. I was hoping you'd ask, {player}.",
+        "f": "I… yes. I was hoping you'd ask, {player}."
+      },
+      "Yes! I'd like that very much.",
+      "I thought you'd never ask. Yes."
+    ],
+    "court_no": [
+      "You're kind, {player}, but… I don't see us that way.",
+      "I'm flattered. But no — not now.",
+      "Let's stay friends, {player}."
+    ],
+    "propose_yes": [
+      "Yes! A thousand times, yes!",
+      "{player}… yes. Let's build a life together.",
+      "I've been waiting for this. Yes!"
+    ],
+    "propose_no": [
+      "Not yet, {player}. Give it a little more time.",
+      "I care for you — but I'm not ready."
+    ]
+  },
+  "rank": {
+    "apprentice": "apprentice {occ}",
+    "skilled": "skilled {occ}",
+    "master": "master {occ}"
+  },
+  "activity": {
+    "idle": "Thinking about what to do",
+    "sleeping": "Sleeping",
+    "sleeping_rough": "Sleeping on a bench — no home",
+    "going_to_bed": "Heading home to sleep",
+    "going_home": "Going home",
+    "at_home": "Relaxing at home",
+    "going_home_tired": "Exhausted — going home to rest",
+    "resting": "Resting at home",
+    "sick": "Sick — recovering at home",
+    "going_to_eat": "Going to eat ({building})",
+    "eating": "Eating ({building})",
+    "going_shopping": "Going shopping",
+    "shopping": "Shopping at the store",
+    "reading_board": "Looking for work at the notice board",
+    "asking_for_work": "Asking for work ({building})",
+    "carrying": "Carrying {item} to {building}",
+    "going_to_work": "Going to work ({building})",
+    "working_inside": "Working ({building})",
+    "working_farm": "Tending the fields",
+    "working_chop": "Felling trees",
+    "working_mine": "Breaking rocks",
+    "working_spot": "Working ({building})",
+    "going_to_tavern": "Heading to the tavern",
+    "at_tavern": "Spending the evening at the tavern",
+    "strolling": "Taking a walk",
+    "relaxing": "Enjoying some free time",
+    "carrying_home": "Carrying {item} to your storage",
+    "hauling": "Hauling materials to the construction site",
+    "fetching_materials": "Fetching materials from your storage",
+    "going_to_site": "Heading to the construction site",
+    "building": "Building",
+    "working_your_fields": "Working your fields",
+    "waiting_orders": "Waiting for orders at your storage",
+    "working_for_you": "Working for you",
+    "going_to_workshop": "Heading to your workshop",
+    "working_workshop": "Crafting at your workshop",
+    "hauling_wood": "Carrying wood to your workshop",
+    "playing_cards": "Playing cards at the tavern",
+    "going_to_visit": "Going to visit {npc}",
+    "visiting": "Visiting {npc}",
+    "at_market": "Browsing the market stalls",
+    "going_hobby": "Heading out for some {hobby}",
+    "hobby_fishing": "Fishing",
+    "hobby_walking": "Walking in the woods",
+    "hobby_reading": "Reading in the hall",
+    "hobby_gardening": "Tending the garden",
+    "hobby_gossip": "Chatting with the neighbours",
+    "hobby_whittling": "Whittling by the house",
+    "hobby_playing": "Playing",
+    "hobby_cards": "Playing cards",
+    "hobby_hunting": "Hunting in the woods",
+    "going_to_build": "Off to the building site",
+    "building_own": "Building their own house",
+    "helping_build": "Helping {npc} build",
+    "running_to_fire": "Running to fight the fire",
+    "fighting_fire": "Fighting the fire ({building})",
+    "going_to_school": "Off to school",
+    "at_school": "At school",
+    "teaching": "Teaching at the school"
+  },
+  "schedule": {
+    "wake": "Wake up",
+    "breakfast": "Breakfast at home",
+    "work": "Work",
+    "lunch": "Lunch",
+    "free_time": "Free time: shopping, friends",
+    "job_hunting": "Look for work",
+    "home": "Head home",
+    "sleep": "Sleep",
+    "tavern_night": "Tavern night",
+    "family_visit": "Visiting family",
+    "day_off": "Day off",
+    "market": "Weekly shopping"
+  },
+  "mood": {
+    "happy": "Happy",
+    "content": "Content",
+    "unhappy": "Unhappy",
+    "miserable": "Miserable"
+  },
+  "npc_rel": {
+    "close_friend": "Close friend",
+    "friend": "Friend",
+    "acquaintance": "Acquaintance",
+    "dislike": "Doesn't get along",
+    "rival": "Rival",
+    "family": "Family",
+    "enemy": "Enemy",
+    "stranger": "Stranger",
+    "spouse": {
+      "m": "Husband",
+      "f": "Wife"
+    },
+    "parent": {
+      "m": "Father",
+      "f": "Mother"
+    },
+    "child": {
+      "m": "Son",
+      "f": "Daughter"
+    },
+    "sibling": {
+      "m": "Brother",
+      "f": "Sister"
+    },
+    "grandparent": {
+      "m": "Grandfather",
+      "f": "Grandmother"
+    },
+    "grandchild": {
+      "m": "Grandson",
+      "f": "Granddaughter"
+    },
+    "relative": "Relative",
+    "employer": "Boss",
+    "employee": "Employee",
+    "coworker": "Co-worker",
+    "partner": "Business partner",
+    "competitor": "Competitor"
+  },
+  "furniture": {
+    "bed": "Bed",
+    "chest": "Storage chest",
+    "table": "Table",
+    "workbench": "Workbench",
+    "stove": "Stove",
+    "door": "Door",
+    "forge": "Forge",
+    "shelf": "Bookshelf",
+    "fireplace": "Fireplace"
+  },
+  "unlock": {
+    "basic_jobs": {
+      "name": "Basic jobs",
+      "desc": "Work for village businesses."
+    },
+    "crafting": {
+      "name": "Crafting",
+      "desc": "Craft planks and furniture at the workbench in your home."
+    },
+    "advanced_gathering": {
+      "name": "Advanced gathering",
+      "desc": "Mine iron ore and work at the quarry."
+    },
+    "hire_worker": {
+      "name": "Hire a worker",
+      "desc": "Employ your first worker."
+    },
+    "buy_land": {
+      "name": "Buy land",
+      "desc": "Buy a plot of land of your own."
+    },
+    "construction": {
+      "name": "Construction",
+      "desc": "Build houses, sheds and workshops on your land."
+    },
+    "farming": {
+      "name": "Farming",
+      "desc": "Lay out fields on your land and grow crops."
+    },
+    "start_business": {
+      "name": "Start a business",
+      "desc": "Open your own carpentry workshop."
+    },
+    "more_workers": {
+      "name": "Bigger crew",
+      "desc": "+2 worker slots."
+    },
+    "advanced_workshop": {
+      "name": "Advanced workshop",
+      "desc": "Better production at your workshop."
+    },
+    "multiple_businesses": {
+      "name": "Several businesses",
+      "desc": "Run more than one business."
+    },
+    "settlement": {
+      "name": "Found a settlement",
+      "desc": "Your land becomes a settlement of its own."
+    }
+  },
+  "plot": {
+    "village_south": "Village South plot",
+    "north_glade": "North Glade",
+    "forest_edge": "Forest Edge",
+    "riverside": "Riverside Meadow",
+    "east_meadow": "East Meadow",
+    "far_meadow": "Far Meadow",
+    "quarry_road": "Quarry Road plot",
+    "hillside": "Hillside",
+    "lakeside": "Lakeside"
+  },
+  "land_feature": {
+    "none": "Nothing special about this land.",
+    "village": {
+      "name": "Village centre",
+      "desc": "expensive, but businesses here get more customers (+25% sales)."
+    },
+    "water": {
+      "name": "Near water",
+      "desc": "crops grow faster (+25%); you can refill watering cans nearby."
+    },
+    "forest": {
+      "name": "Forest",
+      "desc": "cheap and full of wood, but you have to clear trees before building."
+    },
+    "road": {
+      "name": "Road access",
+      "desc": "you and your workers get here quickly."
+    },
+    "remote": {
+      "name": "Remote",
+      "desc": "cheap, but far from everything."
+    }
+  },
+  "buildable": {
+    "small_house": {
+      "name": "Small House",
+      "desc": "Your own home. Move in and stop paying rent. Can be upgraded later."
+    },
+    "rental_house": {
+      "name": "Rental House",
+      "desc": "A house for newcomers. Villagers who move in pay you rent."
+    },
+    "storage_shed": {
+      "name": "Storage Shed",
+      "desc": "+150 kg storage, shared with your home chest. Workers deliver goods here."
+    },
+    "well": {
+      "name": "Well",
+      "desc": "Fresh water for drinking and watering crops."
+    },
+    "workshop": {
+      "name": "Carpentry Workshop",
+      "desc": "Your own business: workers turn wood into planks and furniture that you sell."
+    },
+    "road": {
+      "name": "Road",
+      "desc": "Lay roads tile by tile. Everyone walks faster on roads."
+    },
+    "forge": {
+      "name": "Forge",
+      "desc": "Your own forge: smelt iron ingots and make tools without paying the smith."
+    },
+    "shopfront": {
+      "name": "Shopfront",
+      "desc": "Premises for a business of your own: a shop, a bakery, a smithy, a workshop…"
+    },
+    "warehouse_bld": {
+      "name": "Warehouse",
+      "desc": "Big premises for a trading depot: buy goods in bulk and sell them on."
+    },
+    "mining_camp": {
+      "name": "Mining camp",
+      "desc": "A camp by the rocks: miners work the seams around it for stone, coal and ore — and at a cave, now and then, a gem."
+    },
+    "hunting_cabin": {
+      "name": "Hunting cabin",
+      "desc": "Hunters based out in the woods bring in meat and hides (as long as there's game)."
+    },
+    "trading_post": {
+      "name": "Trading post",
+      "desc": "On the road out of the valley: buys up the village's surplus and sells it to passing traders at good prices."
+    }
+  },
+  "build_cat": {
+    "residential": "Homes",
+    "storage": "Storage",
+    "production": "Production",
+    "infrastructure": "Infrastructure",
+    "roads": "Roads",
+    "home": "Your home"
+  },
+  "home_tier": {
+    "shack": "Rented shack",
+    "small_house": "Small house",
+    "house": "House",
+    "large_house": "Large house",
+    "estate": "Estate"
+  },
+  "home_tier_desc": {
+    "house": "A proper house: more comfort, a bigger chest, a stove, a second chest. Villagers respect you more.",
+    "large_house": "A large stone house: the best sleep, huge storage, room for a family."
+  },
+  "site_stage": {
+    "foundation": "Foundation",
+    "frame": "Frame",
+    "walls": "Walls",
+    "roof": "Roof"
+  },
+  "crop": {
+    "wheat": "Wheat",
+    "carrot": "Carrots",
+    "potato": "Potatoes",
+    "cabbage": "Cabbage",
+    "pumpkin": "Pumpkin"
+  },
+  "worker_rank": {
+    "worker": "Worker",
+    "skilled": "Skilled worker",
+    "supervisor": "Supervisor",
+    "manager": "Manager"
+  },
+  "assignment": {
+    "idle": "Wait for orders",
+    "gather_wood": "Gather wood",
+    "gather_stone": "Gather stone",
+    "build": "Build",
+    "farm": "Farm your fields",
+    "workshop": "Workshop"
+  },
+  "business": {
+    "carpentry": {
+      "name": "Carpentry Workshop"
+    }
+  },
+  "price_level": {
+    "cheap": "Cheap",
+    "normal": "Normal",
+    "premium": "Premium"
+  },
+  "price_level_desc": {
+    "cheap": "Low prices: more customers, less money per sale.",
+    "normal": "Fair prices.",
+    "premium": "High prices: more money per sale, but fewer customers."
+  },
+  "ago": {
+    "today": "today",
+    "yesterday": "yesterday",
+    "days": {
+      "one": "{n} day ago",
+      "other": "{n} days ago"
+    },
+    "last_week": "last week",
+    "last_season": "last season",
+    "seasons": {
+      "one": "{n} season ago",
+      "other": "{n} seasons ago"
+    },
+    "last_year": "last year",
+    "years": {
+      "one": "{n} year ago",
+      "other": "{n} years ago"
+    }
+  },
+  "kin_my": {
+    "spouse": {
+      "m": "my husband",
+      "f": "my wife"
+    },
+    "parent": {
+      "m": "my father",
+      "f": "my mother"
+    },
+    "child": {
+      "m": "my son",
+      "f": "my daughter"
+    },
+    "sibling": {
+      "m": "my brother",
+      "f": "my sister"
+    },
+    "grandparent": {
+      "m": "my grandfather",
+      "f": "my grandmother"
+    },
+    "grandchild": {
+      "m": "my grandson",
+      "f": "my granddaughter"
+    },
+    "relative": {
+      "m": "my relative",
+      "f": "my relative"
+    }
+  },
+  "hobby": {
+    "fishing": "fishing",
+    "walking": "long walks",
+    "reading": "reading",
+    "gardening": "gardening",
+    "cards": "cards",
+    "gossip": "chatting at the well",
+    "whittling": "whittling",
+    "playing": "playing",
+    "hunting": "hunting"
+  },
+  "chronotype": {
+    "early": "Early bird",
+    "normal": "Regular hours",
+    "late": "Night owl"
+  },
+  "goal_label": {
+    "grow": "Grow up",
+    "home": "Find a home",
+    "job": "Find work",
+    "legacy": "Leave something behind",
+    "business": "Open a business ({money} of {money2} saved)",
+    "business_ready": "Open a business — the money is saved",
+    "master": "Become a master of the trade",
+    "grow_business": "Expand the business",
+    "steady": "A quiet, steady life"
+  },
+  "memory": {
+    "met_player": "Met you for the first time.",
+    "player_gave_job": "You gave them a job when they were out of work.",
+    "player_hired": "Left their old job to work for you.",
+    "player_fired": "You fired them.",
+    "player_fired_unfair": "You fired them for no good reason.",
+    "player_raise": "You raised their pay.",
+    "player_pay_cut": "You cut their pay.",
+    "player_unpaid": "You couldn't pay their wages.",
+    "player_promoted": "You promoted them.",
+    "player_gift": "Got a gift from you ({item}).",
+    "player_loved_gift": "Loved your gift ({item}).",
+    "player_helped": "You helped them out ({item}).",
+    "player_let_down": "You promised to help and never came.",
+    "player_did_job": "You did good work for them.",
+    "player_failed_job": "You let them down on a job.",
+    "bought_from_player": "Bought furniture at your workshop ({item}).",
+    "quit_player": "Quit working for you.",
+    "heard_player_good": "{npc} speaks well of you.",
+    "heard_player_bad": "{npc} speaks badly of you.",
+    "saw_friend_fired": "You fired someone close to them ({npc}).",
+    "got_job": "Found work: {occ}.",
+    "quit_job": "Walked out over unpaid wages ({building}).",
+    "unpaid_wages": "Wasn't paid their wages ({building}).",
+    "promoted_rank": "Became a {rank}.",
+    "grew_up": "Grew up.",
+    "took_up_hobby": "Took up a new hobby: {hobby}.",
+    "was_sick": "Fell ill.",
+    "went_hungry": "Went hungry.",
+    "slept_rough": "Slept outside with nowhere to live.",
+    "lived_through": "Lived through hard times: {event}.",
+    "became_friends": "New friendship: {npc}.",
+    "fell_out": "A serious falling-out: {npc}.",
+    "argued_with": "Argued with {npc}.",
+    "fell_in_love": "Fell in love with {npc}.",
+    "broke_up": "Broke up with {npc}.",
+    "married": "Married {npc}.",
+    "family_wedding": "A wedding in the family: {npc} and {npc2}.",
+    "child_born": "Became a parent: {npc} was born.",
+    "sibling_born": "A new baby in the family: {npc}.",
+    "family_died": "Lost a loved one: {npc}.",
+    "friend_died": "Lost a friend: {npc}.",
+    "inherited": "Inherited {money} from {npc}.",
+    "took_over_business": "Took over the business ({building}).",
+    "retired": "Retired.",
+    "moved_home": "Moved house ({building}).",
+    "moved_out": "Moved out of the family home into a place of their own.",
+    "evicted": "Was evicted ({building}).",
+    "bought_home": "Bought a home ({building}).",
+    "sold_home_to_player": "Sold you a property ({building}).",
+    "opened_business": "Opened their own {biz_type} ({building}).",
+    "family_business": "Helped start the family business ({building}).",
+    "business_struggling": "Put their savings into keeping the business afloat.",
+    "business_failed": "Their business failed ({building}).",
+    "became_manager": "Became manager ({building}).",
+    "laid_off": "Was laid off ({building}).",
+    "changed_jobs": "Left for a better job ({building}).",
+    "employee_left": "{npc} left their employ.",
+    "left_player_for_business": "Left your service to start their own {biz_type}.",
+    "backed_business": "Put {money} into {npc}'s business.",
+    "got_backing": "{npc} put up {money} for their business.",
+    "started_building": "Started building a {vbuilding}.",
+    "helped_build": "{npc} helped build their house.",
+    "built_home": "Built a home of their own.",
+    "gave_up_building": "Had to give up building — the money ran out.",
+    "arrived_village": "Came to the village to start a new life.",
+    "friend_left": "A friend moved away: {npc}.",
+    "player_helped_build": "You helped build their {vbuilding}.",
+    "home_flood": "The flood damaged their home ({building}).",
+    "home_storm": "The storm damaged their home ({building}).",
+    "home_fire": "Their home caught fire ({building}).",
+    "home_burnt": "Their home burned down ({building}).",
+    "mine_accident": "Was hurt when the quarry collapsed.",
+    "took_in": "Took in {npc} after a disaster.",
+    "fire_helped": "{npc} helped fight the fire.",
+    "player_fought_fire": "You helped fight the fire.",
+    "went_exploring": "Went exploring ({region_name}).",
+    "explored_with_player": "Went on an expedition with you ({region_name}).",
+    "invented": "Came up with something new: {tech}.",
+    "became_teacher": "Became the village schoolteacher.",
+    "mentored_by": "Learning the trade from {npc}.",
+    "took_apprentice": "Took {npc} on as an apprentice.",
+    "sold_business_to_player": "Sold {building} to you.",
+    "laid_off_season": "Seasonal work over for the year."
+  },
+  "talk": {
+    "deflect": [
+      "I don't know you well enough to talk about that.",
+      "That's… personal. Maybe some other time."
+    ],
+    "nothing": [
+      "Hm. I don't have much to say today.",
+      "Just another day, really."
+    ],
+    "mem": {
+      "player_gave_job": [
+        "You gave me my chance {ago}, {player}, when nobody else would hire me. I haven't forgotten.",
+        "Nobody wanted to hire me — and you did. That was {ago}. I owe you."
+      ],
+      "player_hired": [
+        "Leaving my old job for you was a gamble. So far I don't regret it.",
+        "Working for you is different. Better, I think."
+      ],
+      "player_fired": [
+        "You let me go {ago}. I'm still getting over it.",
+        "Oh. It's you. The one who fired me."
+      ],
+      "player_fired_unfair": [
+        "I did nothing wrong and you threw me out. I won't forget that, {player}.",
+        "Everyone knows how you treated me. Don't expect any favours."
+      ],
+      "player_raise": [
+        "Thanks again for the raise. It makes a real difference at home.",
+        "The extra coin helps. I noticed, {player}."
+      ],
+      "player_pay_cut": [
+        "You cut my pay. Times are hard, I know — but still.",
+        "Less money for the same work… it stings."
+      ],
+      "player_unpaid": [
+        "I still remember the days you couldn't pay me.",
+        "Wages first, {player}. I have to eat too."
+      ],
+      "player_promoted": [
+        "You promoted me! I'll prove you were right.",
+        "Me, a {worker_rank}. Who would've thought?"
+      ],
+      "player_loved_gift": [
+        "That {item} you gave me — I still think about it.",
+        "You remembered what I like. That was kind of you."
+      ],
+      "player_helped": [
+        "You helped me when I needed it. I won't forget.",
+        "Thanks again for the help with the {item}. You're a good neighbour."
+      ],
+      "player_let_down": [
+        "You promised to help me and never came back.",
+        "I waited for you, {player}. You never showed up."
+      ],
+      "bought_from_player": [
+        "That {item} from your workshop is holding up nicely!",
+        "Good work on that {item}. Solid craftsmanship."
+      ],
+      "quit_player": [
+        "I left your employ {ago}. No hard feelings… mostly.",
+        "Working for you just wasn't for me."
+      ],
+      "heard_player_good": [
+        "{npc} speaks well of you, you know.",
+        "I hear you're someone people can rely on. {npc} says so."
+      ],
+      "heard_player_bad": [
+        "People talk, {player}. {npc} has told me how you treat people.",
+        "I've heard things about you. Ask what {npc} is saying."
+      ],
+      "saw_friend_fired": [
+        "You fired {npc}. {npc} is my friend. I haven't forgotten.",
+        "After what you did to {npc}, I'm keeping an eye on you."
+      ],
+      "player_failed_job": [
+        "Last time you took a job from me, you didn't finish it.",
+        "I hope you'll be more reliable this time."
+      ],
+      "got_job": [
+        "I started a new job {ago}! Finally, steady wages.",
+        "New job, new life. I'm a {occ} now."
+      ],
+      "quit_job": [
+        "I walked out of my job. They stopped paying me.",
+        "No wages, no work. I'm done with that place."
+      ],
+      "unpaid_wages": [
+        "They haven't paid me at work. I'm getting worried.",
+        "Working for free is not what I signed up for."
+      ],
+      "promoted_rank": [
+        "Did you hear? I'm a {rank} now!",
+        "Years of practice, and now I'm a {rank}."
+      ],
+      "grew_up": [
+        "I'm all grown up now. Time to find my own way.",
+        "No more children's games for me. I need work."
+      ],
+      "took_up_hobby": [
+        "I've taken up {hobby} lately. It clears the head.",
+        "My new passion is {hobby}. Don't laugh."
+      ],
+      "was_sick": [
+        "I was ill {ago}. Still not quite myself.",
+        "Being sick is the worst. I couldn't work for days."
+      ],
+      "went_hungry": [
+        "I went to bed hungry {ago}. I don't want that again.",
+        "Some days there just isn't enough to eat."
+      ],
+      "slept_rough": [
+        "I've been sleeping outside. It's cold, and nobody cares.",
+        "No roof over my head. You don't know what that's like."
+      ],
+      "lived_through": [
+        "{event}: hard times for all of us."
+      ],
+      "became_friends": [
+        "{npc} and I have become good friends lately.",
+        "{npc} is great company. We see each other a lot now."
+      ],
+      "fell_out": [
+        "I'm not speaking to {npc} any more. Don't ask.",
+        "{npc} and I had a serious falling-out."
+      ],
+      "argued_with": [
+        "I had words with {npc} the other day. So stubborn!",
+        "{npc} just rubs me the wrong way."
+      ],
+      "fell_in_love": [
+        "Can I tell you a secret? I think I'm in love with {npc}.",
+        "{npc} and I… well. We've been spending a lot of time together."
+      ],
+      "broke_up": [
+        "{npc} and I are over. I don't want to talk about it.",
+        "Things didn't work out with {npc}."
+      ],
+      "married": [
+        "{npc} and I are married! Best day of my life — {ago}.",
+        "Married life suits me. {npc} is wonderful."
+      ],
+      "family_wedding": [
+        "There was a wedding in the family! {npc} and {npc2}. Such a party!"
+      ],
+      "child_born": [
+        "We had a baby! Little {npc}. I haven't slept in days, but I'm so happy.",
+        "Have you met {npc}? Our little one. Born {ago}."
+      ],
+      "sibling_born": [
+        "I have a new baby {npc} at home! They cry a lot."
+      ],
+      "family_died": [
+        "I lost {kin} {ago}. {npc}. Some days I still can't believe it.",
+        "Life goes on, they say. It's hard without {npc}."
+      ],
+      "friend_died": [
+        "I miss {npc}. We used to talk every evening.",
+        "Losing {npc} was hard. A good friend, gone."
+      ],
+      "inherited": [
+        "{npc} left me some money. I'd give it all back to have them here.",
+        "An inheritance… it doesn't feel like a gift."
+      ],
+      "took_over_business": [
+        "I run {building} now. Big shoes to fill.",
+        "Taking over {building} was never my plan. But here we are."
+      ],
+      "retired": [
+        "I've retired! Now I finally have time for myself.",
+        "After all those years of work, I don't quite know what to do with my days."
+      ],
+      "moved_home": [
+        "We moved house {ago}. Still getting used to it.",
+        "New home, new neighbours!"
+      ],
+      "moved_out": [
+        "I've got a place of my own now! No more sharing a room.",
+        "Moving out was scary, but I love my own place."
+      ],
+      "evicted": [
+        "They threw me out. I couldn't pay the rent.",
+        "Evicted. With nowhere to go."
+      ],
+      "bought_home": [
+        "I bought a house! {building} is mine — nobody can throw me out now.",
+        "Years of saving, and now I own my home."
+      ],
+      "opened_business": [
+        "I did it — I opened my own {biz_type}! {building}. Come and see!",
+        "Being my own boss is terrifying. And wonderful."
+      ],
+      "family_business": [
+        "We're running a family business now. It's hard work, but it's ours."
+      ],
+      "business_struggling": [
+        "I've put my own savings into the business. I hope it pays off.",
+        "Business has been slow. I'm keeping it afloat with my own money."
+      ],
+      "business_failed": [
+        "My business failed. Everything I built… gone.",
+        "I had to close {building}. I'm starting over."
+      ],
+      "became_manager": [
+        "They made me manager! Me, running the place.",
+        "Manager now. More pay, more headaches."
+      ],
+      "laid_off": [
+        "They let me go. Not enough work, they said.",
+        "Laid off. I need to find something new."
+      ],
+      "changed_jobs": [
+        "I changed jobs — better pay, better people.",
+        "I left my old job. Best decision I ever made."
+      ],
+      "employee_left": [
+        "{npc} left me for another job. I trained them, you know.",
+        "Good workers are hard to keep. {npc} is gone."
+      ],
+      "left_player_for_business": [
+        "I learned a lot working for you, {player}. Now I have my own {biz_type}!",
+        "No hard feelings, boss — I had to try running my own place."
+      ],
+      "backed_business": [
+        "I've put money into {npc}'s business. I believe in them.",
+        "Money should work, not sit in a chest. I backed {npc}."
+      ],
+      "got_backing": [
+        "{npc} believed in me and put up the money. I won't let them down.",
+        "Without {npc}'s money I'd still be dreaming."
+      ],
+      "started_building": [
+        "We're building our own house! Every evening, board by board.",
+        "I've started building. It'll take a while, but it'll be ours."
+      ],
+      "helped_build": [
+        "{npc} came and helped with the house. That's what neighbours are for.",
+        "Couldn't have raised the walls without {npc}."
+      ],
+      "built_home": [
+        "We finally moved into the house we built. Every nail in it — ours.",
+        "Our own house, built with our own hands. Come and see it!"
+      ],
+      "gave_up_building": [
+        "I had to stop building. The money ran out before the walls were up.",
+        "The half-built house… I just couldn't finish it."
+      ],
+      "arrived_village": [
+        "I arrived here with a bag and some hope. Let's see what this place gives me.",
+        "Back home there was no work. Here there might be."
+      ],
+      "friend_left": [
+        "{npc} left the village. I miss them already.",
+        "Another friend gone — {npc} moved away."
+      ],
+      "player_helped_build": [
+        "You helped raise my house, {player}. I won't forget that.",
+        "Every time I look at my roof I think of you swinging that hammer."
+      ],
+      "home_flood": [
+        "The flood ruined half our things. Mud everywhere.",
+        "We're still drying out after the flood."
+      ],
+      "home_storm": [
+        "The storm tore half our roof off.",
+        "We lost roof tiles in that storm. Could have been worse."
+      ],
+      "home_fire": [
+        "Our house caught fire. We were lucky to get it out.",
+        "I still smell the smoke when I close my eyes."
+      ],
+      "home_burnt": [
+        "Our home burned down. Everything we had.",
+        "We lost the house to the fire. We're starting again."
+      ],
+      "mine_accident": [
+        "I was in the quarry when it came down. I'm lucky to be alive.",
+        "The collapse… I don't want to talk about it."
+      ],
+      "took_in": [
+        "{npc} is staying with us until their house is fixed. That's what neighbours do.",
+        "We took {npc} in after the disaster."
+      ],
+      "fire_helped": [
+        "{npc} was there with buckets when my house burned. I won't forget it.",
+        "When the fire came, {npc} came running."
+      ],
+      "player_fought_fire": [
+        "You fought that fire alongside us, {player}. You saved my home.",
+        "I saw you with the buckets, {player}. Thank you."
+      ],
+      "went_exploring": [
+        "I went all the way to {region_name}, {ago}. You should see it out there.",
+        "{region_name} — now that was a journey. My feet still ache."
+      ],
+      "explored_with_player": [
+        "Remember our trip to {region_name}? I'd go again, you know.",
+        "{region_name}… Those were the days. When's our next trip, {player}?"
+      ],
+      "invented": [
+        "I figured it out — {tech}! Took me long enough.",
+        "People said it couldn't be done. Well: {tech}."
+      ],
+      "became_teacher": [
+        "Teaching the children is the best work I've ever done.",
+        "The little ones keep me on my toes at school."
+      ],
+      "mentored_by": [
+        "{npc} is teaching me the trade. I'm getting better every week.",
+        "I learn more from {npc} in a day than I did in a year on my own."
+      ],
+      "took_apprentice": [
+        "{npc} works beside me now. Reminds me of myself at that age.",
+        "Teaching {npc} the craft — someone has to carry it on."
+      ],
+      "sold_business_to_player": [
+        "Selling you the business was the right thing, I think. Look after it.",
+        "It's strange, working in the place I used to own. But the burden's off my shoulders."
+      ],
+      "laid_off_season": [
+        "The harvest's in, so the farm let me go till spring. Same every year.",
+        "No farm work in winter. I'll find something."
+      ]
+    },
+    "work": {
+      "owner_struggling": [
+        "Business is slow. I don't know how long I can keep going.",
+        "Money's tight at {building}. Every coin counts."
+      ],
+      "owner_thriving": [
+        "Business is good this season. Can't complain!",
+        "{building} has never done better."
+      ],
+      "owner_hiring": [
+        "I'm looking for another worker, if you know anyone.",
+        "I could use another pair of hands at {building}."
+      ],
+      "owner_no_input": [
+        "No {item} to work with. My forge is going cold.",
+        "If you find any {item}, bring it to me. I'll pay well."
+      ],
+      "owner_overstock": [
+        "We've got more {item} than anyone wants to buy.",
+        "The yard is overflowing with {item}. Nobody's buying."
+      ],
+      "player_happy": [
+        "Working for you suits me fine, boss.",
+        "Good pay, a fair boss. I'm happy."
+      ],
+      "player_ok": [
+        "The work's fine. Nothing to complain about.",
+        "It's a job. I do it."
+      ],
+      "player_unhappy": [
+        "Honestly? I think I'm worth more. Something like {money} a day.",
+        "I'm not happy with how things are, boss."
+      ],
+      "unpaid": [
+        "{npc} hasn't paid me in {n} days. How am I supposed to live?",
+        "No wages again. I'm thinking of leaving."
+      ],
+      "boss_struggling": [
+        "Things are bad at work. I hope {npc} can keep paying us.",
+        "Between you and me, {npc} is short of money."
+      ],
+      "long_hours": [
+        "{npc} keeps us working from dawn till dusk.",
+        "Long days at work. My back isn't what it used to be."
+      ],
+      "bad_boss": [
+        "I can't stand working for {npc} much longer.",
+        "{npc} treats us like dirt."
+      ],
+      "good_boss": [
+        "{npc} is a good boss. Fair and honest.",
+        "I'm lucky to work for {npc}."
+      ],
+      "coworker_friend": [
+        "Work is easier with {npc} around. We make a good team.",
+        "{npc} and I work together. Good friends, too."
+      ],
+      "proud_master": [
+        "After all these years, I'm a real master of my trade.",
+        "People come to me when something's hard to do. That's what mastery means."
+      ],
+      "day_off": [
+        "It's my day off! No work today.",
+        "Rest day. I intend to do absolutely nothing."
+      ],
+      "off_season": [
+        "No field work until spring. Money's tight.",
+        "The off-season is long. I'm just waiting it out."
+      ],
+      "searching": [
+        "I've been looking for work everywhere. Nothing yet.",
+        "If you hear of a job, tell me, please."
+      ],
+      "heard_hiring": [
+        "I heard they're hiring at {building}. I should go and ask.",
+        "{building} might need someone. Worth a try."
+      ],
+      "rival_cheaper": [
+        "{building} is undercutting me. I'll have to lower my prices.",
+        "Customers go where it's cheaper. {building} knows that."
+      ],
+      "rival_exists": [
+        "There's competition now — {building}. Keeps me on my toes.",
+        "{building} wants my customers. Let them try."
+      ],
+      "competing_with_you": [
+        "You make furniture too, don't you? May the better carpenter win!",
+        "Your workshop and mine — the village only needs so many chairs."
+      ],
+      "new_business": [
+        "It's still early days for my business. Every customer counts.",
+        "Opening {building} was the bravest thing I've done."
+      ]
+    },
+    "family": {
+      "sick": [
+        "I'm worried — {kin} is ill. I try to stay close to home.",
+        "{npc} hasn't been well for days. I'm worried."
+      ],
+      "jobless": [
+        "Still no work for {kin}. It's hard on the whole family.",
+        "If you hear of a job, tell {npc} — {kin} really needs one."
+      ],
+      "child": [
+        "{npc} is growing up so fast — {n} already!",
+        "Kids grow like weeds. {npc} will be working before I know it."
+      ],
+      "spouse": [
+        "{npc} and I have been together for years. I'm lucky.",
+        "Life's easier with {kin} at my side."
+      ],
+      "sibling": [
+        "{npc} always has my back. Family is family.",
+        "Family is family — even when {kin} drives me mad."
+      ],
+      "parent": [
+        "Everything I know, I learned at home — {kin} taught me.",
+        "I should visit {kin} more often."
+      ],
+      "no_food": [
+        "Our pantry is empty. I don't know what we'll eat tonight.",
+        "Not a crumb at home. Prices are killing us."
+      ],
+      "courting": [
+        "I've been seeing {npc}. Don't tell anyone yet!",
+        "{npc} and I walk together in the evenings. It's… nice."
+      ],
+      "widowed": [
+        "I miss {npc} every single day.",
+        "The house is so quiet without {npc}."
+      ],
+      "crowded": [
+        "Our house is bursting at the seams. We need a bigger place.",
+        "Too many people, too few beds. We have to find something bigger."
+      ],
+      "rent_behind": [
+        "I'm behind on the rent. If I don't pay soon, they'll throw me out.",
+        "Rent day scares me. I can't pay it all."
+      ],
+      "your_tenant": [
+        "The house is fine, landlord. {money} a week is fair.",
+        "Renting from you is all right. Just keep the roof fixed!"
+      ],
+      "own_home": [
+        "It's good to own your home. Nobody can throw you out.",
+        "Our home isn't big, but it's ours."
+      ]
+    },
+    "goal": {
+      "grow": [
+        "When I grow up, I'll have the biggest house in the village!",
+        "When I'm big I'm going to be a blacksmith!"
+      ],
+      "home": [
+        "All I want is a roof over my head.",
+        "One day I'll have a home of my own again."
+      ],
+      "job": [
+        "All I need is a steady job. That's all.",
+        "A job — any job. Then everything else will follow."
+      ],
+      "legacy": [
+        "At my age you think about what you leave behind.",
+        "I want this village to outlive me. That's all I ask."
+      ],
+      "business": [
+        "I'm saving for my own business. {money} so far — I need about {money2}.",
+        "One day I'll open my own shop. I've put aside {money} already."
+      ],
+      "business_ready": [
+        "I've finally saved enough to open my own workshop! Now I just need the right place.",
+        "It took a long time, but the money's there. Time to start something of my own."
+      ],
+      "master": [
+        "One day I'll be a master of my trade. You'll see.",
+        "I practise every day. Mastery takes time."
+      ],
+      "grow_business": [
+        "I'd like to expand. More workers, more goods.",
+        "A good business never stands still."
+      ],
+      "steady": [
+        "A steady job, a warm home, friends nearby. What more could I want?",
+        "I'm content. Not everyone needs to be rich."
+      ]
+    },
+    "habit": {
+      "tavern_night": [
+        "It's my tavern night! Come by for a drink later.",
+        "Tonight I'll be at the tavern, same as every week."
+      ],
+      "market_today": [
+        "Market day! I'm stocking up for the week.",
+        "Today's my big shopping day."
+      ],
+      "market_tomorrow": [
+        "Tomorrow I do my weekly shopping.",
+        "Market day tomorrow. Let's hope prices behave."
+      ],
+      "family_day": [
+        "On my day off I visit family — {kin} will be waiting.",
+        "I'll be seeing {npc} soon. Family comes first."
+      ],
+      "hobby": {
+        "fishing": [
+          "After work I go fishing. The fish bite best at dusk.",
+          "Nothing beats a quiet evening by the water."
+        ],
+        "walking": [
+          "I love long walks in the woods. They clear the head.",
+          "The forest paths are lovely this time of year."
+        ],
+        "reading": [
+          "I've been reading in the hall. There's so much to learn.",
+          "Books are the only thing I'd spend my last coin on."
+        ],
+        "gardening": [
+          "My garden is my pride. You should see my beans.",
+          "A few rows of vegetables by the house — keeps the table full."
+        ],
+        "cards": [
+          "Fancy a game of cards at the tavern tonight?",
+          "I won three rounds of cards last night!"
+        ],
+        "gossip": [
+          "I hear everything at the well. Ask me anything!",
+          "The well is where the real news is."
+        ],
+        "whittling": [
+          "I carve little figures in the evenings. Keeps my hands busy.",
+          "Whittling calms me down after a long day."
+        ],
+        "playing": [
+          "Wanna play tag? Bet you can't catch me!",
+          "We found a secret spot near the plaza!"
+        ],
+        "hunting": [
+          "I go hunting in the woods when I can. A rabbit for the pot is worth the walk.",
+          "Stand still and the deer come right up to you. Well — almost."
+        ]
+      },
+      "fav_place": [
+        "You'll usually find me at {building} in the evenings.",
+        "{building} is my favourite place in the village."
+      ]
+    },
+    "problem": {
+      "homeless": [
+        "I have nowhere to live. I sleep wherever I can.",
+        "Do you know anyone renting a room? I'm desperate."
+      ],
+      "poor": [
+        "I'm down to my last coins.",
+        "Money's so tight I skip meals."
+      ],
+      "lonely": [
+        "I haven't had a proper talk with anyone in days.",
+        "Sometimes I feel nobody would notice if I left."
+      ],
+      "tired": [
+        "I'm exhausted. I could sleep for a week.",
+        "My legs are made of lead today."
+      ],
+      "sick": [
+        "I don't feel well at all.",
+        "I think I'm coming down with something."
+      ]
+    },
+    "rel": {
+      "rival": [
+        "{npc}? Don't even mention that name to me.",
+        "If {npc} is there, I'm not going."
+      ],
+      "friend": [
+        "{npc} is my best friend. We see each other nearly every day.",
+        "If you need a good word, ask {npc}. A wonderful person."
+      ]
+    },
+    "news": {
+      "chronicle": [
+        "Did you hear? {chronicle}",
+        "News around the village: {chronicle}",
+        "People are saying… {chronicle}"
+      ],
+      "rumor": [
+        "{rumor}"
+      ],
+      "hiring": [
+        "They're hiring at {building}, I hear.",
+        "{building} is looking for workers."
+      ],
+      "land": [
+        "{plot} is still for sale, if you're interested.",
+        "Someone should buy {plot}. Good land going to waste."
+      ],
+      "player_biz_good": [
+        "Everyone's talking about your workshop. Good furniture, fair prices.",
+        "People say you run a decent business."
+      ],
+      "player_biz_bad": [
+        "People grumble about your workshop, you know. Empty shelves, high prices.",
+        "Your workshop's reputation isn't great, I'm afraid."
+      ],
+      "need_carpenter": [
+        "The village could really use a carpenter. You can't find a decent chair anywhere.",
+        "If someone made furniture here, they'd do well."
+      ],
+      "nothing": [
+        "Nothing much happening, really.",
+        "Quiet times. Nothing to report."
+      ],
+      "event": {
+        "good_harvest": [
+          "The harvest looks rich this year. Bread will be cheap!"
+        ],
+        "drought": [
+          "This drought is ruining the fields. Food will get expensive.",
+          "No rain for days. The farmers are worried sick."
+        ],
+        "heavy_rain": [
+          "All this rain — good for the crops, bad for my boots."
+        ],
+        "storm_front": [
+          "Tie everything down — this storm is serious."
+        ],
+        "cold_snap": [
+          "This cold! Firewood is worth its weight in gold now."
+        ],
+        "berry_year": [
+          "The bushes are bursting with berries this year!"
+        ],
+        "flood": [
+          "The river flooded the low houses. What a mess.",
+          "Half the riverside is under mud."
+        ],
+        "blight": [
+          "The crops are rotting in the fields. Blight, they say.",
+          "Blight again. Bread will be dear this year."
+        ],
+        "poor_harvest": [
+          "The harvest is poor this year. Tighten your belt.",
+          "The farmers say it's the worst harvest in years."
+        ],
+        "sickness": [
+          "Half the village is coughing. Keep warm.",
+          "There's a sickness going round — the old folk are suffering."
+        ],
+        "mine_collapse": [
+          "The quarry caved in! Thank goodness nobody died.",
+          "No stone from the quarry until they make it safe."
+        ],
+        "boom": [
+          "Traders are paying good money for everything we make!",
+          "Good times — the traders can't get enough of our goods."
+        ],
+        "slump": [
+          "Nobody wants to buy anything. Hard times.",
+          "The traders are paying next to nothing this season."
+        ],
+        "migration_wave": [
+          "So many new faces lately!",
+          "Newcomers everywhere — where will they all live?"
+        ],
+        "trade_fair": [
+          "There's a merchant paying top price for {item}! Sell while you can.",
+          "Got any {item}? The fair merchant is buying."
+        ]
+      }
+    },
+    "econ": {
+      "shortage": [
+        "There's no {item} at the store again. What are we supposed to eat?",
+        "The store is out of {item}. Prices will go through the roof."
+      ],
+      "winter_wood": [
+        "Winter eats firewood. I hope the woodcutters keep up."
+      ]
+    },
+    "nature": {
+      "forest_thin": [
+        "We have to walk further for timber every week. The woods near the yard are getting thin.",
+        "The forest isn't what it was. Too many trees cut, too few planted."
+      ],
+      "forest_bare": [
+        "There's hardly a tree left near the lumberyard. Where will our timber come from?",
+        "Stumps as far as you can see. We cut the forest down."
+      ],
+      "fish_scarce": [
+        "The fish aren't biting like they used to. Too many lines in the water.",
+        "Hardly a fish left in the river. We've taken too many."
+      ],
+      "fish_good": [
+        "The river is full of fish this year!",
+        "Good fishing lately — the lake is teeming."
+      ],
+      "ore_low": [
+        "The old seams are running dry. We need to find new {item}.",
+        "Every week the quarry gives less {item}. Someone should go prospecting."
+      ],
+      "game_scarce": [
+        "Haven't seen a deer in weeks. The woods are too quiet.",
+        "The hunting's poor. Too many hunters, not enough forest."
+      ],
+      "replanting": [
+        "They've started planting saplings near the lumberyard. Smart — our grandchildren will need timber too."
+      ]
+    },
+    "legacy": {
+      "good": [
+        "I'll never forget what {kin_your}, {npc}, did for me. You've a lot to live up to.",
+        "{npc} — {kin_your} — was good to me when I needed it. That was {ago}.",
+        "Your family has always been kind to me. {npc} especially."
+      ],
+      "bad": [
+        "I haven't forgotten what {kin_your}, {npc}, did. I hope you're different.",
+        "{npc} — {kin_your} — did me wrong, {ago}. Let's see what kind of person you are.",
+        "Your family and I have history. Not the good kind."
+      ],
+      "retired": [
+        "How's {kin_your} doing? Give {npc} my regards.",
+        "Is {npc} enjoying the quiet life? You've big shoes to fill."
+      ],
+      "condolence": [
+        "I'm sorry about {kin_your}. {npc} was one of a kind.",
+        "The village isn't the same without {npc}. I'm so sorry."
+      ]
+    },
+    "home": {
+      "kids": [
+        "{npc} was a handful today! Takes after you.",
+        "The children keep me busy — I wouldn't have it any other way."
+      ],
+      "crowded": [
+        "We're getting a bit cramped at home, love. We could do with more room.",
+        "If we're to grow the family, we'll need a bigger house."
+      ],
+      "love": [
+        "I'm glad I married you.",
+        "Come home early tonight, will you?",
+        "Whatever happens, we'll manage together."
+      ],
+      "child_young": [
+        "Can we go fishing sometime?",
+        "I helped today! Well, a bit.",
+        "When I grow up I want to be just like you."
+      ],
+      "child_grown": [
+        "I've been thinking about what I want to do with my life.",
+        "You taught me a lot, you know.",
+        "Don't work yourself too hard."
+      ],
+      "elder": [
+        "I'm proud of you. Truly.",
+        "Don't make my mistakes — make your own.",
+        "The village has changed so much since I was young."
+      ]
+    }
+  },
+  "owner": {
+    "player": "You",
+    "village": "The village",
+    "nobody": "Nobody"
+  },
+  "acquired": {
+    "founded": "original owner",
+    "built": "built it",
+    "bought": "bought it",
+    "inherited": "inherited it",
+    "escheat": "taken over by the village"
+  },
+  "rent_level": {
+    "cheap": "Cheap",
+    "normal": "Normal",
+    "high": "High"
+  },
+  "life_stage": {
+    "baby": "Baby",
+    "child": "Child",
+    "teen": "Teenager",
+    "adult": "Adult",
+    "elder": "Elder"
+  },
+  "biz_type": {
+    "general_store": "general store",
+    "tavern": "tavern",
+    "smithy": "smithy",
+    "bakery": "bakery",
+    "carpentry": "carpentry shop",
+    "farm": "farm",
+    "lumberyard": "lumberyard",
+    "quarry": "quarry",
+    "fishery": "fishery",
+    "builders": "builders' firm",
+    "warehouse": "warehouse",
+    "carters": "carters' yard",
+    "mill": "mill",
+    "mining_camp": "mining camp",
+    "hunting_lodge": "hunting cabin",
+    "trading_post": "trading post"
+  },
+  "biz_name": {
+    "general_store": [
+      "Corner Shop",
+      "The Full Basket",
+      "Good Goods",
+      "Village Pantry",
+      "The Honest Scale",
+      "Market House",
+      "Two Sisters",
+      "The Crossroads"
+    ],
+    "tavern": [
+      "The Tipsy Goat",
+      "The Old Oak",
+      "Merry Kettle",
+      "The Lantern",
+      "Three Barrels",
+      "The Warm Hearth II",
+      "The Wanderer",
+      "The Copper Mug"
+    ],
+    "smithy": [
+      "Red Anvil",
+      "Iron & Ember",
+      "The Bellows",
+      "Hammerfall",
+      "The Forge Yard",
+      "Spark & Steel",
+      "Black Tongs",
+      "Cinder Works"
+    ],
+    "bakery": [
+      "Golden Crust",
+      "The Warm Loaf",
+      "Morning Bread",
+      "Honey Bun",
+      "The Wheat Sheaf",
+      "Rye & Rise",
+      "Sweet Oven",
+      "Daily Bread"
+    ],
+    "carpentry": [
+      "Oak & Pine",
+      "The Sawhorse",
+      "Timber Works",
+      "Good Grain",
+      "The Joiner's Bench",
+      "Birch Workshop",
+      "Planed Edge",
+      "The Chip & Shaving"
+    ],
+    "fishery": [
+      "Silver Scale",
+      "The Net & Oar",
+      "River's Bounty",
+      "Old Pike",
+      "The Jetty",
+      "Blue Water",
+      "Morning Catch",
+      "Reed Bank"
+    ],
+    "builders": [
+      "Stone & Beam",
+      "Sound Roofs",
+      "The Plumb Line",
+      "Hearth Builders",
+      "Rafter & Sons",
+      "True Corner",
+      "Brick & Mortar",
+      "Oak Frame"
+    ],
+    "warehouse": [
+      "The Granary",
+      "Crossroads Stores",
+      "Big Barn",
+      "Merchant's Yard",
+      "The Depot",
+      "Stone Shed",
+      "Riverside Stores",
+      "Old Mill Store"
+    ],
+    "carters": [
+      "Swift Wheels",
+      "The Axle",
+      "Two Mules",
+      "Road & Rut",
+      "Iron Tyre",
+      "Hauliers",
+      "The Yoke",
+      "Long Road"
+    ],
+    "mill": [
+      "The Old Mill",
+      "Stone Wheel",
+      "Riverside Mill",
+      "The Millrace",
+      "Golden Grain Mill",
+      "The Grindstone",
+      "Waterwheel Mill",
+      "Flour & Sons"
+    ],
+    "mining_camp": [
+      "Deep Seam Camp",
+      "Rockfall Camp",
+      "The Diggings",
+      "Ironvein Camp",
+      "Blackstone Camp",
+      "Echo Camp",
+      "Lantern Camp",
+      "Cragside Camp"
+    ],
+    "hunting_lodge": [
+      "Stag's Rest",
+      "The Hide",
+      "Fox Lodge",
+      "Deerpath Cabin",
+      "Old Oak Lodge",
+      "Bramble Lodge",
+      "The Tracker's Hut",
+      "Pinewood Lodge"
+    ],
+    "trading_post": [
+      "The Old Waystation",
+      "Crossroads Post",
+      "Wayfarer's Post",
+      "Valley Gate",
+      "Road's End Post",
+      "The Toll House",
+      "Carter's Rest",
+      "Last Mile Post"
+    ]
+  },
+  "career": {
+    "apprentice": "Apprentice",
+    "regular": "Worker",
+    "skilled": "Experienced worker",
+    "master": "Specialist",
+    "manager": "Manager",
+    "owner": "Business owner"
+  },
+  "animal": {
+    "deer": "Deer",
+    "rabbit": "Rabbit"
+  },
+  "region": {
+    "north_mountains": "the northern mountains",
+    "east_mountains": "the eastern mountains",
+    "mountains": "the mountains"
+  },
+  "vbuilding": {
+    "house": "house",
+    "small_house": "cottage",
+    "shopfront": "shopfront",
+    "well": "well",
+    "warehouse": "warehouse",
+    "school": "school",
+    "library": "library",
+    "mill": "mill"
+  },
+  "purpose": {
+    "home": "a home for the family",
+    "rental": "a house to let",
+    "shop": "business premises",
+    "public": "for the whole village"
+  },
+  "district": {
+    "name": "{where} {type}",
+    "unnamed": "part of the village",
+    "where": {
+      "center": "Old",
+      "north": "North",
+      "south": "South",
+      "east": "East",
+      "west": "West",
+      "river": "Riverside"
+    },
+    "type": {
+      "residential": [
+        "End",
+        "Lanes",
+        "Houses"
+      ],
+      "commercial": [
+        "Market",
+        "Row",
+        "Arcade"
+      ],
+      "industrial": [
+        "Works",
+        "Yards",
+        "Quarter"
+      ],
+      "agricultural": [
+        "Fields",
+        "Farms",
+        "Meadows"
+      ],
+      "civic": [
+        "Square",
+        "Commons",
+        "Green"
+      ],
+      "mixed": [
+        "Quarter",
+        "Corner",
+        "Side"
+      ]
+    },
+    "kind": {
+      "residential": "residential",
+      "commercial": "commercial",
+      "industrial": "industrial",
+      "agricultural": "farmland",
+      "civic": "civic",
+      "mixed": "mixed"
+    }
+  },
+  "village_names": [
+    "Birchford",
+    "Oakvale",
+    "Millbrook",
+    "Stonebridge",
+    "Willowmere",
+    "Ashgrove",
+    "Elmstead",
+    "Foxhollow",
+    "Greenwater",
+    "Pinecrest"
+  ],
+  "rumor": {
+    "deposit": "I heard there's {item} in {region}!",
+    "hiring": "They say {building} is hiring.",
+    "cheap": "{building} sells {item} cheap, I hear.",
+    "leaving": "{npc} has left the village — and folks say more will follow.",
+    "romance": "I hear {npc} and {npc2} are courting!",
+    "new_business": "{npc} has opened a new place — {building}. Worth a look, they say.",
+    "closing": "{building} has gone under, I hear.",
+    "gold": "gold",
+    "extra_rich": "A whole mountain of it, apparently.",
+    "extra_everyone": "Soon there'll be nobody left!",
+    "extra_very": "Practically giving it away!",
+    "extra_engaged": "They're getting married, apparently!",
+    "new_region": "Someone found the way to {region_name}!"
+  },
+  "lineage": {
+    "title": "The torch passes",
+    "old_died": {
+      "m": "{name} has died, aged {n}. He is buried in the village graveyard, and his name is in the history book.",
+      "f": "{name} has died, aged {n}. She is buried in the village graveyard, and her name is in the history book."
+    },
+    "old_retired": {
+      "m": "{name} has retired at {n}. He'll spend his old age at home — you can still visit him.",
+      "f": "{name} has retired at {n}. She'll spend her old age at home — you can still visit her."
+    },
+    "heir": "You now play as {name}, aged {n} — generation {g}. The family's money, land, homes, businesses and workers are yours.",
+    "newcomer": "There was no one to carry the family on. You now play as {name}, a newcomer aged {n}, starting afresh.",
+    "heir_hint": "You learned something of your parent's trade at home, and the village remembers your family — for better or worse.",
+    "newcomer_hint": "Nobody here knows you yet. The history of the family before you lives on in the village's history book.",
+    "family_line": "Your family line",
+    "gen_n": "Generation {n}",
+    "row_died": {
+      "m": "died at {n}",
+      "f": "died at {n}"
+    },
+    "row_retired": "retired at {n}",
+    "children_n": {
+      "one": "{n} child",
+      "other": "{n} children"
+    },
+    "continue": "Carry on",
+    "your_family": "Family",
+    "generation": "Generation",
+    "courting": "Walking out with",
+    "single_hint": "Single. Grow close to someone and you can ask them to walk out with you.",
+    "retire": "Retire and hand over to your heir",
+    "retire_confirm": {
+      "m": "Retire? You'll continue as your son {name}. You'll stay in the village as a retired elder.",
+      "f": "Retire? You'll continue as your daughter {name}. You'll stay in the village as a retired elder."
+    },
+    "retire_yes": "Yes, hand over",
+    "retire_later": "You can retire from age {n}, once your eldest is at least 16.",
+    "no_heir": "You have no children to carry on the family."
+  },
+  "kin_your": {
+    "spouse": {
+      "m": "your husband",
+      "f": "your wife"
+    },
+    "parent": {
+      "m": "your father",
+      "f": "your mother"
+    },
+    "child": {
+      "m": "your son",
+      "f": "your daughter"
+    },
+    "sibling": {
+      "m": "your brother",
+      "f": "your sister"
+    },
+    "grandparent": {
+      "m": "your grandfather",
+      "f": "your grandmother"
+    },
+    "grandchild": {
+      "m": "your grandson",
+      "f": "your granddaughter"
+    },
+    "relative": {
+      "m": "your relative",
+      "f": "your relative"
+    }
+  },
+  "region_name": {
+    "old_forest": "The Old Forest",
+    "north_pass": "The Northern Pass",
+    "iron_hills": "The Iron Hills",
+    "lake_country": "The Lake Country",
+    "old_fort": "The Ruined Fort",
+    "market_town": "Market Town",
+    "far_coast": "The Far Coast"
+  },
+  "region_desc": {
+    "old_forest": "Ancient woods west of the valley. Deer, tall timber, wild berries — and, some say, an old hermit's hut.",
+    "north_pass": "A cold road over the mountains. Miners talk of iron in the rocks up there.",
+    "iron_hills": "Bare, rust-coloured hills to the east. Coal seams show in the gullies.",
+    "lake_country": "Wide lakes and fishing hamlets to the south. People there might be looking for a new home.",
+    "old_fort": "The ruins of a fort from before anyone's grandparents' time. Old coin, old books — and old dangers.",
+    "market_town": "A busy town beyond the lakes. Its merchants could become your village's trading partners.",
+    "far_coast": "Many days away, where the land meets the sea. Few from the valley have ever seen it."
+  },
+  "expedition": {
+    "title": "Beyond the valley",
+    "report_title": "Home again",
+    "your_valley": "Your valley",
+    "explored_pct": "{n}% explored",
+    "nothing_yet": "Nothing yet.",
+    "journey": "Journey (there and back)",
+    "days": {
+      "one": "{n} day",
+      "other": "{n} days"
+    },
+    "danger": "Danger",
+    "danger_low": "low",
+    "danger_medium": "moderate",
+    "danger_high": "high",
+    "explored": "Explored",
+    "partner": "Trading partner",
+    "rumoured": "Said to have",
+    "found_before": "Found there so far",
+    "companions": "Companions",
+    "companions_hint": "Friends may come along for {money} a day each. More people find more — and are safer on the road.",
+    "no_companions": "No friends free to come along. Get to know people first.",
+    "supplies": "Supplies",
+    "food_needed": "Food (carried / needed)",
+    "wages": "Companions' pay",
+    "away_hint": "While you're away the village carries on without you.",
+    "set_out": "Set out",
+    "npc_away": "{npc} is away exploring: {region_name}.",
+    "beyond": "Beyond the valley",
+    "valley_mapped": "Valley explored",
+    "knowledge": "Knowledge gathered",
+    "back": "You're back from {region_name} after {n} days on the road.",
+    "found_nothing": "You found nothing of note this time.",
+    "while_away": "While you were away",
+    "quiet": "A quiet few days — nothing much happened.",
+    "home_again": "Home again",
+    "revealed": "You learned the way to a new place: {region}.",
+    "find": {
+      "deposit": "ore",
+      "ruins": "ruins",
+      "relic": "relics",
+      "partner": "trade",
+      "settlers": "settlers",
+      "game": "game",
+      "timber": "timber",
+      "herbs": "berries",
+      "fish": "fish"
+    },
+    "hint": {
+      "deposit": "ore",
+      "ruins": "ruins",
+      "relic": "old relics",
+      "partner": "traders",
+      "settlers": "people who might move",
+      "game": "game",
+      "timber": "timber",
+      "herbs": "berries",
+      "fish": "fish"
+    },
+    "found": {
+      "deposit": "A seam of ore — you marked a path to it from the valley's mountains",
+      "ruins": "Old ruins: a little coin, and things worth learning",
+      "relic": "An ancient relic",
+      "partner": "Merchants who want to trade with your village — better prices for everything the village sells",
+      "settlers": "Families who liked what they heard about your village. They'll come in a few days.",
+      "game": "Good hunting",
+      "timber": "Fine timber",
+      "herbs": "Wild berries",
+      "fish": "Plenty of fish"
+    },
+    "loss": {
+      "injured": "You were hurt on the road.",
+      "robbed": "Robbers on the road took {money}.",
+      "companion_hurt": "{npc} was badly hurt.",
+      "companion_died": "{npc} didn't come back."
+    }
+  },
+  "tech": {
+    "know_how": "Village know-how",
+    "working_on": "being worked out · {n}%",
+    "none_yet": "Nothing new yet — people are still getting by the old ways.",
+    "hint": "New know-how comes from the people doing the work, from reading and schooling, and from what explorers bring home.",
+    "donate_relic": "Donate an ancient relic",
+    "handcart": {
+      "name": "Handcarts",
+      "desc": "Carpenters worked out a cart one person can push. Goods travel faster and cheaper."
+    },
+    "better_tools": {
+      "name": "Better tools",
+      "desc": "Sharper axes and harder picks from the smithy: more from every tree and rock."
+    },
+    "crop_rotation": {
+      "name": "Crop rotation",
+      "desc": "Farmers rest their fields in turn. Harvests are richer."
+    },
+    "masonry": {
+      "name": "Masonry",
+      "desc": "Builders learned to dress stone properly. Everything is built faster."
+    },
+    "herbal_medicine": {
+      "name": "Herbal medicine",
+      "desc": "Gardeners learned which herbs heal. Sickness spreads less."
+    },
+    "draft_animals": {
+      "name": "Draft animals",
+      "desc": "Horses in harness: carts haul more, and fields are ploughed faster."
+    },
+    "writing": {
+      "name": "Writing",
+      "desc": "With a school, the village writes things down. People learn faster."
+    },
+    "wagons": {
+      "name": "Wagons",
+      "desc": "Big iron-shod wagons carry whole loads at once."
+    },
+    "milling": {
+      "name": "Milling",
+      "desc": "The know-how to build a water mill — the village can raise one."
+    },
+    "printing": {
+      "name": "Printing",
+      "desc": "A printed gazette: news travels true, and people keep learning."
+    }
+  },
+  "education": {
+    "some": "some",
+    "good": "good",
+    "high": "well educated"
+  },
+  "quality": {
+    "crude": "crude",
+    "standard": "standard",
+    "fine": "fine",
+    "masterwork": "masterwork",
+    "named": "{item} · {quality}"
+  },
+  "contract": {
+    "tab": "Contracts ({n})",
+    "kind": {
+      "supply": "Supply",
+      "craft": "Commission",
+      "build": "Building work",
+      "haul": "Haulage",
+      "order": "Order"
+    },
+    "supply": "{building} is running short: deliver {qty} × {item}.",
+    "craft": "{npc} wants {qty} × {item} made — {quality} or better — delivered to their home.",
+    "craft_biz": "{building} needs {qty} × {item} for its workers — {quality} or better.",
+    "build": "{npc} is building a {vbuilding}: put in {hours} hours of work on the site.",
+    "build_village": "The village is building a {vbuilding}: put in {hours} hours of work on the site.",
+    "haul": "Carry {qty} × {item} from {building} to {building2}.",
+    "time_allowed": {
+      "one": "Time allowed: {n} day",
+      "other": "Time allowed: {n} days"
+    },
+    "accept": "Take it on",
+    "decline": "Not for me",
+    "abandon": "Give it up",
+    "hours_done": "{n} / {of} hours",
+    "hauled": "delivered {n} / {of} (carrying {got})",
+    "delivered_n": "delivered {n} / {of}",
+    "deadline": "Due by {date}",
+    "hint": "Contracts come from real needs around the village. Deliver at the building's door, work at the site, or collect and carry. Payment comes from whoever asked; missing a deadline costs you reputation.",
+    "yours": "Your contracts",
+    "offered": "On offer",
+    "none": "Nothing on offer right now — check back tomorrow.",
+    "record": "Contracts fulfilled: {done} · fell through: {failed}",
+    "order": "{building} orders {qty} × {item} from your {building2}.",
+    "ship": "Send from stock ({n} there)",
+    "order_feast": "{npc} is throwing a celebration and orders {qty} × {item} from your {building2}.",
+    "order_feast_village": "The village is holding a feast and orders {qty} × {item} from your {building2}."
+  },
+  "ambition": {
+    "title": "Ambitions",
+    "none": "No ambitions chosen. Pick what you'd like to achieve — or just live.",
+    "choose": "Choose ambitions",
+    "hide": "Done choosing",
+    "master_craftsman": {
+      "name": "Master craftsman",
+      "desc": "Reach the top level in carpentry, smithing or cooking."
+    },
+    "masterworks": {
+      "name": "Masterworks",
+      "desc": "Make five masterwork pieces."
+    },
+    "landowner": {
+      "name": "Landowner",
+      "desc": "Own ten properties and plots of land."
+    },
+    "big_farm": {
+      "name": "A big farm",
+      "desc": "Work forty fields of your own."
+    },
+    "builder": {
+      "name": "Builder",
+      "desc": "Finish eight buildings of your own."
+    },
+    "employer": {
+      "name": "Employer",
+      "desc": "Have five people working for you at once."
+    },
+    "contractor": {
+      "name": "Reliable contractor",
+      "desc": "Fulfil twenty contracts."
+    },
+    "merchant": {
+      "name": "Merchant",
+      "desc": "Earn 5,000 from selling and contracts."
+    },
+    "wealthy": {
+      "name": "Wealthy",
+      "desc": "Have 10,000 at once."
+    },
+    "explorer": {
+      "name": "Explorer",
+      "desc": "Learn the way to every region beyond the valley."
+    },
+    "cartographer": {
+      "name": "Cartographer",
+      "desc": "Walk and map 90% of the valley."
+    },
+    "family": {
+      "name": "A big family",
+      "desc": "Raise three children."
+    },
+    "benefactor": {
+      "name": "Benefactor",
+      "desc": "Give 1,000 to the village fund."
+    },
+    "polymath": {
+      "name": "Jack of all trades",
+      "desc": "Reach level 5 in six different skills."
+    },
+    "beloved": {
+      "name": "Beloved",
+      "desc": "Be trusted by eight villagers."
+    }
+  },
+  "perk": {
+    "lumberjack": {
+      "name": "Lumberjack",
+      "desc": "Chop 25% faster."
+    },
+    "forester": {
+      "name": "Forester",
+      "desc": "+1 wood from every tree."
+    },
+    "axe_care": {
+      "name": "Axe care",
+      "desc": "Half the wear on your axes; chop a little faster."
+    },
+    "timber_merchant": {
+      "name": "Timber merchant",
+      "desc": "Sell wood for 25% more and planks for 15% more."
+    },
+    "prospector": {
+      "name": "Prospector",
+      "desc": "+1 ore or stone from every rock."
+    },
+    "tunneler": {
+      "name": "Tunneler",
+      "desc": "Mine 25% faster."
+    },
+    "geologist": {
+      "name": "Geologist",
+      "desc": "Now and then you spot a new seam near where you mine."
+    },
+    "pick_care": {
+      "name": "Pick care",
+      "desc": "Half the wear on your pickaxes; mine a little faster."
+    },
+    "efficient_farmer": {
+      "name": "Efficient farmer",
+      "desc": "30% of the time, planting doesn't use up the seed."
+    },
+    "master_harvester": {
+      "name": "Master harvester",
+      "desc": "+1 from every harvest."
+    },
+    "water_saver": {
+      "name": "Water saver",
+      "desc": "Your watering can holds twice as much."
+    },
+    "agri_planner": {
+      "name": "Agricultural planner",
+      "desc": "Your crops grow 25% faster."
+    },
+    "patient_angler": {
+      "name": "Patient angler",
+      "desc": "Fish 30% faster."
+    },
+    "net_caster": {
+      "name": "Net caster",
+      "desc": "A catch sometimes brings in two fish."
+    },
+    "tracker": {
+      "name": "Tracker",
+      "desc": "Hit your mark 20% more often."
+    },
+    "skinner": {
+      "name": "Skinner",
+      "desc": "+1 hide from every animal you bring down."
+    },
+    "fine_joinery": {
+      "name": "Fine joinery",
+      "desc": "Your furniture and woodwork come out finer."
+    },
+    "quick_hands": {
+      "name": "Quick hands",
+      "desc": "Carpentry goes 35% faster."
+    },
+    "thrifty_carpenter": {
+      "name": "Thrifty carpenter",
+      "desc": "A quarter of the time you save a piece of material."
+    },
+    "master_carpenter": {
+      "name": "Master carpenter",
+      "desc": "Masterwork furniture even before full mastery, and finer work."
+    },
+    "toolsmith": {
+      "name": "Toolsmith",
+      "desc": "The tools you forge come out finer."
+    },
+    "repairman": {
+      "name": "Repairman",
+      "desc": "Tool repairs cost 40% less."
+    },
+    "tempering": {
+      "name": "Tempering",
+      "desc": "Tools you forge last 50% longer."
+    },
+    "smelter": {
+      "name": "Smelter",
+      "desc": "Smelting sometimes yields an extra ingot."
+    },
+    "home_cook": {
+      "name": "Home cook",
+      "desc": "Every meal restores 25% more."
+    },
+    "quick_cook": {
+      "name": "Quick cook",
+      "desc": "Cooking goes 40% faster."
+    },
+    "chef": {
+      "name": "Chef",
+      "desc": "Your cooking comes out much finer — even masterwork."
+    },
+    "caterer": {
+      "name": "Caterer",
+      "desc": "Food sells for 25% more."
+    },
+    "builder": {
+      "name": "Builder",
+      "desc": "Build 25% faster."
+    },
+    "frugal_builder": {
+      "name": "Frugal builder",
+      "desc": "Your buildings need 15% less material."
+    },
+    "foreman": {
+      "name": "Foreman",
+      "desc": "Your workers build 30% faster."
+    },
+    "architect": {
+      "name": "Architect",
+      "desc": "Build a little faster with a little less material; larger designs later."
+    },
+    "negotiator": {
+      "name": "Negotiator",
+      "desc": "Pay 8% less when buying."
+    },
+    "merchant": {
+      "name": "Merchant",
+      "desc": "Get 8% more when selling."
+    },
+    "hauler": {
+      "name": "Hauler",
+      "desc": "Carry 15 kg more."
+    },
+    "market_analyst": {
+      "name": "Market analyst",
+      "desc": "See which shop pays best for each thing you carry; sell a bit higher."
+    },
+    "manager": {
+      "name": "Manager",
+      "desc": "Employ one more worker."
+    },
+    "motivator": {
+      "name": "Motivator",
+      "desc": "Your workers are happier working for you."
+    },
+    "delegator": {
+      "name": "Delegator",
+      "desc": "Your whole team works 15% better."
+    },
+    "mentor": {
+      "name": "Mentor",
+      "desc": "Your workers gain experience 50% faster."
+    },
+    "pathfinder": {
+      "name": "Pathfinder",
+      "desc": "Expeditions are half as dangerous."
+    },
+    "provisioner": {
+      "name": "Provisioner",
+      "desc": "Expeditions need half the food."
+    },
+    "cartographer": {
+      "name": "Cartographer",
+      "desc": "Each expedition maps 50% more of a region."
+    },
+    "treasure_hunter": {
+      "name": "Treasure hunter",
+      "desc": "Every expedition turns up one more find."
+    }
+  },
+  "biz": {
+    "closed": "This business has closed.",
+    "manager": "manager",
+    "make_manager": "Make manager",
+    "books": "The books (last 7 days)",
+    "till": "In the till",
+    "revenue_week": "Takings",
+    "expenses_week": "Costs (stock, wages, rent, carriage)",
+    "profit_week": "Profit",
+    "customers_week": "Customers",
+    "payroll_day": "Wages per day",
+    "reputation": "Reputation",
+    "withdraw": "Take {money}",
+    "withdraw_all": "Take it all",
+    "deposit": "Put in {money}",
+    "running": "Running it",
+    "prices": "Prices",
+    "wages": "Wages",
+    "staff_target": "Staff wanted",
+    "minded": "Minded by",
+    "minded_you": "you, today",
+    "minded_manager": "your manager",
+    "minded_nobody": "nobody — it limps along",
+    "hint": "Cheaper prices bring more customers; better wages keep good workers. A manager keeps it running well while you're elsewhere — or work a shift there yourself.",
+    "stock": "Stock",
+    "no_stock": "Nothing in stock.",
+    "staff": "Staff",
+    "no_staff": "Nobody works here yet. People looking for work will come and ask.",
+    "orders": "Orders",
+    "no_orders": "No orders at the moment — other businesses post them on the notice board.",
+    "manage": "Manage your business",
+    "dealings": "Doing business with the owner",
+    "valuation": "Worth about",
+    "asking": "The owner would sell for",
+    "buy_it": "Buy the business ({money})",
+    "invest": "Buy a {n}% stake ({money})",
+    "lend": "Lend {money}",
+    "you_have_stake": "You have a stake in this business: a share of each week's profit comes to you.",
+    "you_lent": "They still owe you {money}, paid back weekly from profits.",
+    "dealings_hint": "Buy it outright, take a stake in its profits, or lend it money (paid back with interest).",
+    "open_here": "Open a business here",
+    "open_hint": "The price covers fitting out and the first stock. Staff will come looking for work.",
+    "quality": "Quality of its goods",
+    "short": "Out of {item}: no {item2} being made ({n} days). Suppliers are being looked for — or bring some yourself."
+  },
+  "site": {
+    "cave": {
+      "name": "Cave",
+      "desc": "A dark opening at the foot of the rocks. Cold air breathes out of it — and there's a glint of something deeper in."
+    },
+    "mineshaft": {
+      "name": "Old mine shaft",
+      "desc": "A timber frame over a shaft someone dug long ago. They must have been after something."
+    },
+    "ruin": {
+      "name": "Ruins",
+      "desc": "The tumbled walls of a homestead nobody remembers. Moss, stones — and maybe what the owners left behind."
+    },
+    "cabin": {
+      "name": "Abandoned cabin",
+      "desc": "A trapper's cabin deep in the woods, door nailed shut, roof falling in."
+    },
+    "stones": {
+      "name": "Standing stones",
+      "desc": "Four weathered stones in a ring, older than anyone's stories. Marks are cut into them."
+    },
+    "waystation": {
+      "name": "Old waystation",
+      "desc": "A derelict inn on the old road out of the valley, where travellers once changed horses."
+    }
+  },
+  "site_state": {
+    "unknown": "Unexplored",
+    "discovered": "Not yet explored",
+    "explored": "Explored",
+    "developed": "Outpost built"
+  },
+  "site_ui": {
+    "found": "What you found",
+    "vein": "Signs of ore nearby — a seam worth mining.",
+    "knowledge": "Things worth knowing (the village's knowledge grows).",
+    "hurt": "You got hurt scrambling about in there.",
+    "nothing": "Nothing of value — but now you know.",
+    "state": "State",
+    "outpost": "What could be built here",
+    "building": "Your outpost is being built. Bring materials and work on it (or have workers do it)."
   }
 }

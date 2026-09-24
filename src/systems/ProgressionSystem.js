@@ -7,13 +7,50 @@
 import { BALANCE } from '../config/balance.js';
 import { JOBS } from '../data/jobs.js';
 import { SKILLS } from '../data/skills.js';
+import { UNLOCKS } from '../data/unlocks.js';
 import { Mod } from './Modifiers.js';
+import { PERKS, PERK_TIERS, perkChoices } from '../data/perks.js';
 
 const PR = BALANCE.progression;
 
 export class ProgressionSystem {
   constructor(sim) {
     this.sim = sim;
+    sim.state.player.perks ??= [];
+    // Reaching a perk tier: time to choose.
+    sim.bus.on('player:skillup', ({ skill, level }) => {
+      if (PERK_TIERS.includes(level) && perkChoices(skill, level).length) this.sim.toast('toast.perk_available', { skill }, 'good');
+    });
+  }
+
+  // ------------------------------------------------------------------ perks
+
+  /** Perk choices waiting for you: [{ skill, tier, options: [perkId, perkId] }]. */
+  pendingPerks() {
+    const p = this.p;
+    const out = [];
+    for (const skill of Object.keys(SKILLS)) {
+      const lvl = p.skills[skill]?.level || 0;
+      for (const tier of PERK_TIERS) {
+        if (lvl < tier) continue;
+        const options = perkChoices(skill, tier);
+        if (options.length && !options.some((id) => p.perks.includes(id))) out.push({ skill, tier, options });
+      }
+    }
+    return out;
+  }
+
+  /** Choose a perk. Its sibling at the same tier is closed off for good. */
+  choosePerk(id) {
+    const def = PERKS[id];
+    const p = this.p;
+    if (!def || p.perks.includes(id)) return false;
+    if ((p.skills[def.skill]?.level || 0) < def.tier) return false;
+    if (perkChoices(def.skill, def.tier).some((x) => p.perks.includes(x))) return false;
+    p.perks.push(id);
+    this.sim.toast('toast.perk_chosen', { perk: id }, 'good');
+    this.sim.bus.emit('player:changed');
+    return true;
   }
 
   get p() {
@@ -26,6 +63,16 @@ export class ProgressionSystem {
 
   skillXpForNext(level) {
     return Math.round(PR.skillXpBase * Math.pow(level + 1, PR.skillXpExponent));
+  }
+
+  /** Has the player reached the level for this unlock (see data/unlocks.js)? */
+  hasUnlock(key) {
+    const u = UNLOCKS.find((x) => x.key === key);
+    return !u || this.p.level >= u.level;
+  }
+
+  unlockLevel(key) {
+    return UNLOCKS.find((x) => x.key === key)?.level ?? 1;
   }
 
   title(level = this.p.level) {
@@ -48,9 +95,10 @@ export class ProgressionSystem {
       const newJobs = Object.entries(JOBS)
         .filter(([, d]) => (d.requires?.level || 1) === p.level)
         .map(([id]) => id);
+      const newUnlocks = UNLOCKS.filter((u) => u.level === p.level).map((u) => u.key);
       const oldTitle = this.title(p.level - 1);
       const newTitle = this.title(p.level);
-      this.sim.bus.emit('player:levelup', { level: p.level, newJobs, newTitle: newTitle !== oldTitle ? newTitle : null });
+      this.sim.bus.emit('player:levelup', { level: p.level, newJobs, newUnlocks, newTitle: newTitle !== oldTitle ? newTitle : null });
       this.sim.chronicle('chronicle.player_level', { level: p.level });
     }
     return gained;

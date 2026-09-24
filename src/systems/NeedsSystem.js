@@ -27,6 +27,7 @@ export class NeedsSystem {
 
   onMinute() {
     const p = this.p;
+    if (p.away) return; // on the road: fed from the expedition's supplies
     const perMin = 1 / 60;
     const season = this.sim.time.season;
     const weather = this.sim.weather.mods();

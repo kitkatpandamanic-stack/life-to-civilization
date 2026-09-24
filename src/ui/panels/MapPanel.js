@@ -2,9 +2,11 @@
  * Map — an overview of the land drawn from the tile data, with live markers
  * for you, villagers, buildings and your current objective.
  */
+import { FOG } from '../../data/regions.js';
 import { Panel } from '../Panel.js';
 import { t } from '../../i18n/i18n.js';
-import { escapeHtml, buildingLabel } from '../format.js';
+import { escapeHtml, buildingLabel, districtLabel, hamletName } from '../format.js';
+import { button } from '../widgets.js';
 import { T } from '../../world/WorldGenerator.js';
 import { BALANCE } from '../../config/balance.js';
 
@@ -16,6 +18,7 @@ const TILE_COLORS = {
 };
 const LABELLED = ['hall', 'store', 'tavern', 'smithy', 'farmhouse', 'lumberyard', 'quarry_hut', 'shack'];
 let baseCache = null;
+const DISTRICT_COLORS = { residential: '#f0c060', commercial: '#e0603a', industrial: '#8a8aa0', agricultural: '#9ad050', civic: '#60a0f0', mixed: '#c080d0' };
 
 export class MapPanel extends Panel {
   get id() {
@@ -27,7 +30,9 @@ export class MapPanel extends Panel {
 
   baseMap() {
     const sim = this.sim;
-    if (baseCache && baseCache.seed === sim.state.seed) return baseCache.canvas;
+    // The village changes (new houses, new roads) — redraw when it does.
+    const key = `${sim.state.seed}:${sim.world.buildingList.length}:${sim.state.land.roads.length}`;
+    if (baseCache && baseCache.key === key) return baseCache.canvas;
     const w = sim.world;
     const c = document.createElement('canvas');
     c.width = w.W * SCALE;
@@ -45,7 +50,7 @@ export class MapPanel extends Panel {
       ctx.strokeStyle = '#2a1a10';
       ctx.strokeRect(b.tx * SCALE + 0.5, b.ty * SCALE + 0.5, b.w * SCALE - 1, b.h * SCALE - 1);
     }
-    baseCache = { seed: sim.state.seed, canvas: c };
+    baseCache = { key, canvas: c };
     return c;
   }
 
@@ -56,7 +61,13 @@ export class MapPanel extends Panel {
         <span><i class="lg npc"></i>${escapeHtml(t('ui.map_villager'))}</span>
         <span><i class="lg goal"></i>${escapeHtml(t('ui.map_objective'))}</span>
         <span><i class="lg home"></i>${escapeHtml(t('ui.map_home'))}</span>
-      </div>`;
+        ${button(t(this.showDistricts ? 'ui.hide_districts' : 'ui.show_districts'), 'districts')}
+      </div>
+      ${this.showDistricts ? `<div class="map-legend">${Object.entries(DISTRICT_COLORS).map(([k, c]) => `<span><i class="lg" style="background:${c}"></i>${escapeHtml(t(`district.kind.${k}`))}</span>`).join('')}</div>` : ''}`;
+  }
+
+  onAction(action) {
+    if (action === 'districts') this.showDistricts = !this.showDistricts;
   }
 
   afterRender(body) {
@@ -84,13 +95,55 @@ export class MapPanel extends Panel {
     const TS = BALANCE.tileSize;
     const k = SCALE / TS;
 
+    // Districts: what each part of the village has become.
+    if (this.showDistricts) {
+      for (const d of sim.state.districts.list) {
+        ctx.fillStyle = DISTRICT_COLORS[d.type] || '#fff';
+        ctx.globalAlpha = 0.32;
+        for (const cell of d.cells) {
+          const [cx, cy] = cell.split(',').map(Number);
+          ctx.fillRect(cx * 10 * SCALE, cy * 10 * SCALE, 10 * SCALE, 10 * SCALE);
+        }
+        ctx.globalAlpha = 1;
+      }
+    }
     // Harvested trees show up as gaps in the forest.
     ctx.fillStyle = 'rgba(30,70,30,0.9)';
     for (const o of Object.values(sim.state.objects)) {
       if (o.kind === 'tree' && o.state === 'grown') ctx.fillRect(o.tx * SCALE + 1, o.ty * SCALE + 1, SCALE - 2, SCALE - 2);
     }
+    // Fog of war: the parts of the valley you haven't walked yet.
+    const X = sim.exploration;
+    const C = FOG.chunk;
+    ctx.fillStyle = 'rgba(14,16,24,0.82)';
+    for (let cy = 0; cy * C < sim.world.H; cy++) {
+      for (let cx = 0; cx * C < sim.world.W; cx++) {
+        if (!X.isSeen(cx * C, cy * C)) ctx.fillRect(cx * C * SCALE, cy * C * SCALE, C * SCALE, C * SCALE);
+      }
+    }
     ctx.font = 'bold 11px Nunito, sans-serif';
     ctx.textAlign = 'center';
+    // What you've found out in the valley: ? discovered · ✓ explored · ★ outpost.
+    for (const s of sim.state.exploration.sites) {
+      if (s.state === 'unknown') continue;
+      const mark = { discovered: '?', explored: '✓', developed: '★' }[s.state];
+      const x = (s.tx + 1) * SCALE;
+      const y = (s.ty + 0.5) * SCALE;
+      ctx.fillStyle = s.state === 'developed' ? '#ffd27a' : s.state === 'explored' ? '#9ad07a' : '#e0e0e0';
+      ctx.beginPath();
+      ctx.arc(x, y, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#1a1410';
+      ctx.fillText(mark, x, y + 4);
+    }
+    for (const h of sim.state.exploration.hamlets || []) {
+      const label = hamletName(h.nameIdx);
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = 'rgba(20,14,8,0.85)';
+      ctx.strokeText(label, h.tx * SCALE, (h.ty - 2) * SCALE);
+      ctx.fillStyle = '#ffe7a8';
+      ctx.fillText(label, h.tx * SCALE, (h.ty - 2) * SCALE);
+    }
     for (const id of LABELLED) {
       const b = sim.world.buildings[id];
       const x = (b.tx + b.w / 2) * SCALE;
@@ -101,6 +154,24 @@ export class MapPanel extends Panel {
       ctx.strokeText(label, x, y);
       ctx.fillStyle = id === 'shack' ? '#ffd27a' : '#fff4dc';
       ctx.fillText(label, x, y);
+    }
+    if (this.showDistricts) {
+      ctx.font = 'bold 12px Nunito, sans-serif';
+      const placed = [];
+      for (const d of sim.state.districts.list) {
+        const label = districtLabel(d);
+        // Skip a label that would sit on top of another one.
+        const w = ctx.measureText(label).width;
+        const box = { x: d.tx * SCALE - w / 2, y: d.ty * SCALE + 2, w, h: 14 };
+        if (placed.some((o) => box.x < o.x + o.w && o.x < box.x + box.w && box.y < o.y + o.h && o.y < box.y + box.h)) continue;
+        placed.push(box);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'rgba(20,14,8,0.9)';
+        ctx.strokeText(label, d.tx * SCALE, d.ty * SCALE + 14);
+        ctx.fillStyle = DISTRICT_COLORS[d.type];
+        ctx.fillText(label, d.tx * SCALE, d.ty * SCALE + 14);
+      }
+      ctx.font = 'bold 11px Nunito, sans-serif';
     }
     for (const n of sim.state.npcs) {
       if (n.inside) continue;

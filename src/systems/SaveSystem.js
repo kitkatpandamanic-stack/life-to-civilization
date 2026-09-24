@@ -6,6 +6,7 @@
  * changes during play (player, NPCs, objects, businesses, time...) is saved.
  */
 import { SAVE_VERSION } from '../core/GameState.js';
+import { rand } from '../core/rng.js';
 
 const PREFIX = 'fromnothing.save.';
 export const SAVE_SLOTS = ['auto', '1', '2', '3'];
@@ -18,20 +19,31 @@ function sanitize(state) {
     delete n.simLevel;
     delete n.talkingToPlayer;
     delete n.task;
+    delete n.starved;
+    delete n.sleptRough;
   }
   for (const id in copy.objects) delete copy.objects[id].reservedBy;
   copy.player.sleeping = false;
+  // Saved while inside your home? Store the position outside the front door instead.
+  if (copy.player.indoors && copy.player.outsideX !== undefined) {
+    copy.player.x = copy.player.outsideX;
+    copy.player.y = copy.player.outsideY;
+  }
+  copy.player.indoors = false;
   return copy;
 }
 
 export const SaveSystem = {
   save(slot, sim) {
+    sim.state.rngState = rand.getState();
     const t = sim.time;
     const p = sim.state.player;
     const data = {
       meta: {
         version: SAVE_VERSION,
-        name: p.name,
+        name: p.name || null,
+        nameIdx: p.nameIdx,
+        gender: p.gender,
         level: p.level,
         money: Math.round(p.money),
         day: t.dayOfSeason,

@@ -56,6 +56,9 @@ export const ROADS = [
 export const DECOR = [
   { type: 'well', tx: 44, ty: 39, block: true, interact: 'well' },
   { type: 'notice_board', tx: 50, ty: 37, block: true, interact: 'notice_board' },
+  // Waymarks where the road leaves the valley: expeditions set out from here.
+  { type: 'signpost', tx: 7, ty: 44, block: true, interact: 'expedition' },
+  { type: 'signpost', tx: 113, ty: 44, block: true, interact: 'expedition' },
   { type: 'stall', tx: 41, ty: 43, w: 2, block: true, variant: 0 },
   { type: 'stall', tx: 51, ty: 43, w: 2, block: true, variant: 1 },
   { type: 'lamp', tx: 40, ty: 36, block: true, light: true },

@@ -3,10 +3,14 @@
  *
  * Inventory is a list of slots: { id, qty } for stackable items,
  * or { id, qty: 1, dur } for tools (each tool has its own durability).
+ * Crafted goods carry a quality (q) — see data/quality.js and systems/slots.js.
  * Total weight is limited by carrying capacity (Strength).
  */
 import { ITEMS } from '../data/items.js';
 import { Mod } from './Modifiers.js';
+import { Q } from '../data/quality.js';
+import { addTo, removeFrom, maxDurability } from './slots.js';
+import { rand } from '../core/rng.js';
 
 export class InventorySystem {
   constructor(sim) {
@@ -44,36 +48,26 @@ export class InventorySystem {
     return this.maxAddable(id) >= qty;
   }
 
-  /** Adds up to qty (limited by capacity unless force). Returns how many were added. */
-  add(id, qty = 1, { force = false } = {}) {
+  /** Adds up to qty of quality q (limited by capacity unless force). Returns how many were added. */
+  add(id, qty = 1, { force = false, q, extra } = {}) {
     const def = ITEMS[id];
     if (!def || qty <= 0) return 0;
     const n = force ? qty : Math.min(qty, this.maxAddable(id));
     if (n <= 0) return 0;
-    if (def.tool) {
-      for (let i = 0; i < n; i++) this.slots.push({ id, qty: 1, dur: def.tool.durability });
-    } else {
-      const stack = this.slots.find((s) => s.id === id);
-      if (stack) stack.qty += n;
-      else this.slots.push({ id, qty: n });
-    }
+    addTo(this.slots, id, n, q, extra);
     this.changed();
     return n;
   }
 
-  /** Removes up to qty. Returns how many were removed. */
-  remove(id, qty = 1) {
-    let left = qty;
-    for (let i = this.slots.length - 1; i >= 0 && left > 0; i--) {
-      const s = this.slots[i];
-      if (s.id !== id) continue;
-      const take = Math.min(left, s.qty);
-      s.qty -= take;
-      left -= take;
-      if (s.qty <= 0) this.slots.splice(i, 1);
-    }
-    if (left !== qty) this.changed();
-    return qty - left;
+  /**
+   * Removes up to qty (the worst first, or the best first with prefer: 'high').
+   * Returns how many were removed; the qualities taken are in this.lastRemoved.
+   */
+  remove(id, qty = 1, { prefer = 'low' } = {}) {
+    const taken = removeFrom(this.slots, id, qty, prefer);
+    this.lastRemoved = taken;
+    if (taken.length) this.changed();
+    return taken.length;
   }
 
   removeSlot(index) {
@@ -90,15 +84,28 @@ export class InventorySystem {
     for (const s of this.slots) {
       const tool = ITEMS[s.id]?.tool;
       if (!tool || tool.kind !== kind) continue;
-      if (!best || tool.efficiency > ITEMS[best.id].tool.efficiency || (tool.efficiency === ITEMS[best.id].tool.efficiency && s.dur > best.dur)) best = s;
+      const eff = this.toolEfficiency(s);
+      const bestEff = best ? this.toolEfficiency(best) : 0;
+      if (!best || eff > bestEff || (eff === bestEff && s.dur > best.dur)) best = s;
     }
     return best;
+  }
+
+  /** Tool efficiency: the kind of tool × how well it was made. */
+  toolEfficiency(slot) {
+    return (ITEMS[slot.id]?.tool?.efficiency || 1) * Q(slot.q).eff;
+  }
+
+  maxDurability(slot) {
+    return maxDurability(slot);
   }
 
   /** Wears the best tool of a kind by one use. Breaks it at zero durability. */
   useTool(kind) {
     const slot = this.bestTool(kind);
     if (!slot) return;
+    // Careful hands (perks) sometimes spare the tool.
+    if (rand.chance(Mod.perk(this.sim.state.player, `save_wear_${kind}`))) return;
     slot.dur -= 1;
     if (slot.dur <= 0) {
       this.slots.splice(this.slots.indexOf(slot), 1);
@@ -111,8 +118,22 @@ export class InventorySystem {
     const def = ITEMS[id];
     if (!def?.food || this.count(id) <= 0) return false;
     this.remove(id, 1);
-    this.sim.needs.applyFood(def.food);
+    this.sim.needs.applyFood(Mod.meal(this.sim.state.player, def.food, this.lastRemoved[0]));
     this.sim.toast('toast.ate', { item: id }, 'info');
+    return true;
+  }
+
+  /** Eat from one particular slot (the inventory panel's Eat button). */
+  eatSlot(index) {
+    const s = this.slots[index];
+    const def = ITEMS[s?.id];
+    if (!def?.food) return false;
+    const q = s.q;
+    s.qty--;
+    if (s.qty <= 0) this.slots.splice(index, 1);
+    this.changed();
+    this.sim.needs.applyFood(Mod.meal(this.sim.state.player, def.food, q));
+    this.sim.toast('toast.ate', { item: s.id }, 'info');
     return true;
   }
 

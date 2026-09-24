@@ -10,7 +10,8 @@
  * The world stays the main screen; panels only open on request.
  * All text comes from the locale files and re-renders when the language changes.
  */
-import { t, fmtMoney, onLanguageChange } from '../i18n/i18n.js';
+import { EnterprisePanel } from './panels/EnterprisePanel.js';
+import { t, fmtMoney, onLanguageChange, npcName } from '../i18n/i18n.js';
 import { tr, escapeHtml } from './format.js';
 import { WEATHER_ICONS } from '../systems/WeatherSystem.js';
 import { BALANCE } from '../config/balance.js';
@@ -22,8 +23,18 @@ import { DialoguePanel } from './panels/DialoguePanel.js';
 import { ShopPanel } from './panels/ShopPanel.js';
 import { JobBoardPanel } from './panels/JobBoardPanel.js';
 import { MenuPanel } from './panels/MenuPanel.js';
+import { InspectPanel } from './panels/InspectPanel.js';
+import { StoragePanel } from './panels/StoragePanel.js';
+import { CraftPanel } from './panels/CraftPanel.js';
+import { LandPanel } from './panels/LandPanel.js';
+import { BuildPanel } from './panels/BuildPanel.js';
+import { SitePanel } from './panels/SitePanel.js';
+import { WorkersPanel } from './panels/WorkersPanel.js';
+import { BusinessPanel } from './panels/BusinessPanel.js';
+import { PropertyPanel } from './panels/PropertyPanel.js';
+import { ExpeditionPanel } from './panels/ExpeditionPanel.js';
 
-const REFRESH_EVENTS = ['inventory:changed', 'player:changed', 'jobs:changed', 'economy:changed', 'social:changed', 'player:levelup', 'player:skillup', 'chronicle'];
+const REFRESH_EVENTS = ['inventory:changed', 'storage:changed', 'construction:changed', 'land:changed', 'workers:changed', 'business:changed', 'player:changed', 'jobs:changed', 'economy:changed', 'social:changed', 'player:levelup', 'player:skillup', 'chronicle'];
 
 export class UIManager {
   constructor(scene, sim) {
@@ -68,6 +79,10 @@ export class UIManager {
     this.levelUpEl = el('levelup hidden');
     this.statusEl = el('status-overlay hidden');
     this.contextEl = el('context-menu hidden');
+    this.buildHintEl = el('build-hint hidden');
+    this.buildHintEl.addEventListener('click', (e) => {
+      if (e.target.closest('[data-cancel-build]')) this.scene.buildMode.cancel();
+    });
     this.modalEl = el('modal-root hidden');
 
     this.hudLeft.innerHTML = `
@@ -121,10 +136,13 @@ export class UIManager {
   renderStatic() {
     const keys = [
       ['E', 'ui.key_interact', null],
+      ['F', 'ui.key_inspect', null],
       ['I', 'ui.inventory', 'inventory'],
       ['C', 'ui.character', 'character'],
       ['J', 'ui.journal', 'journal'],
       ['M', 'ui.map', 'map'],
+      ['B', 'ui.key_build', 'build'],
+      ['K', 'ui.workers', 'workers'],
       ['Q', 'ui.key_eat', null],
       ['Esc', 'ui.menu', 'menu'],
     ];
@@ -155,7 +173,7 @@ export class UIManager {
     const q = this.q;
     const need = sim.progression.xpForNext();
     q.lvl.textContent = p.level;
-    q.name.textContent = p.name;
+    q.name.textContent = npcName(p);
     q.title.textContent = `· ${t(`title.${sim.progression.title()}`)}`;
     q.xpFill.style.width = `${Math.min(100, (p.xp / need) * 100)}%`;
     q.xpLabel.textContent = t('ui.xp_progress', { xp: Math.floor(p.xp), need });
@@ -218,9 +236,10 @@ export class UIManager {
     setTimeout(() => el.remove(), 4200);
   }
 
-  showLevelUp({ level, newJobs, newTitle }) {
+  showLevelUp({ level, newJobs, newUnlocks = [], newTitle }) {
     const lines = [t('levelup.points', { a: BALANCE.progression.attributePointsPerLevel, s: BALANCE.progression.skillPointsPerLevel })];
     if (newTitle) lines.push(t('levelup.title', { title: t(`title.${newTitle}`) }));
+    for (const u of newUnlocks) lines.push(`🔓 ${t(`unlock.${u}.name`)}`);
     for (const j of newJobs) lines.push(t('levelup.job', { job: t(`job.${j}.name`) }));
     this.levelUpEl.innerHTML = `<div class="lu-star">★</div><div class="lu-title">${escapeHtml(t('levelup.heading', { level }))}</div>${lines.map((l) => `<div class="lu-line">${escapeHtml(l)}</div>`).join('')}<div class="lu-hint">${escapeHtml(t('levelup.hint'))}</div>`;
     this.levelUpEl.classList.remove('hidden');
@@ -247,13 +266,18 @@ export class UIManager {
 
   updateStatus() {
     const s = this.status;
-    const icons = { sleep: '🌙', work: '🛠️', passout: '💫', collapse: '🩹' };
+    const icons = { sleep: '🌙', work: '🛠️', passout: '💫', collapse: '🩹', travel: '🧭', own_shift: '🏪', exploring: '🔦' };
     let pct = '';
     if (s.kind === 'work') {
       const done = Math.min(1, (this.sim.time.total - s.startTotal) / s.data.minutes);
       pct = `<div class="st-bar"><div class="fill" style="width:${done * 100}%"></div></div>`;
     }
-    const title = s.kind === 'work' ? tr(this.sim, 'status.work', { job: s.data.job }) : t(`status.${s.kind}`);
+    const trip = this.sim.state.exploration?.trip;
+    if (s.kind === 'travel' && trip) {
+      const done = Math.min(1, (this.sim.time.total - trip.depart) / (trip.until - trip.depart));
+      pct = `<div class="st-bar"><div class="fill" style="width:${done * 100}%"></div></div>`;
+    }
+    const title = s.kind === 'exploring' ? tr(this.sim, 'status.exploring', { site: s.data.site }) : s.kind === 'own_shift' ? tr(this.sim, 'status.own_shift', { building: s.data.building }) : s.kind === 'work' ? tr(this.sim, 'status.work', { job: s.data.job }) : s.kind === 'travel' ? tr(this.sim, 'status.travel', { region_name: s.data.region }) : t(`status.${s.kind}`);
     this.statusEl.innerHTML = `<div class="st-card"><div class="st-icon">${icons[s.kind] || ''}</div><div class="st-title">${escapeHtml(title)}</div><div class="st-clock">${this.sim.time.clockString()}</div>${pct}</div>`;
   }
 
@@ -377,12 +401,62 @@ export class UIManager {
       journal: () => new JournalPanel(this),
       map: () => new MapPanel(this),
       menu: () => new MenuPanel(this),
+      build: () => new BuildPanel(this),
+      workers: () => new WorkersPanel(this),
     };
     if (factories[id]) this.openPanel(factories[id]());
   }
 
   openDialogue(npcId) {
     this.openPanel(new DialoguePanel(this, npcId));
+  }
+  openInspect(npcId) {
+    this.openPanel(new InspectPanel(this, npcId));
+  }
+  openStorage() {
+    this.openPanel(new StoragePanel(this));
+  }
+  openLand(plotId) {
+    this.openPanel(new LandPanel(this, plotId));
+  }
+  openBuild(tab = null) {
+    this.openPanel(new BuildPanel(this, tab));
+  }
+  openSite(id) {
+    this.openPanel(new SitePanel(this, id));
+  }
+  openWorkers() {
+    this.openPanel(new WorkersPanel(this));
+  }
+  openExpedition() {
+    this.openPanel(new ExpeditionPanel(this));
+  }
+  openProperty(buildingId) {
+    this.openPanel(new PropertyPanel(this, buildingId));
+  }
+  openBusiness(id) {
+    this.openPanel(new BusinessPanel(this, id));
+  }
+  openEnterprise(id) {
+    this.openPanel(new EnterprisePanel(this, id));
+  }
+
+  /** Translate with id-params resolved (used by world-space text like build hints). */
+  tr(key, params = {}) {
+    return tr(this.sim, key, params);
+  }
+
+  showBuildHint(type) {
+    const name = type === 'road' ? t('buildable.road.name') : t(`buildable.${type}.name`);
+    this.buildHintEl.innerHTML = `🔨 ${escapeHtml(t('ui.placing', { name }))} <span class="muted">${escapeHtml(t(type === 'road' ? 'ui.road_hint' : 'ui.place_hint'))}</span> <button class="btn" data-cancel-build>${escapeHtml(t('ui.cancel'))}</button>`;
+    this.buildHintEl.classList.remove('hidden');
+  }
+
+  hideBuildHint() {
+    this.buildHintEl.classList.add('hidden');
+  }
+  openCraft(station) {
+    this.openPanel(new CraftPanel(this, station));
   }
   openShop(bizId, tab = 'buy') {
     this.openPanel(new ShopPanel(this, bizId, tab));
@@ -402,7 +476,8 @@ export class UIManager {
 
     if (key === 'Escape') {
       e.preventDefault();
-      if (this.menu) this.closeContextMenu();
+      if (this.scene.buildMode?.active && !this.panel) this.scene.buildMode.cancel();
+      else if (this.menu) this.closeContextMenu();
       else if (this.panel) this.closePanel();
       else if (this.scene.player?.isBusy()) this.scene.player.cancelAction();
       else if (!this.status) this.togglePanel('menu');
@@ -432,16 +507,24 @@ export class UIManager {
         if (first >= 0) this.chooseContext(first);
         return;
       }
-      if (!this.panel) this.scene.interaction.interact();
+      if (!this.panel) this.scene.interaction.interact('E');
       return;
     }
-    const panelKeys = { KeyI: 'inventory', KeyC: 'character', KeyJ: 'journal', KeyM: 'map' };
+    if (code === 'KeyF' && !this.panel && !this.menu) {
+      this.scene.interaction.interact('F');
+      return;
+    }
+    const panelKeys = { KeyI: 'inventory', KeyC: 'character', KeyJ: 'journal', KeyM: 'map', KeyK: 'workers' };
     if (panelKeys[code]) {
       this.closeContextMenu();
       this.togglePanel(panelKeys[code]);
       return;
     }
     if (code === 'KeyQ' && !this.panel && !this.menu) this.quickEat();
+    if (code === 'KeyB' && !this.menu) {
+      if (this.panel?.id === 'build') this.closePanel();
+      else if (!this.scene.inside) this.openBuild();
+    }
   }
 
   quickEat() {

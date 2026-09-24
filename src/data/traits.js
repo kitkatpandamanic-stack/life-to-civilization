@@ -8,10 +8,12 @@
  * lateWake    — hours they oversleep
  * priceMarkup — extra markup if they own a shop
  * requestMult — reward multiplier for favours they ask
+ * workSpeed   — how fast they work (chopping, mining, farm output)
+ * tireMult    — how early they give up and go home to rest when tired
  */
 export const TRAITS = {
-  hard_worker: { workXp: 1.25, quitChance: 0.5 },
-  lazy: { workXp: 0.8, lateWake: 1 },
+  hard_worker: { workXp: 1.25, quitChance: 0.5, workSpeed: 1.15, tireMult: 0.6 },
+  lazy: { workXp: 0.8, lateWake: 1, workSpeed: 0.85, tireMult: 1.8 },
   greedy: { priceMarkup: 0.05, relGain: 0.85, requestMult: 0.85 },
   generous: { relGain: 1.2, requestMult: 1.25 },
   loyal: { quitChance: 0.15, relGain: 1.1 },

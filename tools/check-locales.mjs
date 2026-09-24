@@ -12,8 +12,11 @@ const get = (obj, key) => key.split('.').reduce((o, k) => (o && typeof o === 'ob
 function flatten(obj, prefix = '', out = new Set()) {
   for (const [k, v] of Object.entries(obj)) {
     const key = prefix ? `${prefix}.${k}` : k;
-    const genderForm = v && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).every((x) => ['m', 'f'].includes(x));
-    if (v && typeof v === 'object' && !Array.isArray(v) && !genderForm) flatten(v, key, out);
+    const isObj = v && typeof v === 'object' && !Array.isArray(v);
+    const genderForm = isObj && Object.keys(v).every((x) => ['m', 'f'].includes(x));
+    // Plural forms differ by language (en: one/other, ru: one/few/many) — count as one leaf.
+    const pluralForm = isObj && Object.keys(v).every((x) => ['one', 'few', 'many', 'other'].includes(x));
+    if (isObj && !genderForm && !pluralForm) flatten(v, key, out);
     else out.add(key);
   }
   return out;

@@ -63,7 +63,7 @@ export class WeatherSystem {
 
 function weightedPick(table) {
   const entries = Object.entries(table);
-  let r = Math.random() * entries.reduce((s, [, w]) => s + w, 0);
+  let r = rand.float() * entries.reduce((s, [, w]) => s + w, 0);
   for (const [k, w] of entries) {
     r -= w;
     if (r <= 0) return k;
