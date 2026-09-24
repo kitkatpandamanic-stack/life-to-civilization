@@ -12,8 +12,9 @@
  * for bigger homes, people who save enough buy a house, the poor sell, the
  * evicted end up on the street, and empty houses slowly fall apart.
  */
-import { HOME_CAPACITY, PROPERTY_VALUE, PUBLIC_BUILDINGS, HOUSING as H } from '../data/housing.js';
+import { HOME_CAPACITY, PROPERTY_VALUE, PUBLIC_BUILDINGS, PUBLIC_TYPES, HOUSING as H } from '../data/housing.js';
 import { AREAS } from '../data/villageLayout.js';
+import { GOALS } from '../data/goals.js';
 import { rand } from '../core/rng.js';
 
 /** Initial owners of homes that aren't obvious from who lives there. */
@@ -218,7 +219,7 @@ export class PropertySystem {
 
   canPlayerBuy(id) {
     const r = this.rec(id);
-    if (!r || r.owner === 'player' || PUBLIC_BUILDINGS.includes(id)) return { ok: false, reason: 'not_for_sale' };
+    if (!r || r.owner === 'player' || PUBLIC_BUILDINGS.includes(id) || PUBLIC_TYPES.includes(this.type(id))) return { ok: false, reason: 'not_for_sale' };
     if (this.sim.economy.businessAtBuilding(id) && !r.abandoned) return { ok: false, reason: 'not_for_sale' };
     const empty = this.occupants(id) === 0;
     const sellable = r.forSale || r.abandoned || (empty && (r.owner === 'village' || !r.owner));
@@ -312,7 +313,8 @@ export class PropertySystem {
     for (const [id, r] of Object.entries(this.all)) {
       if (!this.building(id)) continue;
       const biz = sim.economy.businessAtBuilding(id);
-      const inUse = this.occupants(id) > 0 || (biz && !sim.economy.biz(biz)?.closed) || sim.businesses.atBuilding(id) || PUBLIC_BUILDINGS.includes(id) || this.type(id) === 'well' || this.type(id) === 'storage_shed';
+      // (Public buildings — school, library, market hall, watch house… — are always in use.)
+      const inUse = this.occupants(id) > 0 || (biz && !sim.economy.biz(biz)?.closed) || sim.businesses.atBuilding(id) || PUBLIC_BUILDINGS.includes(id) || PUBLIC_TYPES.includes(this.type(id));
       const wasAbandoned = r.abandoned;
       const ownerAlive = r.owner === 'player' || r.owner === 'village' || !!sim.npcs.byId(r.owner);
       if (inUse) {
@@ -438,9 +440,13 @@ export class PropertySystem {
       if (helper) {
         helper.money -= H.supportAmount;
         n.money += H.supportAmount;
-      } else if (village.treasury >= H.reliefAmount && n.age >= 18) {
-        village.treasury -= H.reliefAmount;
-        n.money += H.reliefAmount;
+      } else {
+        // Poor relief from the village fund — as generous as the headman decides (CivicSystem).
+        const relief = Math.round(H.reliefAmount * (this.sim.civic?.mult('relief') ?? 1));
+        if (village.treasury >= relief && n.age >= 18) {
+          village.treasury -= relief;
+          n.money += relief;
+        }
       }
     }
   }
@@ -573,7 +579,18 @@ export class PropertySystem {
       const r = this.rec(n.homeId);
       const price = this.value(n.homeId);
       const sellerOk = r.owner === 'village' || r.forSale || (sim.npcs.byId(r.owner)?.money ?? 999) < 40;
-      if (sellerOk && r.owner !== 'player' && n.money >= price * H.buyReserve) {
+      // Set on owning a home (GoalSystem)? They'll manage with a thinner cushion — and look further.
+      const determined = n.goal?.type === 'buy_house';
+      const reserve = determined ? GOALS.houseBuyReserve : H.buyReserve;
+      if (determined && !(sellerOk && r.owner !== 'player' && n.money >= price * reserve)) {
+        const fam = sim.npcs.residentsOf(n.homeId).filter((m) => m === n || n.family.includes(m.id));
+        const opt = this.options(fam.length, 0, n.money / reserve, n).find((o) => o.buy);
+        if (opt) {
+          this.settle(fam, opt, n, 'moved');
+          continue;
+        }
+      }
+      if (sellerOk && r.owner !== 'player' && n.money >= price * reserve) {
         n.money -= price;
         this.payTo(r.owner, price);
         this.transfer(n.homeId, n.id, 'bought', price);

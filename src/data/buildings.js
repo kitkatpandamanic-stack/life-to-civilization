@@ -37,6 +37,13 @@ export const BUILDING_TYPES = {
   library: { w: 4, h: 3, wall: 'stone', wallColor: '#a8a295', roof: 'slate', roofColor: '#4d5a70', sign: '📖' },
   mill: { w: 5, h: 4, wall: 'stone', wallColor: '#b9ae98', roof: 'thatch', roofColor: '#b8964e', sign: '⚙️', chimney: false },
   warehouse_bld: { w: 6, h: 4, wall: 'wood', wallColor: '#9c7a52', roof: 'plank', roofColor: '#5a4a3a', chimney: false, wideDoor: true },
+
+  // The village's institutions (V5 — see CivicSystem)
+  market_hall: { w: 6, h: 3, wall: 'wood', wallColor: '#b58c5c', roof: 'tile', roofColor: '#b8643a', sign: '🏷️', chimney: false, wideDoor: true, flag: true },
+  watch_house: { w: 3, h: 3, wall: 'stone', wallColor: '#9a948a', roof: 'slate', roofColor: '#46505e', sign: '🛡️', chimney: true, bell: true },
+  clinic: { w: 4, h: 3, wall: 'plaster', wallColor: '#f2eee2', roof: 'tile', roofColor: '#5a8a6a', sign: '⚕️', chimney: true },
+  guild_hall: { w: 5, h: 4, wall: 'stone', wallColor: '#b3a68f', roof: 'slate', roofColor: '#6a4a3a', sign: '🛠️', chimney: true, wideDoor: true, flag: true },
+  bank: { w: 4, h: 3, wall: 'stone', wallColor: '#d2c9b3', roof: 'slate', roofColor: '#3a4a5c', sign: '💰', chimney: false, wideDoor: true },
 };
 
 /** Colour variations so ordinary houses don't all look identical. */

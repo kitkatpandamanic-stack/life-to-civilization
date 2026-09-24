@@ -58,6 +58,8 @@ export class TechSystem {
       };
       for (const id of Object.keys(this.T.known)) apply(TECHS[id]?.effects);
       for (const [type, def] of Object.entries(CIVIC)) if (this.civic(type)) apply(def.effects);
+      // The village's institutions (market, watch, clinic, guild…) — see CivicSystem.
+      for (const effects of this.sim.civic?.effects() || []) apply(effects);
     }
     return this.mods[key] ?? 1;
   }

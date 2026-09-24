@@ -1,7 +1,8 @@
 /**
  * CartViews — goods on the move. Every shipment in LogisticsSystem is drawn as
  * a porter (or a line of porters for a big load) or a cart travelling along its
- * route, so busy trade means busy roads.
+ * route, so busy trade means busy roads. Caravans bound for other settlements
+ * (SettlementSystem) are drawn as a pair of carts heading for the waymark.
  */
 import { CARRIERS, LOGISTICS as L } from '../data/transport.js';
 
@@ -47,6 +48,28 @@ export class CartViews {
         const x = pos.x + dx * i * 16;
         const y = pos.y + dy * i * 16 + 6;
         spr.setPosition(x, y).setDepth(y).setFlipX(pos.facing === 'left').setTexture(`${sprite}_${(this.frame + i) % 2}`).setVisible(true);
+      });
+    }
+    // Caravans to other settlements, on their way out of the valley (or coming home).
+    for (const c of sim.state.region?.caravans || []) {
+      if (shown >= L.maxVisible || this.scene.inside) break;
+      const pos = sim.settlements.caravanPosition(c);
+      if (!pos || !pos.moving) continue;
+      if (pos.x < cam.x - 200 || pos.x > cam.right + 200 || pos.y < cam.y - 200 || pos.y > cam.bottom + 200) continue;
+      const key = `caravan${c.id}`;
+      alive.add(key);
+      shown++;
+      const sprite = CARRIERS[c.carrier]?.sprite || 'handcart';
+      let list = this.views.get(key);
+      if (!list) {
+        list = [0, 1].map(() => this.scene.add.image(pos.x, pos.y, `${sprite}_0`).setOrigin(0.5, 0.95));
+        this.views.set(key, list);
+      }
+      const dx = pos.facing === 'left' ? 1 : pos.facing === 'right' ? -1 : 0;
+      const dy = pos.facing === 'up' ? 1 : pos.facing === 'down' ? -1 : 0;
+      list.forEach((spr, i) => {
+        const y = pos.y + dy * i * 22 + 6;
+        spr.setPosition(pos.x + dx * i * 22, y).setDepth(y).setFlipX(pos.facing === 'left').setTexture(`${sprite}_${(this.frame + i) % 2}`).setVisible(true);
       });
     }
     for (const [id, list] of this.views) {

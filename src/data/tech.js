@@ -27,6 +27,11 @@ export const TECHS = {
   wagons: { cost: 38, needs: { tech: ['draft_animals', 'better_tools'], biz: 'carpentry' }, from: ['carpenter', 'blacksmith', 'carter_master'], skill: 'carpentry', icon: '🛞' },
   milling: { cost: 30, needs: { tech: ['masonry'], biz: 'farm', pop: 28 }, from: ['baker', 'farmer', 'master_builder', 'miller'], icon: '⚙️' },
   printing: { cost: 45, needs: { tech: ['writing'], civic: 'library', pop: 32 }, from: [], school: true, icon: '📰', effects: { rumor_distort: 0.4, learning: 1.15 } },
+  // Towards civilization: travel by water, watered fields, stone bridges and proper accounts.
+  boats: { cost: 32, needs: { tech: ['handcart'], biz: 'fishery' }, from: ['fisher', 'fisherman', 'carpenter', 'carpenter_hand'], skill: 'carpentry', icon: '⛵' },
+  irrigation: { cost: 34, needs: { tech: ['crop_rotation'], biz: 'farm', pop: 30 }, from: ['farmer', 'farmhand'], skill: 'farming', icon: '💧', effects: { farm_output: 1.15 } },
+  stone_bridges: { cost: 36, needs: { tech: ['masonry'], pop: 30 }, from: ['master_builder', 'builder', 'quarry_foreman', 'miner'], skill: 'construction', icon: '🌉', effects: { build_labor: 0.9, road_cost: 0.7 } },
+  bookkeeping: { cost: 28, needs: { tech: ['writing'], pop: 28 }, from: ['shopkeeper', 'store_clerk', 'merchant', 'innkeeper'], school: true, icon: '📒', effects: { export_price: 1.04 } },
 };
 
 export const TECH_TUNING = {

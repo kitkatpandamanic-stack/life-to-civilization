@@ -73,8 +73,32 @@ export class EnterprisePanel extends Panel {
           ${people ? `<div class="people">${people}</div>` : `<div class="muted small">${escapeHtml(t('biz.no_staff'))}</div>`}
           <h3>${escapeHtml(t('biz.orders'))}</h3>
           ${orders + offers || `<div class="muted small">${escapeHtml(t('biz.no_orders'))}</div>`}
+          ${def.kind === 'depot' ? this.routeHtml(b, def) : ''}
         </div>
       </div>`;
+  }
+
+  /** A warehouse or trading post sends caravans to other settlements: where, with what, and what to bring back. */
+  routeHtml(b, def) {
+    const sim = this.sim;
+    const S = sim.settlements;
+    const contacts = S.contacts();
+    const r = b.route;
+    const c = sim.state.region.caravans.find((x) => x.biz === this.bizId);
+    const status = c
+      ? tr(sim, c.stage === 'out' ? 'biz.caravan_out' : 'biz.caravan_back', { settlement: c.to, n: Math.max(1, Math.ceil(((c.stage === 'out' ? c.arrive : c.back) - sim.time.total) / 1440)) })
+      : t('biz.caravan_home');
+    let html = `<h3>${escapeHtml(t('biz.trade_route'))}</h3><div class="muted small">${escapeHtml(status)}</div>`;
+    if (!contacts.length) return html + `<div class="muted small">${escapeHtml(t('biz.route_no_contacts'))}</div>`;
+    const dest = r ? t(`settlement_name.${r.to}`) : t('biz.route_auto');
+    html += `<div class="kv"><span>${escapeHtml(t('biz.route_to'))}</span><b>${button(dest, 'route_to')}</b></div>`;
+    if (r) {
+      const sellable = Object.keys(def.targets || {});
+      html += `<div class="kv"><span>${escapeHtml(t('biz.route_sell'))}</span><b class="chips">${sellable.map((i) => `<span class="chip clickable${r.sell.includes(i) ? '' : ' muted'}" data-action="route_sell" data-item="${i}">${escapeHtml(itemName(i))}</span>`).join('')}</b></div>`;
+      const buyable = Object.keys(S.def(r.to).produces);
+      html += `<div class="kv"><span>${escapeHtml(t('biz.route_buy'))}</span><b>${button(r.buy ? itemName(r.buy) : t('biz.route_nothing'), 'route_buy', { opts: buyable.join(',') })}</b></div>`;
+    }
+    return html + `<div class="muted small">${escapeHtml(t('biz.route_hint'))}</div>`;
   }
 
   onAction(action, data) {
@@ -109,6 +133,27 @@ export class EnterprisePanel extends Panel {
       case 'manager':
         H.appointManager(this.bizId, data.id);
         break;
+      case 'route_to': {
+        // Cycle: automatic → each settlement you trade with → automatic.
+        const S = this.sim.settlements;
+        const list = [null, ...S.contacts()];
+        const next = list[(list.indexOf(b.route?.to ?? null) + 1) % list.length];
+        S.setRoute(this.bizId, next ? { to: next, sell: b.route?.sell || [], buy: null } : null);
+        break;
+      }
+      case 'route_sell': {
+        const sell = new Set(b.route.sell);
+        if (sell.has(data.item)) sell.delete(data.item);
+        else sell.add(data.item);
+        this.sim.settlements.setRoute(this.bizId, { ...b.route, sell: [...sell] });
+        break;
+      }
+      case 'route_buy': {
+        const opts = [null, ...String(data.opts).split(',').filter(Boolean)];
+        const next = opts[(opts.indexOf(b.route.buy ?? null) + 1) % opts.length];
+        this.sim.settlements.setRoute(this.bizId, { ...b.route, buy: next });
+        break;
+      }
       case 'inspect_npc':
         this.ui.openInspect(data.id);
         break;

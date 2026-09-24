@@ -45,7 +45,7 @@ export class FinanceSystem {
     if (!r || r.ruined || r.owner === 'village') return 0;
     const value = P.value(id);
     if (P.isHome(id) && value <= F.exemptHomeValue) return 0;
-    return Math.round(value * F.propertyTax);
+    return Math.round(value * F.propertyTax * (this.sim.civic?.mult('tax') ?? 1));
   }
 
   weekly() {
@@ -58,7 +58,8 @@ export class FinanceSystem {
     for (const id of E.active()) {
       const b = E.biz(id);
       const profit = sim.enterprise.books(id, 7).profit;
-      const tax = Math.min(Math.max(0, Math.floor(b.money)), Math.round(Math.max(0, profit) * F.profitTax));
+      // The headman's tax policy (CivicSystem) raises or lowers every rate.
+      const tax = Math.min(Math.max(0, Math.floor(b.money)), Math.round(Math.max(0, profit) * F.profitTax * (sim.civic?.mult('tax') ?? 1)));
       if (tax <= 0) continue;
       b.money -= tax;
       E.ledger(id, 'exp', tax);
@@ -83,7 +84,9 @@ export class FinanceSystem {
         property += paid;
       }
     }
-    this.V.treasury += business + property;
+    // Part of it is set aside for the next institution (the civic fund); the rest runs the village.
+    const fund = sim.civic?.divert(business + property) || 0;
+    this.V.treasury += business + property - fund;
     this.V.taxLog.push({ day: sim.time.day, business, property, player });
     if (this.V.taxLog.length > 12) this.V.taxLog.shift();
     if (player > 0) sim.toast('toast.taxes_paid', { money: player }, 'info');

@@ -24,6 +24,7 @@
 import { BUSINESS_TYPES, ENTERPRISE as EN, EXPERIENCE, BUSINESS_NAME_COUNT } from '../data/businessTypes.js';
 import { OCCUPATIONS } from '../data/occupations.js';
 import { traitValue } from '../data/traits.js';
+import { GOALS } from '../data/goals.js';
 import { rand } from '../core/rng.js';
 import { FOOD } from './EconomySystem.js';
 
@@ -200,7 +201,9 @@ export class EnterpriseSystem {
     const base = def.maxWorkers || 0;
     const cur = b.maxWorkers ?? base;
     const books = this.books(id, 7);
-    if (b.money > EN.expandAbove && books.profit > 0 && cur < base + 2) {
+    // An owner set on growing (GoalSystem) takes people on sooner, and further.
+    const growing = owner.goal?.type === 'grow_business';
+    if (b.money > EN.expandAbove * (growing ? GOALS.growBusinessExpand : 1) && books.profit > 0 && cur < base + (growing ? 3 : 2)) {
       b.maxWorkers = cur + 1;
       this.sim.chronicle('chronicle.business_expanding', { building: b.building, npc: owner.id });
     } else if (b.money < 60 && cur > Math.max(1, base - 1) && books.profit < 0) b.maxWorkers = cur - 1;
@@ -287,7 +290,7 @@ export class EnterpriseSystem {
       const owner = this.econ.owner(n.employer);
       if (owner && n.family.includes(owner.id)) continue; // family business
       const here = npcs.jobAppeal(n, n.employer) + (n.jobSat ?? 50) / 20;
-      const factor = EN.switchJobFactor * (n.traits.includes('loyal') ? 1.4 : 1) * (n.traits.includes('ambitious') ? 0.85 : 1);
+      const factor = EN.switchJobFactor * (n.traits.includes('loyal') ? 1.4 : 1) * (n.traits.includes('ambitious') ? 0.85 : 1) * (n.goal?.type === 'better_job' ? 0.8 : 1);
       let best = null;
       let bestScore = here * factor;
       for (const [id] of vacancies) {
@@ -390,8 +393,14 @@ export class EnterpriseSystem {
   candidate(n) {
     if (n.owns || n.age < EN.minAge || n.age > EN.maxAge || n.occupation === 'child' || n.occupation === 'elder') return false;
     const t = n.traits;
-    const drive = (t.includes('entrepreneur') ? 2 : 0) + (t.includes('ambitious') ? 1 : 0) + (t.includes('risk_taker') ? 0.7 : 0) + (t.includes('careful') ? -0.5 : 0);
-    return drive >= 1 && (!n.lastStartupTry || this.sim.time.day - n.lastStartupTry >= 21);
+    // Temperament — or a settled plan to open a business (GoalSystem), which counts for as much.
+    const drive = (t.includes('entrepreneur') ? 2 : 0) + (t.includes('ambitious') ? 1 : 0) + (t.includes('risk_taker') ? 0.7 : 0) + (t.includes('careful') ? -0.5 : 0) + (n.goal?.type === 'business' ? 1.5 : 0);
+    // Once bitten: a business that went under recently makes people wary — unless they've
+    // thought it over and set their heart on trying again.
+    const day = this.sim.time.day;
+    const burnt = (n.memories || []).some((m) => m.k === 'business_failed' && day - m.d < EN.retryAfterFailDays);
+    if (burnt && n.goal?.type !== 'business') return false;
+    return drive >= 1 && (!n.lastStartupTry || day - n.lastStartupTry >= 21);
   }
 
   startups() {
@@ -405,6 +414,9 @@ export class EnterpriseSystem {
       // …and a well-off relative or friend who believes in them may back them.
       const backer = this.findBacker(n);
       if (backer) funds += backer.offer;
+      // No one to back them? The village bank may lend (CivicSystem).
+      const bank = backer ? 0 : this.sim.civic?.bankOffer(n) || 0;
+      funds += bank;
       let best = null;
       let bestScore = EN.startupScoreNeeded;
       const homeBased = n.homeId && this.findPremises(n, 'bakery')?.how === 'home';
@@ -412,7 +424,8 @@ export class EnterpriseSystem {
         const T = BUSINESS_TYPES[type];
         if (funds < this.startCost(type, homeBased)) continue;
         const exp = EXPERIENCE[type]?.includes(n.occupation) || EXPERIENCE[type]?.includes(n.prevOccupation) ? 1.2 : 0;
-        const s = this.opportunity(type) + exp + rand.float() * 0.5;
+        const planned = n.goal?.type === 'business' && n.goal.biz === type ? 0.5 : 0; // the trade they've been planning for
+        const s = this.opportunity(type) + exp + planned + rand.float() * 0.5;
         if (s > bestScore) {
           bestScore = s;
           best = type;
@@ -451,7 +464,7 @@ export class EnterpriseSystem {
         else partner = backer.npc;
         this.sim.memory.remember(backer.npc, 'backed_business', { who: n.id, params: { npc: n.id, money: amount } });
         this.sim.memory.remember(n, 'got_backing', { who: backer.npc.id, params: { npc: backer.npc.id, money: amount } });
-      }
+      } else if (need > 0 && bank) loan = this.sim.civic.bankLend(n, Math.ceil(need));
       const id = this.open(n, best, premises, spouse);
       // Backing arranged earlier, when the premises were being built.
       if (!loan && n.pendingLoan) loan = n.pendingLoan;
@@ -533,6 +546,7 @@ export class EnterpriseSystem {
       b.loan.left -= pay;
       E.ledger(id, 'exp', pay);
       if (lender) lender.money += pay;
+      else if (b.loan.lender === 'bank' && this.sim.civic) this.sim.civic.V.vault = (this.sim.civic.V.vault || 0) + pay; // back to the bank's vault
       else if (b.loan.lender === 'player') {
         this.sim.state.player.money += pay;
         this.sim.toast('toast.loan_repaid', { money: pay, building: b.building }, 'gain');
@@ -650,6 +664,7 @@ export class EnterpriseSystem {
     sim.memory.remember(n, 'opened_business', { params: { building: premises.building, biz_type: type } });
     if (spouse) sim.memory.remember(spouse, 'family_business', { who: n.id, params: { npc: n.id, building: premises.building } });
     sim.chronicle('chronicle.business_opened_npc', { npc: n.id, gender: n.gender, biz_type: type, building: premises.building });
+    sim.goals?.opened(n, id); // if you backed them, you now own a share
     sim.bus.emit('business:opened', id);
     sim.bus.emit('building:changed', premises.building);
     sim.habits.derive(n);

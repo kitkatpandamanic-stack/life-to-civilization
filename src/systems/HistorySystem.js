@@ -45,6 +45,17 @@ const MILESTONES = new Set([
   'chronicle.player_ambition',
   'chronicle.outpost_founded',
   'chronicle.hamlet_founded',
+  'chronicle.settlement_contact',
+  'chronicle.headman_elected',
+  'chronicle.player_elected',
+  'chronicle.institution_founded',
+  'chronicle.institution_founded_player',
+  'chronicle.village_status',
+  'chronicle.village_status_player',
+  'chronicle.legacy_goodwill',
+  'chronicle.settlement_grew',
+  'chronicle.road_finished',
+  'chronicle.player_kept_villager',
 ]);
 
 /** Only the first time is history (after that it's just news). */
@@ -75,6 +86,10 @@ const FIRSTS = {
   'chronicle.craft_passed_on': 'craft_passed_on',
   'chronicle.exp_ruins_npc': 'ruins',
   'chronicle.exp_relic_npc': 'relic',
+  'chronicle.caravan_back': 'caravan_trade',
+  'chronicle.journey_back': 'player_journey',
+  'chronicle.migrants_from': 'migrants',
+  'chronicle.npc_left_to': 'emigrant',
 };
 
 export class HistorySystem {

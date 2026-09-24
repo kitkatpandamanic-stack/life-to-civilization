@@ -132,7 +132,12 @@ export function getActions(scene, target) {
         if (sim.farming.canNeedsRefill()) add('action.fill_can', {}, () => sim.farming.refillCan());
       }
       if (target.type === 'notice_board') add('action.read_board', {}, () => ui.openJobBoard());
-      if (target.type === 'expedition') add('action.expedition', {}, () => ui.openExpedition(), sim.state.exploration.trip ? { ok: false, reason: 'already_away' } : OK);
+      if (target.type === 'expedition') {
+        const away = sim.state.exploration.trip || sim.state.region?.journey ? { ok: false, reason: 'already_away' } : OK;
+        add('action.expedition', {}, () => ui.openExpedition(), away);
+        // Trade: take goods to another settlement (once you know of one).
+        add('action.journey', {}, () => ui.openJourney(), sim.settlements.known().length ? away : { ok: false, reason: 'no_settlements' });
+      }
       if (target.type === 'land_sign') {
         if (sim.land.isOwned(target.plotId)) {
           const canBuild = sim.progression.hasUnlock('construction');
@@ -354,7 +359,10 @@ function buildingActions(scene, id, add) {
     add('action.talk_to', { npc: n.id }, () => ui.openDialogue(n.id), asleep ? { ok: false, reason: 'asleep' } : OK);
   }
   if (!inside.length && id.startsWith('house_')) add('action.knock', {}, () => sim.toast('toast.nobody_home', {}, 'info'));
-  if (id === 'hall') add('action.read_board', {}, () => ui.openJobBoard());
+  if (id === 'hall') {
+    add('action.village_affairs', {}, () => ui.openHall());
+    add('action.read_board', {}, () => ui.openJobBoard());
+  }
   // Every building can be inspected: owner, residents, condition, value, history.
   if (sim.property.rec(id)) add('action.inspect', {}, () => ui.openProperty(id), OK, 'F');
 }

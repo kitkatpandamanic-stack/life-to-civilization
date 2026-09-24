@@ -101,6 +101,16 @@ export function resolveParams(sim, params = {}) {
     else if (k === 'event') out[k] = t(`event.${v}.name`);
     else if (k === 'rank') out[k] = t(`rank.${v}`, { occ: occupationName(params.occ, params.gender), gender: params.gender });
     else if (k === 'chronicle') out[k] = tr(sim, v.key, v.params);
+    else if (k === 'goal') out[k] = t(`goal_short.${v}`);
+    else if (k === 'settlement') out[k] = t(`settlement_name.${v}`);
+    else if (k === 'size') out[k] = t(`settlement_size.${v}`);
+    else if (k === 'transport') out[k] = t(`transport.${v}.name`);
+    else if (k === 'reason') out[k] = t(`goal_why.${v}`, { gender: params.gender });
+    else if (k === 'trait') out[k] = t(`trait.${v}.name`);
+    else if (k === 'institution') out[k] = t(`institution.${v}.name`);
+    else if (k === 'status') out[k] = t(`village_status.${v}`);
+    else if (k === 'renown') out[k] = t(`renown.${v}`);
+    else if (k === 'deed') out[k] = deedText(sim, v);
   }
   return out;
 }
@@ -175,6 +185,20 @@ export function qualityBadge(q) {
   if (q === undefined || q === STANDARD) return '';
   const mark = q === 0 ? '▾' : q === 2 ? '★' : '★★';
   return `<span class="qbadge q${q}" title="${escapeHtml(t(`quality.${QUALITY[q].id}`))}">${mark}</span>`;
+}
+
+/** One reason behind a villager's goal (see GoalSystem): 'long_walk', 'trait:careful', 'opportunity:bakery'… */
+export function goalWhyText(npc, w) {
+  const [key, arg] = String(w).split(':');
+  if (key === 'trait') return t('goal_why.trait', { trait: t(`trait.${arg}.name`) });
+  if (key === 'opportunity') return t('goal_why.opportunity', { biz_type: t(`biz_type.${arg}`) });
+  return t(`goal_why.${key}`, { gender: npc.gender });
+}
+
+/** One of your family's deeds, told in the third person: "Anna built a workshop." */
+export function deedText(sim, d) {
+  if (!d) return '';
+  return tr(sim, `deed.${d.key}`, { ...(d.params || {}), name: d.name || '?', gender: d.gender });
 }
 
 /** A hamlet's name (from the same list villages are named from). */

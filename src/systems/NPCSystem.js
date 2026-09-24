@@ -21,6 +21,7 @@ import { OCCUPATIONS } from '../data/occupations.js';
 import { FOOD } from './EconomySystem.js';
 import { AREAS } from '../data/villageLayout.js';
 import { traitValue } from '../data/traits.js';
+import { GOALS } from '../data/goals.js';
 import { rand } from '../core/rng.js';
 import { findPath } from '../world/Pathfinder.js';
 
@@ -413,8 +414,9 @@ export class NPCSystem {
     return E.chooseShop(npc, ['stew', 'pie'], { type: 'tavern' }) || E.ofType('tavern').find((id) => E.isOpen(id)) || null;
   }
 
-  /** Saving up to open a business: no meals out, few drinks. */
+  /** Saving up (for a business, a house, a rainy day — see GoalSystem): no meals out, few drinks. */
   isSaving(npc) {
+    if (this.sim.goals?.saving(npc)) return true;
     const t = npc.traits;
     return !npc.owns && npc.age >= 18 && (t.includes('entrepreneur') || (t.includes('ambitious') && t.includes('risk_taker'))) && npc.money < 450;
   }
@@ -511,6 +513,8 @@ export class NPCSystem {
       if (task.stage === 'idle' && now >= task.until) {
         this.finishLeisure(npc);
         // Plan still running? Keep doing it (wanderers pick a new spot); otherwise decide afresh.
+        // (Finishing can change their life — their own shop's premises completed, say — and end the task.)
+        if (npc.task !== task) return;
         if (npc.plan && now < npc.plan.until) this.startLeisure(npc);
         else task.done = true;
       }
@@ -1290,6 +1294,7 @@ export class NPCSystem {
     if (npc.lastHobbyDay !== undefined && this.time.day - npc.lastHobbyDay <= 2) m += 3;
     if (npc.traits.includes('friendly')) m += 3;
     if (npc.traits.includes('greedy') && npc.money < 50) m -= 5;
+    m += this.sim.civic?.moodEffect(npc) || 0; // how the headman's taxes and poor relief land
     return Math.max(0, Math.min(100, Math.round(m)));
   }
 
@@ -1343,7 +1348,8 @@ export class NPCSystem {
       // Experience from a day's work.
       if (npc.workedToday) {
         const mentor = npc.employer === 'player' ? 1 + Mod.perk(this.sim.state.player, 'worker_xp') : 1; // you teach your own people
-        npc.xp += NB.xpPerWorkDay * traitValue(npc.traits, 'workXp') * (this.sim.tech?.mod('learning') ?? 1) * mentor;
+        const practice = npc.goal?.type === 'master' ? GOALS.masterXpMult : 1; // set on mastering the trade
+        npc.xp += NB.xpPerWorkDay * traitValue(npc.traits, 'workXp') * (this.sim.tech?.mod('learning') ?? 1) * mentor * practice;
         const rankBefore = this.rank(npc);
         while (npc.xp >= this.xpForNext(npc.level)) {
           npc.xp -= this.xpForNext(npc.level);
@@ -1369,14 +1375,16 @@ export class NPCSystem {
       if (npc.occupation === 'elder') this.sim.property.payPension(npc, BALANCE.economy.elderPension);
       // Wealthy villagers spend more: nicer food for the household (money flows back to the shops)…
       const EB = BALANCE.economy;
-      if (npc.money > EB.wealthySpendAbove && this.householdPantry(npc) < 6) {
+      // (Unless they're putting money aside for something: see GoalSystem.)
+      const saving = this.isSaving(npc);
+      if (npc.money > EB.wealthySpendAbove && this.householdPantry(npc) < 6 && !saving) {
         const grocer = E.chooseShop(npc, ['cheese', 'apple', 'bread'], { openNow: false });
         if (grocer) npc.pantry += E.npcBuy(npc, grocer, ['cheese', 'apple', 'bread'], 2);
         const pies = E.chooseShop(npc, ['pie'], { openNow: false });
         if (pies) npc.pantry += E.npcBuy(npc, pies, ['pie'], 1);
       }
       // Comfortable households occasionally buy furniture — demand for carpenters (including you).
-      if (npc.age >= 18 && npc.money > EB.furnitureBuyAbove && rand.chance(EB.furnitureBuyChance)) {
+      if (npc.age >= 18 && npc.money > EB.furnitureBuyAbove && !saving && rand.chance(EB.furnitureBuyChance)) {
         const seller = E.chooseShop(npc, ['table', 'chair', 'stool'], { openNow: false });
         if (seller) E.npcBuy(npc, seller, ['table', 'chair', 'stool'], 1);
       }
@@ -1461,7 +1469,7 @@ export class NPCSystem {
     if (npc.hunger < 25) return '🍞';
     if (npc.energy < 20) return '😩';
     if (npc.task?.type === 'job_search') return '🔎';
-    if (npc.task?.type === 'leave') return '🧳';
+    if (npc.task?.type === 'leave' || npc.goal?.packDay) return '🧳'; // leaving — or packing to
     if (npc.task?.type === 'firefight') return '🪣';
     if (npc.task?.type === 'leisure' && npc.task.plan === 'build' && npc.task.stage === 'idle') return '🔨';
     if (npc.unpaidDays > 0) return '💸';

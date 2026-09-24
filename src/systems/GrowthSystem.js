@@ -417,6 +417,8 @@ export class GrowthSystem {
     } else if (c.purpose === 'shop' && owner) {
       if (c.bizType && !owner.owns && owner.money >= sim.enterprise.startCost(c.bizType, true)) sim.enterprise.open(owner, c.bizType, { building: c.id, how: 'own' }, sim.family.spouse(owner));
       else sim.property.rec(c.id).formerBusiness = c.bizType || 'general_store';
+    } else if (c.purpose === 'public' && c.institution) {
+      sim.civic?.opened(c); // a market hall, a watch house… (CivicSystem)
     } else if (c.purpose === 'public') {
       sim.chronicle(`chronicle.village_${c.type}`, { building: c.id });
       if (c.type === 'mill') sim.enterprise.villageMill?.(c.id);
@@ -478,7 +480,8 @@ export class GrowthSystem {
     const bread = sim.economy.sellersOf('bread');
     const food = bread.length ? bread.reduce((s, id) => s + sim.economy.priceFactor(id, 'bread'), 0) / bread.length : 1.5;
     const economy = (sim.events.modifier('migration') - 1) * 2; // a boom draws people in, a slump drives them off
-    return jobs * 1.0 + Math.min(homes, 3) * 0.7 - unemployed * 0.8 - homeless * 1.5 - (food > 1.5 ? 1 : 0) + (this.projects().length ? 0.3 : 0) + economy;
+    const status = sim.civic?.attractiveness() || 0; // a town draws more people than a village
+    return jobs * 1.0 + Math.min(homes, 3) * 0.7 - unemployed * 0.8 - homeless * 1.5 - (food > 1.5 ? 1 : 0) + (this.projects().length ? 0.3 : 0) + economy + status;
   }
 
   migration() {
@@ -496,8 +499,11 @@ export class GrowthSystem {
       if (n.occupation === 'unemployed') S.joblessSince[n.id] ??= day;
       else delete S.joblessSince[n.id];
       const jobless = S.joblessSince[n.id] !== undefined ? day - S.joblessSince[n.id] : 0;
-      const desperate = (jobless >= G.leaveAfterJoblessDays && n.money < 40) || (!n.homeId && jobless >= 14);
-      if (!desperate || n.mood > 55 || rand.chance(0.6)) continue;
+      // (Usually this is a considered decision — see GoalSystem 'leave', which weighs what keeps them
+      // here and gives them days to pack. This catches only the truly desperate, much later.)
+      const late = sim.goals ? 2 : 1;
+      const desperate = (jobless >= G.leaveAfterJoblessDays * late && n.money < 40) || (!n.homeId && jobless >= 14 * late);
+      if (!desperate || n.mood > 55 || n.stayUntil > day || n.goal?.type === 'leave' || rand.chance(0.6)) continue;
       // Family leaves together.
       const spouse = sim.family.spouse(n);
       if (spouse && spouse.occupation !== 'unemployed' && spouse.occupation !== 'elder') continue;
@@ -559,7 +565,10 @@ export class GrowthSystem {
     }
     sim.state.settlement.migrantsArrived = (sim.state.settlement.migrantsArrived || 0) + people.length;
     sim.state.settlement.turnedAway = 0;
-    sim.chronicle('chronicle.migrants_arrived', { npc: first.id, gender: first.gender, n: people.length });
+    // They come from somewhere: a known settlement (which loses them), or just "from the west".
+    const from = sim.settlements?.originFor(people.length);
+    for (const n of people) if (from) n.from = from;
+    sim.chronicle(from ? 'chronicle.migrants_from' : 'chronicle.migrants_arrived', { npc: first.id, gender: first.gender, n: people.length, settlement: from || undefined });
     sim.bus.emit('settlement:arrived', people.map((p) => p.id));
     return people;
   }
@@ -595,14 +604,19 @@ export class GrowthSystem {
     const cells = {};
     const add = (tx, ty, kind) => {
       const k = `${Math.floor(tx / DISTRICT_CELL)},${Math.floor(ty / DISTRICT_CELL)}`;
-      cells[k] ??= { home: 0, shop: 0, industry: 0, farm: 0, public: 0 };
+      cells[k] ??= { home: 0, shop: 0, industry: 0, farm: 0, public: 0, school: 0, leisure: 0, trade: 0 };
       cells[k][kind]++;
     };
     for (const b of sim.world.buildingList) {
       const biz = E.businessAtBuilding(b.id);
       const d = biz && E.def(biz);
       let kind;
-      if (b.id === 'hall' || ['well', 'school', 'library', 'mill'].includes(b.type)) kind = 'public';
+      if (['school', 'library', 'guild_hall'].includes(b.type)) kind = 'school';
+      else if (['market_hall', 'bank'].includes(b.type)) kind = 'shop';
+      else if (['watch_house', 'clinic'].includes(b.type)) kind = 'public';
+      else if (b.id === 'hall' || ['well', 'mill'].includes(b.type)) kind = 'public';
+      else if (d?.type === 'tavern') kind = 'leisure';
+      else if (d?.kind === 'depot' || d?.type === 'carters') kind = 'trade';
       else if (d?.output === 'farm' || b.type === 'farmhouse') kind = 'farm';
       else if (d?.kind === 'producer' || ['smithy', 'carpentry', 'workshop'].includes(d?.type || b.type) || b.type === 'lumberyard' || b.type === 'quarry_hut' || b.type === 'workshop' || b.type === 'storage_shed') kind = 'industry';
       else if (d?.kind === 'shop') kind = 'shop';
@@ -612,9 +626,9 @@ export class GrowthSystem {
     }
     const types = {};
     for (const [k, c] of Object.entries(cells)) {
-      const total = c.home + c.shop + c.industry + c.farm + c.public;
+      const total = Object.values(c).reduce((a, n) => a + n, 0);
       const [top, n] = Object.entries(c).sort((a, b) => b[1] - a[1])[0];
-      const type = { home: 'residential', shop: 'commercial', industry: 'industrial', farm: 'agricultural', public: 'civic' }[top];
+      const type = { home: 'residential', shop: 'commercial', industry: 'industrial', farm: 'agricultural', public: 'civic', school: 'education', leisure: 'entertainment', trade: 'transport' }[top];
       types[k] = total >= 2 && n / total < 0.55 ? 'mixed' : type;
     }
     const D = sim.state.districts;
@@ -675,8 +689,8 @@ export class GrowthSystem {
     if (!d) return 1;
     const isShop = !!this.sim.economy.businessAtBuilding(buildingId);
     const table = isShop
-      ? { commercial: 1.2, mixed: 1.1, civic: 1.1, residential: 0.95, industrial: 0.9, agricultural: 0.85 }
-      : { residential: 1.08, mixed: 1.04, civic: 1.05, commercial: 1.0, industrial: 0.85, agricultural: 0.95 };
+      ? { commercial: 1.2, mixed: 1.1, civic: 1.1, entertainment: 1.15, transport: 1.05, education: 1.0, residential: 0.95, industrial: 0.9, agricultural: 0.85 }
+      : { residential: 1.08, mixed: 1.04, civic: 1.05, education: 1.08, entertainment: 0.98, commercial: 1.0, transport: 0.92, industrial: 0.85, agricultural: 0.95 };
     return table[d.type] ?? 1;
   }
 
@@ -713,6 +727,10 @@ export class GrowthSystem {
     if (owner) {
       owner.money += Math.max(0, c.budget);
       sim.memory.remember(owner, 'gave_up_building');
+    } else if (c.owner === 'village' && c.institution && sim.civic) {
+      // An institution's money goes back into the civic fund, to try again.
+      sim.civic.V.fund += Math.max(0, c.budget);
+      sim.civic.V.project = c.institution;
     } else if (c.owner === 'village') sim.state.village.treasury += Math.max(0, c.budget);
     this.cons.list.splice(this.cons.list.indexOf(c), 1);
     if (c.kind === 'building') sim.world.blockRect(c.tx, c.ty, c.w, c.h, 0);

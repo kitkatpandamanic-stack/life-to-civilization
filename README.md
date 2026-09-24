@@ -34,6 +34,9 @@ node tools/smoke-player.mjs         # quality, forge & tools, cooking, perks, co
 node tools/smoke-holdings.mjs       # owning and running village businesses, orders, stakes, loans
 node tools/smoke-economy.mjs        # wheat → flour → bread, shortages, quality & customers, wages, taxes, loans
 node tools/smoke-sites.mjs          # discovery sites, outposts, hunters & miners, hamlets
+node tools/smoke-goals.mjs          # villagers' goals: saving, founding, buying, settling, courting, leaving
+node tools/smoke-regions.mjs        # other settlements, prices, trade journeys, transport, roads, caravans
+node tools/smoke-civic.mjs          # headman & elections, policies, institutions, village → town, bank, legacy
 ```
 
 In dev mode (`npm run dev` only) there's a **debug panel on F9**: live stats, simulation
@@ -99,6 +102,9 @@ src/
 │   ├── Contracts, Ambitions                  work by agreement from real needs; goals you choose
 │   ├── Holdings                              businesses you own, stakes and loans in others'
 │   ├── Finance                               village taxes; borrowing from the village fund
+│   ├── Goals                                 what each villager is after, why — and what it makes them do
+│   ├── Settlements                           other places beyond the valley, caravans, your trade journeys, roads
+│   ├── Civic, Legacy                         headman & council, elections, institutions, the valley's status; your family's renown
 │   └── Save                                  localStorage slots + autosave
 ├── render/                  procedural textures
 ├── game/                    Phaser views: terrain, objects, buildings, NPCs, carts, fires, animals…
@@ -140,6 +146,15 @@ src/
   remember what you did and what happened to them, and they talk about it. Relationships run both
   ways (friendship, trust, respect, conflict). Feuds, friendships, courtships and weddings happen
   without you.
+- **Villagers with goals.** Every villager is after something: a job, savings, a home of their own,
+  a business, mastery of their trade, a better job, love and children, a home near far-off work, or
+  a new life elsewhere. They choose by weighing their personality, money, needs, family and friends,
+  the opportunities around them, what they remember, and how the village is doing. The goal sticks,
+  and it changes what they do: savers stop eating out, would-be owners buy the first house they can,
+  founders open businesses, workers far out at a camp build homes next to it (that's how hamlets fill
+  up), the badly paid leave you for better wages, and the unhappy pack up and go. Inspect a villager
+  to see their goal and why. Ask them about it ("What are you hoping for?"): you can put money behind
+  a founder's plans for a share of the business, offer work, or talk someone out of leaving.
 - **Generations.** Villagers fall in love, marry, have children, grow old, retire and die, and
   their businesses and houses pass to their heirs. You can court a villager and marry too.
   Your children grow up in your home. When you retire or die you carry on as your eldest,
@@ -161,6 +176,34 @@ src/
   then build an outpost where it makes sense: a mining camp, a hunting cabin or a trading post.
   Outposts are real businesses linked to the roads by a track; their workers settle nearby, and
   a hamlet with its own name can grow around them.
+- **Other settlements and trade.** Beyond the valley lie other places — a woodcutters' hamlet,
+  herders under the pass, a fishing village, a mining town, a market town, a port — each with its
+  own people, what it makes and what it needs, and prices that follow what's in its stores. They
+  grow when they're fed and trading, shrink when they're not, and have booms and shortages you'll
+  hear about. Load a cargo at the waymark and go on a trade journey: days on the road, then their
+  market (every sale lowers their price, every purchase raises it), and home again. Transport
+  matters: on foot you carry 20, a handcart 45, a pack horse is fast, a horse and cart or a wagon
+  carry far more — but animals need feeding. The valley's warehouses and trading posts send
+  caravans (set a trade route for your own), known settlements pay more for the valley's exports,
+  and better roads — paid for by you, or by the village where trade is busy — make every journey
+  shorter and safer. People who leave the valley go to these places; newcomers come from them.
+  Districts now include learning, entertainment and trade & transport quarters.
+- **Governing the village.** Once a year the grown-ups elect a headman — the most respected
+  villagers stand, and so can you once your reputation is good enough. People vote for who they
+  think best of and for what they'd do (the hard-up for generous poor relief, owners for low taxes).
+  The headman sets taxes and poor relief (with real effects on the fund, on moods and on the next
+  election) and chooses what the village saves for. In the village hall ("Village affairs") you
+  see it all — and run it, if you're headman.
+- **Institutions and civilization.** A share of every week's taxes goes into a civic fund; when
+  it's enough, the villagers build the next institution: a market (price news from every town you
+  trade with, better export prices), a night watch (fewer fires, safer roads), a healer's house
+  (less sickness), a craft guild (everyone learns faster), a savings bank (loans for founders,
+  interest on your savings). With people and institutions the valley grows from a village into a
+  large village, a town and a city. New know-how: boats (much faster journeys to places on the
+  water), irrigation, stone bridges, bookkeeping.
+- **Legacy.** What you do — buildings, outposts, roads, businesses founded or backed, years as
+  headman, institutions founded on your watch — is remembered as your family's deeds. Renown
+  outlives you: your heir starts out trusted, and villagers bring up what the family did.
 - **Exploration.** At the waymarks where the road leaves the valley, you can mount an expedition
   into the wider world, with food for the road and friends as companions. Days pass while the
   village carries on. You might come back with a new ore seam, ruins and relics, a trading
@@ -186,7 +229,8 @@ src/
 6. ✅ Settlement: migration, villager construction, districts, logistics, events and disasters
 7. ✅ Generations and legacy: your family line, succession, the village's history
 8. ✅ Exploration and civilization: expeditions, regions, know-how, school, library
-9. ⏭ Town government, larger infrastructure (bridges, roads between settlements), other settlements
+9. ✅ Other settlements, regional trade, transport, roads between settlements
+10. ✅ Village government and elections, institutions, village → town → city, family legacy
 
 Design rules: never replace the world with menus, keep systems modular and data-driven, no fake
 buttons, and let outcomes emerge from the simulation.

@@ -48,6 +48,43 @@ export function installDebugPanel(dev) {
     child: (sim) => sim.lineage.birth(),
     day: () => dev.skip(1440),
     treasury: (sim) => (sim.state.village.treasury += 500),
+    // Goals: everyone reconsiders now; or someone decides to leave (to test talking them round).
+    rethink: (sim) => {
+      sim.goals.ctx = null;
+      for (const n of sim.state.npcs) sim.goals.reconsider(n);
+    },
+    leaver: (sim) => {
+      const n = sim.state.npcs.find((x) => x.age >= 18 && x.age <= 60 && !x.owns && x.goal?.type !== 'leave');
+      if (!n) return;
+      sim.goals.set(n, 'leave', { why: ['unhappy'] });
+      n.goal.packDay = sim.time.day + 4; // packing: gone in 4 days unless talked round
+      dev.scene?.ui.openInspect(n.id);
+    },
+    // Settlements: know and trade with every place; send the caravans now; a horse cart.
+    contact: (sim) => {
+      for (const id of sim.settlements.ids()) {
+        sim.exploration.region(sim.settlements.def(id).region).known = true;
+        sim.settlements.makeContact(id, 'debug');
+      }
+    },
+    caravans: (sim) => sim.settlements.dispatchCaravans(),
+    week: (sim) => sim.settlements.weekly(),
+    horse: (sim) => {
+      sim.state.player.transport = 'horse_cart';
+    },
+    // Civic: hold the election now; make you headman; fill the fund for the next institution; renown.
+    election: (sim) => sim.civic.election(),
+    headman: (sim) => {
+      sim.state.player.reputation = Math.max(sim.state.player.reputation, 30);
+      sim.civic.V.headman = 'player';
+      sim.civic.V.standing = true;
+    },
+    fund: (sim) => {
+      const C = sim.civic;
+      C.V.project ??= C.wanted()[0] || null;
+      if (C.V.project) C.V.fund = C.costOf(C.V.project);
+    },
+    renown: (sim) => (sim.state.legacy.renown += 20),
     inspect: (sim) => {
       const n = sim.state.npcs[Math.floor(Math.random() * sim.state.npcs.length)];
       dev.scene.ui.openInspect(n.id);
@@ -70,6 +107,12 @@ export function installDebugPanel(dev) {
       ['Knowledge', sim.state.knowledge.points],
       ['Techs', Object.keys(sim.state.tech.known).join(', ') || '—'],
       ['Regions known', sim.exploration.known().length],
+      ['Goals', Object.entries(sim.goals.summary()).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(' · ')],
+      ['Goals done / given up / left / settled', ((g) => `${g.achieved || 0} / ${g.gaveUp || 0} / ${g.left || 0} / ${g.settled || 0}`)(sim.state.settlement.goals || {})],
+      ['Settlements', sim.settlements.summary().map((s) => `${s.id} ${s.pop}${s.contact ? '🤝' : ''}${s.road ? '═'.repeat(s.road) : ''} fed ${s.fed}%`).join(' · ')],
+      ['Caravans / journey', `${sim.state.region.caravans.length} out · ${sim.state.region.journey ? `${sim.state.region.journey.stage} ${sim.state.region.journey.to}` : '—'}`],
+      ['Civic', `${sim.civic.V.status} · headman ${sim.civic.V.headman} · ${sim.civic.V.policies.tax}/${sim.civic.V.policies.relief} · saving ${sim.civic.V.project || '—'} ${sim.civic.V.fund} · ${Object.keys(sim.civic.V.institutions).join(',') || 'no institutions'}`],
+      ['Renown', `${sim.legacy.renown()} (${sim.legacy.tier()}) · ${sim.legacy.deeds().length} deeds`],
       ['Chronicle / history', `${sim.state.chronicle.length} / ${sim.state.history.entries.length}`],
       ['Objects', Object.keys(sim.state.objects).length],
       ['FPS', perf.fps],
@@ -94,6 +137,9 @@ export function installDebugPanel(dev) {
         ${btn('migrant', 'Migrant')}${btn('wave', 'Migration wave')}${btn('fail', 'Fail a business')}
         ${btn('explore', 'NPC expedition')}${btn('knowledge', '+5 knowledge')}${btn('child', 'Player child')}
         ${btn('age', 'Player +10y')}${btn('day', 'Skip a day')}${btn('inspect', 'Inspect random NPC')}
+        ${btn('rethink', 'Everyone rethinks goals')}${btn('leaver', 'Someone decides to leave')}
+        ${btn('contact', 'Contact all settlements')}${btn('week', 'Settlements: a week')}${btn('caravans', 'Send caravans')}${btn('horse', 'Get a horse cart')}
+        ${btn('election', 'Election now')}${btn('headman', 'Make me headman')}${btn('fund', 'Fill civic fund')}${btn('renown', '+20 renown')}
       </div>
       <div class="dbg-sel">
         <select data-sel="event"><option value="">Event…</option>${Object.keys(EVENT_DEFS).map((k) => `<option>${k}</option>`).join('')}</select>

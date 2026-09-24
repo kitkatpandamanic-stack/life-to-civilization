@@ -163,7 +163,7 @@ export class ExplorationSystem {
   canSetOut(regionId, companionIds = []) {
     const r = this.E.regions[regionId];
     if (!r?.known) return { ok: false, reason: 'region_unknown' };
-    if (this.E.trip) return { ok: false, reason: 'already_away' };
+    if (this.E.trip || this.sim.settlements?.R.journey) return { ok: false, reason: 'already_away' };
     if (companionIds.length > X.maxCompanions) return { ok: false, reason: 'too_many_companions' };
     const food = this.foodNeeded(regionId, companionIds.length);
     if (this.foodCarried() < food) return { ok: false, reason: 'need_food', params: { n: food } };
@@ -195,13 +195,19 @@ export class ExplorationSystem {
       n.money += cost / companions.length;
       this.leave(n, regionId);
     }
-    const days = REGIONS[regionId].days * 2;
+    const days = this.tripDays(regionId);
     const now = sim.time.total;
     this.E.trip = { region: regionId, companions: companions.map((n) => n.id), depart: now, departDay: sim.time.day, seq: sim.state.chronicleSeq || 0, until: now + days * 1440, from: { x: p.x, y: p.y } };
     p.away = { region: regionId };
     sim.chronicle('chronicle.expedition_left', { region_name: regionId, n: companions.length });
     sim.bus.emit('expedition:departed', this.E.trip);
     return { ok: true, days };
+  }
+
+  /** There and back: a horse gets you there faster (see SettlementSystem.transport). */
+  tripDays(regionId) {
+    const speed = this.sim.settlements?.transport().speed ?? 1;
+    return Math.max(1, Math.round((REGIONS[regionId].days * 2) / speed));
   }
 
   /** A villager leaves the map for a while. */
@@ -658,6 +664,11 @@ export class ExplorationSystem {
       sim.chronicle('chronicle.hamlet_founded', { hamlet: h.nameIdx, site: s.kind });
       sim.progression.addReputation(5);
     }
+  }
+
+  /** A hamlet — or an outpost that could become one — close to this spot? */
+  hamletNear(tx, ty) {
+    return this.E.hamlets.some((h) => Math.hypot(h.tx - tx, h.ty - ty) <= HAMLET.radius) || this.E.sites.some((s) => s.outpost && Math.hypot(s.tx - tx, s.ty - ty) <= HAMLET.radius);
   }
 
   /** Everyone away right now (for the UI). */

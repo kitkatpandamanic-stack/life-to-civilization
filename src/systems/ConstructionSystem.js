@@ -104,7 +104,7 @@ export class ConstructionSystem {
    * A villager (or the village) starts building. Used by GrowthSystem.
    * The site appears in the world right away and fills in as work is done.
    */
-  startProject({ owner, type, tx, ty, purpose, budget = 0, bizType = null }) {
+  startProject({ owner, type, tx, ty, purpose, budget = 0, bizType = null, institution = null }) {
     const def = VILLAGE_BUILDINGS[type];
     const c = {
       id: `vb${this.sim.state.settlement.nextBuildId++}`,
@@ -123,6 +123,7 @@ export class ConstructionSystem {
       purpose,
       budget,
       bizType,
+      ...(institution ? { institution } : {}), // the village's market hall, watch house… (CivicSystem)
       createdDay: this.sim.time.day,
       lastProgressDay: this.sim.time.day,
       variant: rand.int(0, 6),

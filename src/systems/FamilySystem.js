@@ -16,6 +16,7 @@
 import { NPC_ROSTER, LOOK_PALETTE } from '../data/npcs.js';
 import { OCCUPATIONS } from '../data/occupations.js';
 import { TRAITS } from '../data/traits.js';
+import { GOALS } from '../data/goals.js';
 import { BALANCE } from '../config/balance.js';
 import { hashStr, rand } from '../core/rng.js';
 
@@ -159,13 +160,16 @@ export class FamilySystem {
         else if (S.feeling(S.bond(a, b)) === 'rival' || S.feeling(S.bond(b, a)) === 'rival') this.breakUp(a, b);
         continue;
       }
+      // Someone looking for a partner (GoalSystem 'family') makes more of an effort.
+      const looking = a.goal?.type === 'family';
+      const ease = looking ? GOALS.familyCourtEase : 0;
       for (const [bid, v] of Object.entries(a.relations)) {
-        if (v.f < LIFE.courtFriendship || v.t < LIFE.courtTrust) continue;
+        if (v.f < LIFE.courtFriendship - ease || v.t < LIFE.courtTrust - ease) continue;
         const b = this.byId(bid);
         if (!b || b.partner || !this.compatible(a, b)) continue;
         const back = S.bond(b, a);
-        if (!back || back.f < LIFE.courtFriendship) continue;
-        if (!rand.chance(LIFE.courtChance)) continue;
+        if (!back || back.f < LIFE.courtFriendship - (b.goal?.type === 'family' ? GOALS.familyCourtEase : 0)) continue;
+        if (!rand.chance(LIFE.courtChance * (looking ? GOALS.familyCourtMult : 1))) continue;
         a.partner = b.id;
         b.partner = a.id;
         a.courtingSince = b.courtingSince = day;
@@ -249,7 +253,8 @@ export class FamilySystem {
       const householdMoney = this.household(mother).reduce((s, n) => s + n.money, 0);
       if (householdMoney < LIFE.minHouseholdMoney) continue;
       const kids = mother.kin.children.filter((id) => this.byId(id)).length;
-      const chance = LIFE.birthChancePerSeason * Math.pow(0.6, kids) * (mother.age > 35 ? 0.6 : 1);
+      const wanted = mother.goal?.type === 'family' || father.goal?.type === 'family' ? GOALS.familyBirthMult : 1; // hoping for a child
+      const chance = LIFE.birthChancePerSeason * Math.pow(0.6, kids) * (mother.age > 35 ? 0.6 : 1) * wanted;
       if (rand.chance(chance)) this.birth(mother, father);
     }
   }

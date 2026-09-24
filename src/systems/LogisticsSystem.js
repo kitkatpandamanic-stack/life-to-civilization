@@ -159,6 +159,31 @@ export class LogisticsSystem {
     return n;
   }
 
+  /** A point t (0–1) of the way from a building's door to a spot {x, y} (for caravans heading out of the valley). */
+  alongRouteTo(fromBuilding, to, t) {
+    const w = this.sim.world;
+    const key = `${fromBuilding}→${Math.round(to.x)},${Math.round(to.y)}`;
+    let r = this.routes.get(key);
+    if (!r) {
+      const a = w.buildings[fromBuilding]?.door;
+      if (!a) return null;
+      const s = w.nearestWalkable(a.tx, a.ty, 3);
+      const g = w.nearestWalkable(Math.floor(to.x / 32), Math.floor(to.y / 32), 3);
+      const path = findPath(w, s.tx, s.ty, g.tx, g.ty) || [];
+      r = { path: [{ tx: s.tx, ty: s.ty }, ...path] };
+      this.routes.set(key, r);
+    }
+    if (r.path.length < 2) return null;
+    const f = Math.max(0, Math.min(1, t)) * (r.path.length - 1);
+    const i = Math.floor(f);
+    const pa = w.tileCenter(r.path[i].tx, r.path[i].ty);
+    const pb = w.tileCenter(r.path[Math.min(r.path.length - 1, i + 1)].tx, r.path[Math.min(r.path.length - 1, i + 1)].ty);
+    const k = f - i;
+    const dx = pb.x - pa.x;
+    const dy = pb.y - pa.y;
+    return { x: pa.x + dx * k, y: pa.y + dy * k, facing: Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up', moving: t > 0 && t < 1 };
+  }
+
   /** Where a shipment is right now (for drawing carts): { x, y, facing } or null. */
   position(s) {
     const r = this.route(s.fromB, s.toB);

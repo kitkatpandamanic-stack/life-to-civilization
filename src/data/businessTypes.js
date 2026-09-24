@@ -187,4 +187,5 @@ export const ENTERPRISE = {
   managerAtWorkers: 3,
   expandAbove: 700, // money that lets a business take on more staff
   historyDays: 14,
+  retryAfterFailDays: 112, // after a business fails, its owner waits this long before trying again (unless set on it)
 };

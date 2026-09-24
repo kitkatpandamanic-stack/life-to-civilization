@@ -44,10 +44,17 @@ export const PROPERTY_VALUE = {
   storage_shed: 120,
   hall: 0, // public
   well: 0,
+  market_hall: 0,
+  watch_house: 0,
+  clinic: 0,
+  guild_hall: 0,
+  bank: 0,
 };
 
 /** Buildings that belong to the whole village and are never sold. */
 export const PUBLIC_BUILDINGS = ['hall'];
+/** Kinds of building that serve everyone: never left empty, never abandoned (the village keeps them up). */
+export const PUBLIC_TYPES = ['well', 'storage_shed', 'school', 'library', 'mill', 'market_hall', 'watch_house', 'clinic', 'guild_hall', 'bank'];
 
 export const HOUSING = {
   rentPerWeekShare: 0.045, // weekly rent ≈ 4.5% of the home's value

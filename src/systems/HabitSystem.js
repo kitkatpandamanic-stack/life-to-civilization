@@ -232,7 +232,9 @@ export class HabitSystem {
     const hour = sim.time.hourFloat;
     const adult = npc.age >= 18;
     const lonely = (npc.social ?? 60) < 35;
-    const socialMult = lonely ? 2 : 1;
+    // Looking for a partner (GoalSystem): out and about more, where people meet.
+    const looking = npc.goal?.type === 'family' && !npc.kin?.spouse;
+    const socialMult = (lonely ? 2 : 1) * (looking ? 1.6 : 1);
     const E = BALANCE.economy;
     const canTavern = adult && npc.money >= E.npcDrinkPrice * 2 && sim.economy.ofType('tavern').some((id) => sim.economy.isOpen(id)) && hour >= 17;
     const friend = sim.social.bestFriend(npc);

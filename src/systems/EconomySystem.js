@@ -628,7 +628,9 @@ export class EconomySystem {
         b.stock[item] -= surplus;
         // Traders pay less the more you dump on them in one day.
         const glut = Math.max(0.45, 1 - surplus * 0.015);
-        const earned = Math.round(surplus * ITEMS[item].basePrice * (depot ? E.depotExportFactor : E.exportPriceFactor) * glut * this.sim.events.modifier('export_price') * this.sim.events.itemPrice(item) * (this.sim.exploration?.tradeFactor() ?? 1));
+        // Known settlements short of it pay more (see SettlementSystem) — and the goods go there.
+        const earned = Math.round(surplus * ITEMS[item].basePrice * (depot ? E.depotExportFactor : E.exportPriceFactor) * glut * this.sim.events.modifier('export_price') * this.sim.events.itemPrice(item) * (this.sim.exploration?.tradeFactor() ?? 1) * (this.sim.settlements?.exportFactor(item) ?? 1) * (this.sim.tech?.mod('export_price') ?? 1));
+        this.sim.settlements?.absorbExport(item, surplus);
         b.money += earned;
         this.ledger(id, 'rev', earned);
         if (!depot) S.exportsWeek += surplus;
@@ -660,8 +662,10 @@ export class EconomySystem {
         if (delta > 0) {
           // …and raw inputs come from local producers first; import only what they can't supply.
           if (inputs.has(item) && this.active().some((s) => this.def(s).kind === 'producer' && this.stock(s, item) > 0)) continue;
-          const cost = Math.round(base * 0.9);
+          // Cheaper from a known settlement that makes it (and it comes out of their stores).
+          const cost = Math.max(1, Math.round(base * 0.9 * (this.sim.settlements?.importFactor(item) ?? 1)));
           const n = Math.min(delta, Math.floor(b.money / Math.max(1, cost)));
+          if (n > 0) this.sim.settlements?.drawImport(item, n);
           b.stock[item] = cur + n;
           b.money -= n * cost;
           this.ledger(id, 'exp', n * cost);

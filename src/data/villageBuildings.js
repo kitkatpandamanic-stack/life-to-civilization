@@ -17,6 +17,12 @@ export const VILLAGE_BUILDINGS = {
   school: { visual: 'school', w: 5, h: 3, materials: { wood: 34, stone: 16, planks: 18 }, labor: 22, purposes: ['public'] },
   library: { visual: 'library', w: 4, h: 3, materials: { wood: 24, stone: 26, planks: 16 }, labor: 20, purposes: ['public'] },
   mill: { visual: 'mill', w: 5, h: 4, materials: { wood: 36, stone: 40, planks: 20 }, labor: 28, purposes: ['public'] },
+  // Institutions (CivicSystem): paid for from the civic fund, built like everything else.
+  market_hall: { visual: 'market_hall', w: 6, h: 3, materials: { wood: 30, stone: 14, planks: 18 }, labor: 20, purposes: ['public'] },
+  watch_house: { visual: 'watch_house', w: 3, h: 3, materials: { wood: 12, stone: 26, planks: 8 }, labor: 14, purposes: ['public'] },
+  clinic: { visual: 'clinic', w: 4, h: 3, materials: { wood: 22, stone: 14, planks: 14 }, labor: 16, purposes: ['public'] },
+  guild_hall: { visual: 'guild_hall', w: 5, h: 4, materials: { wood: 26, stone: 34, planks: 18 }, labor: 24, purposes: ['public'] },
+  bank: { visual: 'bank', w: 4, h: 3, materials: { wood: 14, stone: 40, planks: 12 }, labor: 22, purposes: ['public'] },
 };
 
 export const GROWTH = {

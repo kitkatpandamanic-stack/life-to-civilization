@@ -685,7 +685,9 @@
     "warm_up": "Warm up by the fire",
     "explore_site": "Explore",
     "found_outpost": "Found a {building_type} here ({money})",
-    "look_around": "Look around"
+    "look_around": "Look around",
+    "journey": "Go on a trade journey",
+    "village_affairs": "Village affairs"
   },
   "reason": {
     "nothing_here": "Nothing to do here.",
@@ -781,7 +783,19 @@
     "site_unknown": "You haven't found it yet.",
     "site_explored": "Already explored.",
     "no_outpost_here": "Nothing to build here.",
-    "need_explored_site": "Outposts go beside a place you've explored."
+    "need_explored_site": "Outposts go beside a place you've explored.",
+    "not_now": "Not now.",
+    "no_settlements": "You don't know of any other settlements yet.",
+    "cargo_full": "Too much cargo: you can carry {n}.",
+    "not_enough": "You don't have that much {item}.",
+    "no_contact": "The valley has no dealings with them yet.",
+    "road_best": "The road can't be improved further.",
+    "road_underway": "Road works are already under way.",
+    "have_it": "You already have that.",
+    "needs_tech": "The village doesn't know how to make these yet ({tech}).",
+    "too_new": "You haven't lived here long enough.",
+    "no_bank": "The village has no bank.",
+    "bank_short": "The bank can't pay out right now."
   },
   "toast": {
     "hungry": "You're getting hungry. Press Q to eat.",
@@ -907,7 +921,20 @@
     "loan_payment": "Loan payment: {money}. Still owed: {left}.",
     "loan_missed": "You missed a loan payment of {money}. People talk.",
     "site_discovered": "You've found something: {site}! (it's on your map)",
-    "outpost_ready": "{building} is open! Put money in its till so it can pay wages."
+    "outpost_ready": "{building} is open! Put money in its till so it can pay wages.",
+    "worker_poached": "{npc} left you for a job at {building} paying {money} a day.",
+    "backed_business_opened": "{npc} opened {building} — you own {n}% of it.",
+    "backing_returned": "{npc} gave you back the {money} you put up.",
+    "backing_part_returned": "{npc} could only give you back {money} of what you put up.",
+    "caravan_robbed": "Your caravan from {building} was robbed on the way to {settlement}!",
+    "caravan_back": "Your caravan from {building} is back from {settlement}: {money} profit.",
+    "road_finished": "The road to {settlement} is finished: {n} days' travel now.",
+    "transport_unfed": "You couldn't pay for feed for your {transport}.",
+    "transport_sold": "You couldn't feed your {transport}, so it was sold.",
+    "you_elected": "You've been elected headman ({n} votes)! Set the village's course in the hall.",
+    "you_lost_election": "{npc} won the election. You got {n} votes.",
+    "institution_founded": "The village now has a {institution}.",
+    "village_status": "The valley's settlement has become {status}!"
   },
   "objective": {
     "harvest": "Harvest ripe wheat in the farm fields ({have}/{qty})",
@@ -1090,7 +1117,44 @@
     "business_short": "{building} has run out of {item} — no {item2} until a supplier delivers.",
     "site_explored": "You explored a place out in the valley: {site}.",
     "outpost_founded": "Your outpost is ready: a {building_type} by the {site}.",
-    "hamlet_founded": "The houses round your outpost have become a hamlet: {hamlet}."
+    "hamlet_founded": "The houses round your outpost have become a hamlet: {hamlet}.",
+    "npc_moved_near_work": "{npc} moved closer to work, by {building}.",
+    "npc_left_reason": "{npc} left the valley — {reason}.",
+    "worker_poached": "{npc} left your employ for better pay at {building}.",
+    "player_backed_opened": "{npc} opened {building} with your backing.",
+    "player_kept_villager": "{npc} was going to leave the valley, but you talked them into staying.",
+    "settlement_contact": "The valley began trading with {settlement}.",
+    "settlement_grew": "{settlement} has grown into a {size}.",
+    "settlement_shrank": "{settlement} has dwindled to a {size}.",
+    "settlement_boom": "Word from {settlement}: plenty of {item} there — it's going cheap.",
+    "settlement_shortage": "Word from {settlement}: they're short of {item} and paying well for it.",
+    "caravan_robbed": "The caravan from {building} to {settlement} was robbed on the road.",
+    "caravan_back": "A caravan from {building} came back from {settlement} ({money} in sales).",
+    "road_started_player": "Road works began on the way to {settlement}, paid for by you.",
+    "road_started_village": "The village began improving the road to {settlement}.",
+    "road_finished": "The new road to {settlement} is finished: {n} days' travel now.",
+    "player_transport": "You bought a new way to travel: {transport}.",
+    "journey_left": "You set out for {settlement} with a cargo of goods.",
+    "journey_back": "You came back from {settlement} ({money} in sales).",
+    "npc_left_to": "{npc} left the valley for {settlement} — {reason}.",
+    "migrants_from": "Newcomers from {settlement} arrived looking for work: {npc} ({n} in all).",
+    "headman_elected": "{npc} was elected headman ({n} votes).",
+    "headman_reelected": "{npc} was re-elected headman ({n} votes).",
+    "player_elected": "You were elected headman ({n} votes)!",
+    "player_reelected": "You were re-elected headman ({n} votes).",
+    "institution_started": "The council, under {npc}, began building: {institution}.",
+    "institution_started_player": "On your orders, the village began building: {institution}.",
+    "institution_founded": "The village now has a {institution}.",
+    "institution_founded_player": "The village now has a {institution} — founded while you were headman.",
+    "village_status": "The valley's settlement has become {status}.",
+    "village_status_player": "Under your leadership, the valley's settlement has become {status}.",
+    "legacy_goodwill": "{name} carries on the family name — a {renown} one.",
+    "policy_tax_low": "The headman lowered the village taxes.",
+    "policy_tax_normal": "The headman set the village taxes back to normal.",
+    "policy_tax_high": "The headman raised the village taxes.",
+    "policy_relief_low": "The headman cut poor relief.",
+    "policy_relief_normal": "The headman set poor relief back to normal.",
+    "policy_relief_high": "The headman made poor relief more generous."
   },
   "event": {
     "good_harvest": {
@@ -1241,7 +1305,9 @@
     "collapse": "The healer is looking after you…",
     "travel": "On the road: {region_name}",
     "own_shift": "Working at {building}",
-    "exploring": "Exploring: {site}"
+    "exploring": "Exploring: {site}",
+    "journey": "On the road to {settlement}",
+    "journey_home": "On the road home from {settlement}"
   },
   "tips": {
     "tip1": "The notice board on the plaza lists all work. Talking to employers works too.",
@@ -1662,7 +1728,12 @@
     "loan_terms": "{n}% interest, paid back over {weeks} weeks",
     "taxes_last_week": "Taxes last week",
     "taxes_you": "you paid {money}",
-    "taxes_hint": "Every week businesses pay {n}% of their profit and owners of bigger properties a small levy. It all goes into the fund."
+    "taxes_hint": "Every week businesses pay {n}% of their profit and owners of bigger properties a small levy. It all goes into the fund.",
+    "goal_packing": "packing to leave",
+    "goal_saved": "Saved",
+    "goal_because": "Because:",
+    "goals_done": "Achieved",
+    "goal_against": "Holding them back:"
   },
   "dialog": {
     "intro": [
@@ -2037,7 +2108,13 @@
       "news": "Any news?",
       "life": "How's life?",
       "court": "Would you like to walk out with me?",
-      "propose": "Will you marry me?"
+      "propose": "Will you marry me?",
+      "plans": "What are you hoping for?",
+      "plans_leaving": "I hear you're leaving…",
+      "back_business": "I'll put {money} into your business (for {n}% of it).",
+      "ask_stay": "Please — stay in the valley.",
+      "asked_already": "you asked recently",
+      "offer_job": "I could give you work."
     },
     "no_gifts": "You have nothing suitable to give.",
     "chat_again": [
@@ -2131,6 +2208,18 @@
     "propose_no": [
       "Not yet, {player}. Give it a little more time.",
       "I care for you — but I'm not ready."
+    ],
+    "backed_thanks": [
+      "{money}? You mean it? I'll make it worth your while!",
+      "With this I can really do it. You'll get your share, I promise."
+    ],
+    "stay_yes": [
+      "…You're right. I'll give it another go.",
+      "If you think it's worth staying… all right. I'll stay."
+    ],
+    "stay_no": [
+      "I'm sorry. My mind's made up.",
+      "It's kind of you. But there's nothing for me here."
     ]
   },
   "rank": {
@@ -2539,7 +2628,13 @@
     "business_ready": "Open a business — the money is saved",
     "master": "Become a master of the trade",
     "grow_business": "Expand the business",
-    "steady": "A quiet, steady life"
+    "steady": "A quiet, steady life",
+    "save": "Put some money aside ({money} of {money2})",
+    "buy_house": "Own a home instead of renting ({money} of {money2})",
+    "better_job": "Find a better job",
+    "family": "Find love and raise a family",
+    "settle": "Move closer to work",
+    "leave": "Leave the valley"
   },
   "memory": {
     "met_player": "Met you for the first time.",
@@ -2624,7 +2719,17 @@
     "mentored_by": "Learning the trade from {npc}.",
     "took_apprentice": "Took {npc} on as an apprentice.",
     "sold_business_to_player": "Sold {building} to you.",
-    "laid_off_season": "Seasonal work over for the year."
+    "laid_off_season": "Seasonal work over for the year.",
+    "goal_achieved": "Achieved what they set out to: {goal}.",
+    "goal_given_up": "Gave up hope of {goal}.",
+    "moved_near_work": "Moved to a home near work.",
+    "decided_to_leave": "Decided to leave the valley.",
+    "stayed_for_family": "Nearly left the valley, but stayed for {npc}.",
+    "player_backed_dream": "You backed their plans with {money}.",
+    "player_asked_stay": "You talked them into staying in the valley.",
+    "player_let_down_backer": "Couldn't pay back all the money you put up.",
+    "became_headman": "Was elected headman.",
+    "bank_loan": "Borrowed {money} from the village bank."
   },
   "talk": {
     "deflect": [
@@ -2947,6 +3052,40 @@
       "laid_off_season": [
         "The harvest's in, so the farm let me go till spring. Same every year.",
         "No farm work in winter. I'll find something."
+      ],
+      "goal_achieved": [
+        "I finally got what I was after. It took long enough!",
+        "Remember when it was just a dream? Not any more."
+      ],
+      "goal_given_up": [
+        "I had to give up on a dream. Some things aren't meant to be."
+      ],
+      "moved_near_work": [
+        "Living near work is a blessing. No more walking half the day."
+      ],
+      "decided_to_leave": [
+        "I've made up my mind. I'm leaving."
+      ],
+      "stayed_for_family": [
+        "I nearly left, you know. {npc} talked me out of it."
+      ],
+      "player_backed_dream": [
+        "You put your money behind my plans. I won't forget that.",
+        "When nobody believed in me, you did."
+      ],
+      "player_asked_stay": [
+        "You asked me to stay, and I'm glad I did.",
+        "I was ready to go. You changed my mind."
+      ],
+      "player_let_down_backer": [
+        "I couldn't pay you back in full. I'm sorry about that."
+      ],
+      "became_headman": [
+        "Headman! Me! I still can't quite believe it.",
+        "Being headman means everyone's troubles land on your doorstep."
+      ],
+      "bank_loan": [
+        "The bank lent me the money to start out. Now I have to make it pay."
       ]
     },
     "work": {
@@ -3133,6 +3272,34 @@
       "steady": [
         "A steady job, a warm home, friends nearby. What more could I want?",
         "I'm content. Not everyone needs to be rich."
+      ],
+      "save": [
+        "I'm putting a little aside every week. {money} so far — I'd like {money2}.",
+        "No more meals out for me. Every coin goes in the tin."
+      ],
+      "buy_house": [
+        "I'm tired of paying rent. I've got {money} of the {money2} a house would take.",
+        "One day this door will be mine. Saving every week for it."
+      ],
+      "better_job": [
+        "I'm keeping my eyes open for better work.",
+        "This job will do for now. But only for now."
+      ],
+      "family": [
+        "I'd like to meet someone. Settle down, have a family.",
+        "A home full of children — that's what I want."
+      ],
+      "settle": [
+        "It's such a long walk to work. I'd like a place out there.",
+        "I'm thinking of moving closer to work. The walk is killing me."
+      ],
+      "leave": [
+        "I've been thinking of leaving the valley. Nothing's holding me here.",
+        "Maybe it's time to try my luck somewhere else."
+      ],
+      "leave_packing": [
+        "I'm leaving in a few days. My things are nearly packed.",
+        "This is goodbye, I think. I'm off down the west road soon."
       ]
     },
     "habit": {
@@ -3374,6 +3541,14 @@
       "condolence": [
         "I'm sorry about {kin_your}. {npc} was one of a kind.",
         "The village isn't the same without {npc}. I'm so sorry."
+      ],
+      "deed": [
+        "People still talk about it: {deed}",
+        "Everyone remembers — {deed}"
+      ],
+      "deed_family": [
+        "Your family did a lot for this valley. {deed}",
+        "We haven't forgotten your family. {deed}"
       ]
     },
     "home": {
@@ -3404,6 +3579,147 @@
         "I'm proud of you. Truly.",
         "Don't make my mistakes — make your own.",
         "The village has changed so much since I was young."
+      ]
+    },
+    "goal_why": {
+      "no_home": [
+        "I've nowhere to sleep. That comes first."
+      ],
+      "no_work": [
+        "Without work, what else is there to think about?"
+      ],
+      "content": [
+        "Honestly? I'm happy with things as they are."
+      ],
+      "settled_age": [
+        "At my age you know what you want."
+      ],
+      "little_savings": [
+        "I've nothing put by. One bad week and that's it."
+      ],
+      "children": [
+        "With children to feed you think ahead."
+      ],
+      "hard_times": [
+        "After what happened, I don't want to be caught short again."
+      ],
+      "prices_high": [
+        "Have you seen what bread costs now?"
+      ],
+      "family_needs_home": [
+        "A family needs a home of its own, not a rented room."
+      ],
+      "was_evicted": [
+        "I was thrown out once. Never again."
+      ],
+      "rent_high": [
+        "The rent swallows half of what I earn."
+      ],
+      "house_for_sale": [
+        "There's a house for sale I could almost afford."
+      ],
+      "out_of_reach": [
+        "On my pay a house is a dream, if I'm honest."
+      ],
+      "knows_trade": [
+        "I know this trade better than my boss does."
+      ],
+      "opportunity": [
+        "The village could do with another {biz_type}. I've done the sums."
+      ],
+      "failed_before": [
+        "I tried once and lost everything. I'm wary."
+      ],
+      "unhappy_at_work": [
+        "I'm not happy where I work."
+      ],
+      "close_to_mastery": [
+        "I'm nearly there. A little more practice."
+      ],
+      "young": [
+        "I'm young. Now's the time to learn."
+      ],
+      "wages_unpaid": [
+        "My wages are late again."
+      ],
+      "boss_conflict": [
+        "My boss and I don't get along. At all."
+      ],
+      "better_offer": [
+        "Other places pay better, you know."
+      ],
+      "wrong_trade": [
+        "I trained for other work, and it's wasted here."
+      ],
+      "business_doing_well": [
+        "Business is good. Time to grow."
+      ],
+      "courting": [
+        "There's someone special… we'll see."
+      ],
+      "lonely": [
+        "The evenings get lonely."
+      ],
+      "age": [
+        "It's time I settled down."
+      ],
+      "wants_children": [
+        "We're hoping for a little one."
+      ],
+      "room_at_home": [
+        "There's room at home for a cradle."
+      ],
+      "long_walk": [
+        "Hours on the road every day just to get to work."
+      ],
+      "hamlet": [
+        "People are building out there now. It's a real place."
+      ],
+      "owns_home_here": [
+        "I'd have to sell my house here, of course."
+      ],
+      "no_prospects": [
+        "Weeks without work. There's nothing for me here."
+      ],
+      "unhappy": [
+        "I'm just not happy here any more."
+      ],
+      "feud": [
+        "I can't live next to that one a day longer."
+      ],
+      "treated_badly": [
+        "After how I was treated? Why stay?"
+      ],
+      "grief": [
+        "Everything here reminds me of who I lost."
+      ],
+      "lost_home": [
+        "My home is gone. Maybe that's a sign."
+      ],
+      "village_slump": [
+        "The village is on its knees. Everyone says so."
+      ]
+    },
+    "civic": {
+      "you_headman": [
+        "How's it feel, being headman?",
+        "Everyone's watching what you do as headman, you know."
+      ],
+      "headman": [
+        "{npc} is headman now. We'll see how it goes.",
+        "Have you seen what {npc} is doing as headman?"
+      ],
+      "i_am_headman": [
+        "Being headman is harder than it looks.",
+        "Everyone comes to me with their troubles now."
+      ],
+      "election_soon": [
+        "The election's in {n} days. Who are you voting for?",
+        "Election soon. I've made up my mind already."
+      ],
+      "saving_for": [
+        "The council's putting money by for a {institution}. About time.",
+        "They say we'll have a {institution} before long."
       ]
     }
   },
@@ -3606,7 +3922,12 @@
     "warehouse": "warehouse",
     "school": "school",
     "library": "library",
-    "mill": "mill"
+    "mill": "mill",
+    "market_hall": "market hall",
+    "watch_house": "watch house",
+    "clinic": "healer's house",
+    "guild_hall": "guild hall",
+    "bank": "bank"
   },
   "purpose": {
     "home": "a home for the family",
@@ -3655,6 +3976,21 @@
         "Quarter",
         "Corner",
         "Side"
+      ],
+      "education": [
+        "Schoolyard",
+        "Scholars' Row",
+        "Bookside"
+      ],
+      "entertainment": [
+        "Revels",
+        "Alehouse Row",
+        "Merry End"
+      ],
+      "transport": [
+        "Carters' Yards",
+        "Wharf Row",
+        "Wagon Lanes"
       ]
     },
     "kind": {
@@ -3663,7 +3999,10 @@
       "industrial": "industrial",
       "agricultural": "farmland",
       "civic": "civic",
-      "mixed": "mixed"
+      "mixed": "mixed",
+      "education": "learning",
+      "entertainment": "entertainment",
+      "transport": "trade & transport"
     }
   },
   "village_names": [
@@ -3691,7 +4030,9 @@
     "extra_everyone": "Soon there'll be nobody left!",
     "extra_very": "Practically giving it away!",
     "extra_engaged": "They're getting married, apparently!",
-    "new_region": "Someone found the way to {region_name}!"
+    "new_region": "Someone found the way to {region_name}!",
+    "settlement_boom": "they say there's plenty of {item} in {settlement} and it's going cheap",
+    "settlement_shortage": "they say {settlement} is short of {item} and paying well"
   },
   "lineage": {
     "title": "The torch passes",
@@ -3902,6 +4243,22 @@
     "printing": {
       "name": "Printing",
       "desc": "A printed gazette: news travels true, and people keep learning."
+    },
+    "boats": {
+      "name": "Boats",
+      "desc": "Boats on the lake and the sea: journeys to places on the water take much less time."
+    },
+    "irrigation": {
+      "name": "Irrigation",
+      "desc": "Ditches carry water to the fields. Bigger harvests."
+    },
+    "stone_bridges": {
+      "name": "Stone bridges",
+      "desc": "Proper stone bridges and roadbeds: building goes quicker, and roads to other places cost less."
+    },
+    "bookkeeping": {
+      "name": "Bookkeeping",
+      "desc": "Proper accounts. Traders pay a little more, and a bank becomes possible."
     }
   },
   "education": {
@@ -4239,7 +4596,18 @@
     "open_here": "Open a business here",
     "open_hint": "The price covers fitting out and the first stock. Staff will come looking for work.",
     "quality": "Quality of its goods",
-    "short": "Out of {item}: no {item2} being made ({n} days). Suppliers are being looked for — or bring some yourself."
+    "short": "Out of {item}: no {item2} being made ({n} days). Suppliers are being looked for — or bring some yourself.",
+    "trade_route": "Caravans",
+    "caravan_out": "A caravan is on its way to {settlement} (arrives in {n} d).",
+    "caravan_back": "A caravan is on its way back from {settlement} ({n} d).",
+    "caravan_home": "No caravan out right now.",
+    "route_no_contacts": "The valley doesn't trade with any other settlement yet.",
+    "route_auto": "Wherever pays best",
+    "route_to": "Send caravans to",
+    "route_sell": "Take",
+    "route_buy": "Bring back",
+    "route_nothing": "nothing",
+    "route_hint": "Once a week a caravan sets out (if there's something worth taking). Better carts from a carters' yard carry more."
   },
   "site": {
     "cave": {
@@ -4282,5 +4650,281 @@
     "state": "State",
     "outpost": "What could be built here",
     "building": "Your outpost is being built. Bring materials and work on it (or have workers do it)."
+  },
+  "goal_short": {
+    "grow": "growing up",
+    "home": "a roof over their head",
+    "job": "a job",
+    "legacy": "a legacy",
+    "steady": "a quiet life",
+    "save": "savings put by",
+    "buy_house": "a home of their own",
+    "business": "a business of their own",
+    "master": "mastery of the trade",
+    "better_job": "a better job",
+    "grow_business": "a bigger business",
+    "family": "a family",
+    "settle": "a home near work",
+    "leave": "a new life elsewhere"
+  },
+  "goal_why": {
+    "no_home": "no roof over their head",
+    "no_work": "out of work",
+    "content": "happy as things are",
+    "trait": "it's in their nature ({trait})",
+    "settled_age": "settled in their ways",
+    "little_savings": "next to nothing put by",
+    "children": "children to feed",
+    "hard_times": "hard times not long ago",
+    "prices_high": "food is dear",
+    "family_needs_home": "a family needs a home of its own",
+    "was_evicted": "was thrown out of a rented home once",
+    "rent_high": "rent eats their wages",
+    "house_for_sale": "there's a house for sale they could afford",
+    "out_of_reach": "a house is out of reach on their pay",
+    "knows_trade": "knows the trade inside out",
+    "opportunity": "the village could use another {biz_type}",
+    "failed_before": "a business of theirs failed before",
+    "unhappy_at_work": "unhappy at work",
+    "close_to_mastery": "close to mastering the trade",
+    "young": "young, with time to learn",
+    "wages_unpaid": "wages paid late",
+    "boss_conflict": "can't stand the boss",
+    "better_offer": "somebody else pays better",
+    "wrong_trade": "trained for other work",
+    "business_doing_well": "the business is doing well",
+    "courting": "already courting someone",
+    "lonely": "lonely",
+    "age": "the age to settle down",
+    "wants_children": "hoping for a child",
+    "room_at_home": "there's room at home",
+    "long_walk": "a long walk to work every day",
+    "hamlet": "people are settling out there",
+    "owns_home_here": "owns their home in the village",
+    "no_prospects": "weeks without work",
+    "unhappy": "unhappy here",
+    "feud": "a bitter feud",
+    "treated_badly": "treated badly",
+    "grief": "grieving",
+    "lost_home": "lost their home",
+    "village_slump": "the village is going through a slump",
+    "friends_here": "friends here",
+    "family_here": "family here",
+    "player_friend": "you're a friend"
+  },
+  "settlement_name": {
+    "woodhollow": "Woodhollow",
+    "pass_hold": "Pass Hold",
+    "lakeside": "Lakeside",
+    "ironford": "Ironford",
+    "market_town": "Brennmarket",
+    "saltmere": "Saltmere"
+  },
+  "settlement_desc": {
+    "woodhollow": "Woodcutters and trappers in a clearing of the Old Forest. Timber and game aplenty; bread and iron are dear.",
+    "pass_hold": "A handful of herders' farms under the north pass. Cheese and hides; they have to buy in their grain.",
+    "lakeside": "A fishing village on the big lake. Fish, cabbages and potatoes — short of timber for boats and houses.",
+    "ironford": "A mining town in the iron hills. Ore, coal and iron; the miners need feeding, and their picks wear out.",
+    "market_town": "A real town, with a market every day. Bricks and good tools; it eats grain, timber and fine furniture.",
+    "saltmere": "A port on the far coast, where ships put in. Fish in plenty; it buys planks, iron and anything precious."
+  },
+  "settlement_size": {
+    "hamlet": "hamlet",
+    "village": "village",
+    "town": "town",
+    "city": "city"
+  },
+  "settlement_character": {
+    "forest": "forest folk",
+    "herding": "herders",
+    "fishing": "fishing",
+    "mining": "mining",
+    "market": "market town",
+    "port": "port"
+  },
+  "transport": {
+    "foot": {
+      "name": "On foot"
+    },
+    "handcart": {
+      "name": "Handcart"
+    },
+    "pack_horse": {
+      "name": "Pack horse"
+    },
+    "horse_cart": {
+      "name": "Horse and cart"
+    },
+    "wagon": {
+      "name": "Wagon"
+    }
+  },
+  "journey": {
+    "title": "Trade journey",
+    "report_title": "Home from the journey",
+    "none_known": "You don't know of anywhere to go yet. Explore beyond the valley (or listen to travellers) to hear of other places.",
+    "they_make": "they make it",
+    "they_need": "they need it",
+    "sell_n": "Sell {n}",
+    "sell_all": "Sell all",
+    "buy_n": "Buy {n}",
+    "in_stock": "{n} in stock",
+    "they_pay": "they pay",
+    "they_ask": "they ask",
+    "prices_from": "as heard {ago}",
+    "prices_unknown": "prices unknown — go and see",
+    "buy_transport": "Buy: {transport} ({money})",
+    "transport_stats": "cargo {n} · speed {speed}% · feed {money}/week",
+    "road_underway": "Road works are under way.",
+    "road_best": "The road there is as good as it gets.",
+    "fund_road": "Pay for a better road ({money})",
+    "road_hint": "A better road makes every journey there shorter and safer — for you, the village's caravans and travellers. It takes a few weeks to build.",
+    "people": "People",
+    "relations": "Trade",
+    "trading": "trading with the valley",
+    "no_contact": "no dealings yet",
+    "road": "Road",
+    "road_0": "a rough track",
+    "road_1": "a proper road",
+    "road_2": "a paved highway",
+    "days_each_way": {
+      "one": "{n} day each way",
+      "other": "{n} days each way"
+    },
+    "prices": "Prices",
+    "cargo": "Cargo",
+    "nothing_to_take": "You have nothing to take. Goods in your pockets and your storage chest can be loaded.",
+    "transport": "Transport",
+    "away_hint": "The valley carries on while you're away. At the other end, time stands still while you trade.",
+    "set_out": "Set out",
+    "robbed_goods": "Bandits on the road took {n} {item}.",
+    "robbed_money": "Bandits on the road took {money} from your purse.",
+    "shock_boom": "Plenty of {item} here this season — it's going cheap.",
+    "shock_shortage": "They're short of {item} — it fetches a lot right now.",
+    "your_money": "Your money",
+    "so_far": "Takings so far",
+    "market_hint": "Every sale lowers their price a little, every purchase raises it. What you don't sell comes home with you.",
+    "head_home": "Head home ({n} d)",
+    "back": "Back from {settlement} after {n} days.",
+    "sold": "Sold",
+    "bought": "Bought",
+    "brought_home": "Brought home",
+    "balance": "Balance",
+    "stored_hint": "What you brought back is in your storage chest.",
+    "distance": "Distance"
+  },
+  "map": {
+    "settlements": "Settlements",
+    "village_line": "{n} people · {b} businesses",
+    "hamlet_line": "hamlet · {n} people",
+    "settlement_line": "{size} · {n} people · {days} d away",
+    "settlements_hint": "Trade journeys and caravans leave from the waymark on the west road. 🤝 = trading with the valley."
+  },
+  "institution": {
+    "market": {
+      "name": "Market",
+      "desc": "A market hall and a weekly market. Traders bring news of prices in every settlement the valley trades with; exports fetch more."
+    },
+    "watch": {
+      "name": "Night watch",
+      "desc": "Watchmen catch fires before they start and patrol the roads out of the valley."
+    },
+    "clinic": {
+      "name": "Healer's house",
+      "desc": "A place for the sick to be cared for. Much less sickness in the village."
+    },
+    "guild": {
+      "name": "Craft guild",
+      "desc": "The masters teach and set standards. Everyone learns their trade faster."
+    },
+    "bank": {
+      "name": "Savings bank",
+      "desc": "Lends to villagers starting a business, and pays you interest on your savings."
+    }
+  },
+  "village_status": {
+    "village": "a village",
+    "large_village": "a large village",
+    "town": "a town",
+    "city": "a city"
+  },
+  "renown": {
+    "unknown": "unknown",
+    "known": "known",
+    "respected": "respected",
+    "renowned": "renowned",
+    "legendary": "legendary"
+  },
+  "hall": {
+    "title": "Village affairs",
+    "you": "you",
+    "people": "People",
+    "to_become": "To become {status}:",
+    "soon": "any day now.",
+    "top_status": "The valley's settlement is as great as it gets.",
+    "need_pop": "{n} people",
+    "need_institutions": {
+      "one": "{n} institution",
+      "other": "{n} institutions"
+    },
+    "need_institution": "a {institution}",
+    "need_shops": "{n} shops",
+    "need_businesses": "{n} businesses",
+    "need_skilled": "{n} skilled workers",
+    "government": "Headman and council",
+    "headman": "Headman",
+    "council": "Council",
+    "approval": "Would vote for them today",
+    "next_election": "Next election",
+    "in_days": "in {n} days",
+    "last_votes": "Last election:",
+    "candidates": "Standing now:",
+    "stand": "Stand for headman",
+    "withdraw": "Withdraw from the election",
+    "election_hint": "Everyone grown-up votes once a year — for the person they think best of, and for what they'd do: the hard-up for generous poor relief, business owners for low taxes.",
+    "affairs": "The village's affairs",
+    "policy_tax": "Taxes",
+    "policy_relief": "Poor relief",
+    "level_low": "low",
+    "level_normal": "normal",
+    "level_high": "high",
+    "treasury": "Village fund",
+    "taxes_week": "Taxes last week",
+    "saving_for": "Saving for",
+    "being_built": "{institution}: being built",
+    "no_project": "nothing yet",
+    "headman_hint": "You're headman: set the taxes and poor relief, and choose what the village saves for next. People will remember at the next election.",
+    "policy_hint": "The headman sets the taxes and poor relief, and chooses what the village saves for.",
+    "institutions": "Institutions",
+    "founded": "since {date}",
+    "by_you": "founded by you",
+    "underway": "being built",
+    "needs": "needs {what}",
+    "wanted": "wanted — the village is saving for it",
+    "savings": "Your savings",
+    "deposit": "Deposit {money}",
+    "withdraw_money": "Withdraw {money}",
+    "bank_hint": "Savings earn a little interest every week (and the bank lends them on to villagers).",
+    "legacy": "Your family's legacy",
+    "renown": "Renown",
+    "no_deeds": "Nothing yet. Build, found, lead — the valley remembers.",
+    "legacy_hint": "Renown outlives you: your heir starts out trusted, and people bring up what the family did."
+  },
+  "deed": {
+    "player_built": "{name} built a {building_type}.",
+    "outpost_founded": "{name} founded an outpost: a {building_type} by the {site}.",
+    "hamlet_founded": "The houses round {name}'s outpost grew into {hamlet}.",
+    "road_started_player": "{name} paid for the road to {settlement}.",
+    "player_backed_opened": "{name} backed {npc}'s new business, {building}.",
+    "player_kept_villager": "{name} talked {npc} into staying in the valley.",
+    "player_ambition": "{name} achieved an ambition: {ambition}.",
+    "player_elected": "{name} was elected headman.",
+    "player_reelected": "{name} was re-elected headman.",
+    "institution_founded_player": "{name} founded the village's {institution}.",
+    "village_status_player": "Under {name}, the valley's settlement became {status}.",
+    "player_opened_business": "{name} opened {building}.",
+    "player_bought_business": "{name} took over {building}.",
+    "player_benefactor": "{name} gave a building back to the village.",
+    "player_upgraded": "{name} made the family home into {tier}."
   }
 }

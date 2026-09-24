@@ -391,3 +391,22 @@ table.books tr.today { color: var(--gold); }
 .ambition { display: grid; grid-template-columns: 1fr 45%; gap: 8px; align-items: center; padding: 3px 4px; border-radius: 6px; }
 .ambition.clickable:hover { background: rgba(255,255,255,0.05); }
 .ambition.done { opacity: 0.6; }
+
+/* A villager's goal and its reasons (Inspect, dialogue) */
+.goal-why { margin: -2px 0 6px; line-height: 1.35; }
+.plans .goal-line { margin: 4px 0 8px; }
+
+/* Trade journeys (JourneyPanel) */
+.trade-table { display: flex; flex-direction: column; gap: 3px; margin: 4px 0 8px; }
+.trade-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 2px 4px; border-radius: 6px; background: rgba(0, 0, 0, 0.12); }
+.trade-row.muted { opacity: 0.55; }
+.trade-item { min-width: 90px; font-weight: 700; }
+.trade-price { font-size: 12px; }
+.trade-actions { margin-left: auto; display: flex; gap: 3px; }
+.trade-actions .btn { padding: 1px 7px; font-size: 11px; }
+.chip.warn { background: rgba(176, 90, 47, 0.35); border-color: rgba(224, 140, 80, 0.8); }
+
+/* Village hall (HallPanel) */
+.inst-row { margin: 4px 0 6px; line-height: 1.35; }
+.inst-row:not(.got) b { opacity: 0.75; }
+.inst-row .good { color: #8ad07a; }

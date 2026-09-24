@@ -6,10 +6,11 @@
  */
 import { Panel } from '../Panel.js';
 import { t, tPick, npcName, occupationName, itemName, fmtMoney, cap } from '../../i18n/i18n.js';
-import { tr, escapeHtml, buildingLabel, workLabel, resolveParams } from '../format.js';
+import { tr, escapeHtml, buildingLabel, workLabel, resolveParams, goalWhyText } from '../format.js';
 import { button, portrait, hearts, icon } from '../widgets.js';
 import { ITEMS } from '../../data/items.js';
 import { JobBoardPanel } from './JobBoardPanel.js';
+import { GOAL_AGAINST } from '../../data/goals.js';
 
 export class DialoguePanel extends Panel {
   constructor(ui, npcId) {
@@ -101,6 +102,11 @@ export class DialoguePanel extends Panel {
       opt(t('dialog.opt.chat'), 'chat', {}, false, canChat ? '' : t('dialog.opt.chat_done'));
       opt(t('dialog.opt.news'), 'news');
       opt(t('dialog.opt.life'), 'life');
+      if (npc.age >= 16) {
+        // Someone packing to leave gets asked about it first.
+        const leaving = npc.goal?.type === 'leave' && npc.goal.packDay;
+        opt(t(leaving ? 'dialog.opt.plans_leaving' : 'dialog.opt.plans'), 'plans');
+      }
       opt(t('dialog.opt.work'), 'work');
       const req = sim.jobs.requestFor(npc.id);
       if (req && !req.accepted) opt(t('dialog.opt.help'), 'request');
@@ -166,6 +172,21 @@ export class DialoguePanel extends Panel {
       return opts.join('');
     }
 
+    if (this.view === 'plans') {
+      // Why they want it (only people who trust you tell you that much).
+      const g = sim.dialogue.goal(npc);
+      const why = g.why.filter((w) => !GOAL_AGAINST.includes(w)).slice(0, 4);
+      if (why.length) opts.push(`<div class="plans muted small goal-why">${escapeHtml(t('ui.goal_because'))} ${escapeHtml(why.map((w) => goalWhyText(npc, w)).join(' · '))}</div>`);
+      for (const h of sim.goals.helpOptions(npc)) {
+        if (h.kind === 'back') opt(t('dialog.opt.back_business', { money: fmtMoney(h.amount), n: Math.round(h.share * 100) }), 'back_business', {}, !h.ok, h.ok ? '' : t('reason.no_money', { money: fmtMoney(h.amount) }));
+        if (h.kind === 'stay') opt(t('dialog.opt.ask_stay'), 'ask_stay', {}, !h.ok, h.ok ? '' : t('dialog.opt.asked_already'));
+      }
+      // Out of work, or after a better job: you could be the answer.
+      if (['job', 'better_job', 'leave'].includes(g.type) && !sim.workers.contract(npc.id) && !npc.owns && sim.workers.canHire(npc).ok) opt(t('dialog.opt.offer_job'), 'hire_view');
+      opt(t('dialog.opt.back'), 'back');
+      return opts.join('');
+    }
+
     opt(t('dialog.opt.back'), 'back');
     return opts.join('');
   }
@@ -178,15 +199,21 @@ export class DialoguePanel extends Panel {
     const family = npc.family.map((id) => npcName(sim.npcs.byId(id))).join(', ') || '—';
     const friend = sim.social.bestFriend(npc);
     const wealth = npc.money > 150 ? 'rich' : npc.money > 50 ? 'comfortable' : npc.money > 15 ? 'modest' : 'poor';
-    const goal = npc.traits.includes('entrepreneur') || npc.traits.includes('ambitious') ? 'dialog.goal.business' : npc.occupation === 'unemployed' ? 'dialog.goal.job' : npc.occupation === 'child' ? 'dialog.goal.grow' : 'dialog.goal.steady';
     return `<div class="about">
       ${kv(t('ui.home'), buildingLabel(sim, npc.homeId))}
       ${kv(t('ui.work'), work)}
       ${kv(t('ui.family'), family)}
       ${kv(t('ui.best_friend'), friend ? npcName(friend) : '—')}
       ${kv(t('ui.wealth'), t(`wealth.${wealth}`))}
-      <p class="desc">“${escapeHtml(this.say(goal))}”</p>
+      <p class="desc">“${escapeHtml(this.goalLine())}”</p>
     </div>`;
+  }
+
+  /** What they say about their plans (the goal the GoalSystem worked out for them). */
+  goalLine() {
+    const g = this.sim.dialogue.goal(this.npc);
+    const key = g.type === 'leave' && g.packing ? 'leave_packing' : g.type;
+    return this.say(`talk.goal.${key}`, { money: g.saved, money2: g.target, occ: this.npc.occupation, biz_type: g.biz || undefined });
   }
 
   onAction(action, data) {
@@ -213,6 +240,26 @@ export class DialoguePanel extends Panel {
       case 'life':
         this.line = this.topicLine('life');
         break;
+      case 'plans': {
+        if (!sim.dialogue.isOpen(npc)) {
+          this.line = this.say('talk.deflect');
+          break;
+        }
+        this.line = this.goalLine();
+        this.view = 'plans';
+        break;
+      }
+      case 'back_business': {
+        const r = sim.goals.back(npc);
+        this.line = r.ok ? this.say('dialog.backed_thanks', { money: r.amount }) : tr(sim, `reason.${r.reason}`, r.params || {});
+        break;
+      }
+      case 'ask_stay': {
+        const r = sim.goals.askToStay(npc);
+        this.line = this.say(r.stays ? 'dialog.stay_yes' : 'dialog.stay_no');
+        if (r.stays) this.view = 'main';
+        break;
+      }
       case 'work': {
         const biz = this.ownedBusiness();
         if (biz && sim.jobs.jobsForBusiness(biz).length) {

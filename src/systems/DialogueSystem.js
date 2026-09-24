@@ -11,6 +11,7 @@
  *        'life' (their own life — needs some trust).
  */
 import { OCCUPATIONS } from '../data/occupations.js';
+import { GOAL_AGAINST } from '../data/goals.js';
 import { rand } from '../core/rng.js';
 
 const PLAYER_MEMORY_LINES = new Set([
@@ -18,6 +19,7 @@ const PLAYER_MEMORY_LINES = new Set([
   'player_promoted', 'player_loved_gift', 'player_helped', 'player_let_down', 'bought_from_player', 'quit_player',
   'heard_player_good', 'heard_player_bad', 'saw_friend_fired', 'player_failed_job', 'left_player_for_business',
   'player_helped_build', 'player_fought_fire', 'explored_with_player', 'sold_business_to_player',
+  'player_backed_dream', 'player_asked_stay', 'player_let_down_backer',
 ]);
 const SELF_MEMORY_LINES = new Set([
   'got_job', 'quit_job', 'unpaid_wages', 'promoted_rank', 'grew_up', 'took_up_hobby', 'was_sick', 'went_hungry', 'slept_rough',
@@ -28,8 +30,8 @@ const SELF_MEMORY_LINES = new Set([
   'changed_jobs', 'employee_left', 'backed_business', 'got_backing',
   'started_building', 'helped_build', 'built_home', 'gave_up_building', 'arrived_village', 'friend_left',
   'home_flood', 'home_storm', 'home_fire', 'home_burnt', 'mine_accident', 'took_in', 'fire_helped', 'went_exploring', 'laid_off_season', 'invented', 'became_teacher', 'mentored_by', 'took_apprentice',
+  'goal_achieved', 'goal_given_up', 'moved_near_work', 'decided_to_leave', 'stayed_for_family', 'became_headman', 'bank_loan',
 ]);
-export const BUSINESS_DREAM_MONEY = 400; // what an aspiring entrepreneur wants to save
 
 export class DialogueSystem {
   constructor(sim) {
@@ -216,6 +218,19 @@ export class DialogueSystem {
     } else if (kin === 'child' && npc.retiredPlayer) {
       add('talk.home.elder', {}, 12);
     }
+    // What your family did for the valley (LegacySystem) — people bring it up.
+    const deed = npc.age >= 14 && sim.legacy?.deedToTalkAbout();
+    if (deed) add(deed.generation < (p.generation || 1) ? 'talk.legacy.deed_family' : 'talk.legacy.deed', { deed }, 4);
+    // The village's affairs: the headman, the next election, what the council is saving for.
+    const C = sim.civic;
+    if (C && npc.age >= 18) {
+      const h = C.V.headman;
+      if (h === 'player') add('talk.civic.you_headman', {}, 5);
+      else if (h && h !== npc.id) add('talk.civic.headman', { npc: h }, 3);
+      else if (h === npc.id) add('talk.civic.i_am_headman', {}, 8);
+      if (C.V.nextElection - sim.time.day <= 7) add('talk.civic.election_soon', { n: Math.max(0, C.V.nextElection - sim.time.day) }, 7);
+      if (C.V.project) add('talk.civic.saving_for', { institution: C.V.project }, 3);
+    }
     // Old friends of the family remember whoever came before you.
     if (p.generation > 1 && (p.lineFrom || 1) < p.generation && sim.time.day - (p.succeededDay || 0) < 120 && npc.age >= 30 && npc.met) {
       const prev = `anc${p.generation - 1}`;
@@ -225,26 +240,20 @@ export class DialogueSystem {
 
   // ------------------------------------------------------------------ goals
 
-  /** The villager's current ambition (derived from personality and situation). */
+  /** The villager's current goal, as the GoalSystem worked it out (with its reasons). */
   goal(npc) {
-    const has = (t) => npc.traits.includes(t);
-    if (npc.age < 16) return { type: 'grow' };
-    if (!npc.homeId) return { type: 'home' };
-    if (npc.occupation === 'unemployed') return { type: 'job' };
-    if (npc.occupation === 'elder') return { type: 'legacy' };
-    if (!npc.owns && (has('entrepreneur') || (has('ambitious') && has('risk_taker')))) {
-      return { type: npc.money >= BUSINESS_DREAM_MONEY ? 'business_ready' : 'business', saved: Math.floor(npc.money), target: BUSINESS_DREAM_MONEY };
-    }
-    if (has('ambitious') && this.sim.npcs.rank(npc) !== 'master') return { type: 'master' };
-    if (npc.owns) return { type: 'grow_business' };
-    return { type: 'steady' };
+    return this.sim.goals.view(npc);
   }
 
   goalTopics(npc, add, open) {
     const g = this.goal(npc);
-    const score = g.type === 'business_ready' ? 16 : g.type === 'business' ? 9 : 5;
-    if (!open && ['home', 'job'].includes(g.type)) return;
-    add(`talk.goal.${g.type}`, { money: g.saved, money2: g.target, occ: npc.occupation, gender: npc.gender }, score);
+    const score = { business_ready: 16, leave: 18, business: 9, settle: 9, buy_house: 8, family: 7, better_job: 8 }[g.type] || 5;
+    if (!open && ['home', 'job', 'leave', 'family', 'better_job', 'save'].includes(g.type)) return;
+    const key = g.type === 'leave' && g.packing ? 'leave_packing' : g.type;
+    add(`talk.goal.${key}`, { money: g.saved, money2: g.target, occ: npc.occupation, gender: npc.gender, biz_type: g.biz || undefined }, score);
+    // …and, with people they trust, why.
+    const why = open && g.why.find((w) => !w.startsWith('trait:') && !GOAL_AGAINST.includes(w));
+    if (why) add(`talk.goal_why.${why.split(':')[0]}`, { gender: npc.gender, biz_type: why.split(':')[1] }, score * 0.6);
   }
 
   // ------------------------------------------------------------------ habits

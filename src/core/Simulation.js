@@ -32,6 +32,10 @@
  *    ├── ambitions    AmbitionSystem (long-term goals you choose)
  *    ├── holdings     HoldingsSystem (village businesses you own, stakes and loans)
  *    ├── finance      FinanceSystem (village taxes; borrowing from the village fund)
+ *    ├── goals        GoalSystem (what each villager is after, and why — and what it makes them do)
+ *    ├── settlements  SettlementSystem (other places beyond the valley, caravans, your trade journeys, roads)
+ *    ├── legacy       LegacySystem (your family's deeds and renown, passed down the generations)
+ *    ├── civic        CivicSystem (headman and council, elections, policies, institutions, the valley's status)
  *    ├── actions      PlayerActionSystem
  *    ├── home         HomeSystem (tier, storage chest, comfort)
  *    ├── crafting     CraftingSystem (recipes at stations)
@@ -87,6 +91,10 @@ import { ContractSystem } from '../systems/ContractSystem.js';
 import { AmbitionSystem } from '../systems/AmbitionSystem.js';
 import { HoldingsSystem } from '../systems/HoldingsSystem.js';
 import { FinanceSystem } from '../systems/FinanceSystem.js';
+import { GoalSystem } from '../systems/GoalSystem.js';
+import { SettlementSystem } from '../systems/SettlementSystem.js';
+import { LegacySystem } from '../systems/LegacySystem.js';
+import { CivicSystem } from '../systems/CivicSystem.js';
 import { rand } from './rng.js';
 
 const MAX_CHRONICLE = 200;
@@ -139,7 +147,10 @@ export class Simulation {
     this.ambitions = new AmbitionSystem(this);
     this.holdings = new HoldingsSystem(this);
     this.finance = new FinanceSystem(this);
-
+    this.goals = new GoalSystem(this);
+    this.settlements = new SettlementSystem(this);
+    this.legacy = new LegacySystem(this);
+    this.civic = new CivicSystem(this); // last: it weighs up everyone and everything
     this.jobs.ensureOpenings();
     this.bus.on('time:day', () => this.onNewDay());
   }

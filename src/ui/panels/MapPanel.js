@@ -5,7 +5,7 @@
 import { FOG } from '../../data/regions.js';
 import { Panel } from '../Panel.js';
 import { t } from '../../i18n/i18n.js';
-import { escapeHtml, buildingLabel, districtLabel, hamletName } from '../format.js';
+import { escapeHtml, buildingLabel, districtLabel, hamletName, villageName } from '../format.js';
 import { button } from '../widgets.js';
 import { T } from '../../world/WorldGenerator.js';
 import { BALANCE } from '../../config/balance.js';
@@ -18,7 +18,7 @@ const TILE_COLORS = {
 };
 const LABELLED = ['hall', 'store', 'tavern', 'smithy', 'farmhouse', 'lumberyard', 'quarry_hut', 'shack'];
 let baseCache = null;
-const DISTRICT_COLORS = { residential: '#f0c060', commercial: '#e0603a', industrial: '#8a8aa0', agricultural: '#9ad050', civic: '#60a0f0', mixed: '#c080d0' };
+const DISTRICT_COLORS = { residential: '#f0c060', commercial: '#e0603a', industrial: '#8a8aa0', agricultural: '#9ad050', civic: '#60a0f0', education: '#70d0c0', entertainment: '#f080a0', transport: '#b09060', mixed: '#c080d0' };
 
 export class MapPanel extends Panel {
   get id() {
@@ -63,7 +63,27 @@ export class MapPanel extends Panel {
         <span><i class="lg home"></i>${escapeHtml(t('ui.map_home'))}</span>
         ${button(t(this.showDistricts ? 'ui.hide_districts' : 'ui.show_districts'), 'districts')}
       </div>
-      ${this.showDistricts ? `<div class="map-legend">${Object.entries(DISTRICT_COLORS).map(([k, c]) => `<span><i class="lg" style="background:${c}"></i>${escapeHtml(t(`district.kind.${k}`))}</span>`).join('')}</div>` : ''}`;
+      ${this.showDistricts ? `<div class="map-legend">${Object.entries(DISTRICT_COLORS).map(([k, c]) => `<span><i class="lg" style="background:${c}"></i>${escapeHtml(t(`district.kind.${k}`))}</span>`).join('')}</div>` : ''}
+      ${this.settlementsHtml()}`;
+  }
+
+  /** The valley's village and hamlets, and the places beyond it you know of. */
+  settlementsHtml() {
+    const sim = this.sim;
+    const S = sim.settlements;
+    const row = (name, info, extra = '') => `<div class="kv"><span>${escapeHtml(name)}</span><b>${escapeHtml(info)}${extra}</b></div>`;
+    const rows = [row(villageName(sim), t('map.village_line', { n: sim.state.npcs.length + 1, b: sim.economy.active().length }))];
+    for (const h of sim.state.exploration.hamlets || []) {
+      const homes = sim.world.buildingList.filter((b) => sim.property.isHome(b.id) && Math.hypot(b.tx - h.tx, b.ty - h.ty) <= 16);
+      const people = homes.reduce((s, b) => s + sim.npcs.residentsOf(b.id).length, 0);
+      rows.push(row(hamletName(h.nameIdx), t('map.hamlet_line', { n: people })));
+    }
+    for (const id of S.known()) {
+      const s = S.get(id);
+      const info = t('map.settlement_line', { size: t(`settlement_size.${s.size}`), n: s.pop, days: S.days(id) });
+      rows.push(row(t(`settlement_name.${id}`), info, s.contact ? ' 🤝' : ''));
+    }
+    return `<h3>${escapeHtml(t('map.settlements'))}</h3><div class="map-settlements">${rows.join('')}</div><div class="muted small">${escapeHtml(t('map.settlements_hint'))}</div>`;
   }
 
   onAction(action) {

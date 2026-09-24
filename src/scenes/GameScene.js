@@ -11,6 +11,7 @@ import { SiteViews } from '../game/SiteViews.js';
 import { HOLDINGS } from '../systems/HoldingsSystem.js';
 import { EXPEDITION } from '../data/regions.js';
 import { ExpeditionPanel } from '../ui/panels/ExpeditionPanel.js';
+import { JourneyPanel } from '../ui/panels/JourneyPanel.js';
 import { SuccessionPanel } from '../ui/panels/SuccessionPanel.js';
 import Phaser from 'phaser';
 import { BALANCE } from '../config/balance.js';
@@ -96,8 +97,21 @@ export class GameScene extends Phaser.Scene {
       sim.bus.on('player:succeeded', (info) => this.succession(info)),
       sim.bus.on('expedition:departed', (trip) => this.travel(trip)),
       sim.bus.on('expedition:returned', (report) => this.travelled(report)),
+      sim.bus.on('journey:departed', (j) => this.journey(j)),
+      sim.bus.on('journey:homeward', (j) => this.journeyHome(j)),
+      sim.bus.on('journey:returned', (report) => this.travelled(report)),
     ];
     this.events.once('shutdown', () => this.cleanup());
+    // A game saved on the road carries on from there.
+    const j = sim.state.region?.journey;
+    const onRoad = () => {
+      this.busy = true;
+      this.player.setHidden(true);
+    };
+    if (j?.stage === 'there') this.time.delayedCall(300, () => (onRoad(), this.ui.openPanel(new JourneyPanel(this.ui, { mode: 'market' }))));
+    else if (j?.stage === 'back') this.time.delayedCall(300, () => (onRoad(), this.journeyHome(j)));
+    else if (j) this.time.delayedCall(300, () => this.journey(j));
+    else if (sim.state.exploration?.trip) this.time.delayedCall(300, () => this.travel(sim.state.exploration.trip));
   }
 
   update(time, rawDelta) {
@@ -353,6 +367,31 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  /** A trade journey: days on the road, then the market at the other end (time stands still while you trade). */
+  journey(j) {
+    const sim = this.sim;
+    this.busy = true;
+    this.player.cancelAction();
+    this.leaveInteriorNow();
+    this.cameras.main.fadeOut(500, 0, 0, 0);
+    this.cameras.main.once('camerafadeoutcomplete', () => {
+      this.player.setHidden(true);
+      this.ui.showStatus('journey', { settlement: j.to });
+      const minutes = j.arrive - sim.time.total + 1;
+      sim.time.fastForward(minutes, Math.max(1500, (minutes / 1440) * EXPEDITION.travelRealMsPerDay), () => {
+        this.ui.hideStatus();
+        if (sim.state.region.journey?.stage === 'there') this.ui.openPanel(new JourneyPanel(this.ui, { mode: 'market' }));
+      });
+    });
+  }
+
+  journeyHome(j) {
+    const sim = this.sim;
+    this.ui.showStatus('journey', { settlement: j.to });
+    const minutes = j.until - sim.time.total + 1;
+    sim.time.fastForward(minutes, Math.max(1500, (minutes / 1440) * EXPEDITION.travelRealMsPerDay), () => {});
+  }
+
   /** Home again: back at the waymark, and a report of what you found (and what you missed). */
   travelled(report) {
     const p = this.sim.state.player;
@@ -362,7 +401,7 @@ export class GameScene extends Phaser.Scene {
     this.busy = false;
     this.ui.hideStatus();
     this.cameras.main.fadeIn(900);
-    this.ui.openPanel(new ExpeditionPanel(this.ui, report));
+    this.ui.openPanel(report.journey ? new JourneyPanel(this.ui, { mode: 'report', report }) : new ExpeditionPanel(this.ui, report));
   }
 
   /** You died or retired: the camera fades, and you wake as your heir. */

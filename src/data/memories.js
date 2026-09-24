@@ -86,6 +86,18 @@ export const MEMORY_KINDS = {
   backed_business: { imp: 4, val: 1, bond: { t: 5 } },
   got_backing: { imp: 5, val: 4, bond: { t: 15, f: 10, r: 8 } },
 
+  // ---- goals (see GoalSystem)
+  goal_achieved: { imp: 4, val: 4 }, // params.goal
+  became_headman: { imp: 5, val: 5 },
+  bank_loan: { imp: 3, val: 2 },
+  goal_given_up: { imp: 3, val: -2 },
+  moved_near_work: { imp: 3, val: 2 },
+  decided_to_leave: { imp: 3, val: -1 },
+  stayed_for_family: { imp: 3, val: 0, bond: { f: 4, t: 4 } },
+  player_backed_dream: { imp: 5, val: 4, bond: { f: 10, t: 18, r: 8 }, share: true },
+  player_asked_stay: { imp: 4, val: 2, bond: { f: 8, t: 6 } },
+  player_let_down_backer: { imp: 3, val: -2, bond: { t: -6 } }, // couldn't pay you back in full
+
   // ---- building and moving
   started_building: { imp: 4, val: 3 },
   helped_build: { imp: 3, val: 2, bond: { f: 8, t: 8 } },

@@ -4,9 +4,10 @@
  */
 import { Panel } from '../Panel.js';
 import { t, npcName, npcFullName, fmtMoney, cap } from '../../i18n/i18n.js';
-import { tr, escapeHtml, buildingLabel, npcRole, workLabel, agoText } from '../format.js';
+import { tr, escapeHtml, buildingLabel, npcRole, workLabel, agoText, goalWhyText } from '../format.js';
 import { bar, portrait, hearts, button } from '../widgets.js';
 import { BALANCE } from '../../config/balance.js';
+import { GOAL_AGAINST } from '../../data/goals.js';
 
 export function lifeStage(npc) {
   if (npc.age < 3) return 'baby';
@@ -103,7 +104,7 @@ export class InspectPanel extends Panel {
           ${kv(t('ui.mood'), escapeHtml(t(`mood.${moodKey}`, { gender: npc.gender })) + ` (${npc.mood})`)}
           ${need(t('ui.company'), npc.social ?? 60, (npc.social ?? 60) < 25 ? 'warn' : '')}
           ${kv(t('ui.productivity'), `${prod}%`)}
-          ${kv(t('ui.goal'), escapeHtml(tr(sim, `goal_label.${goal.type}`, { money: goal.saved, money2: goal.target })))}
+          ${this.goalHtml(goal, kv)}
           <h3>${escapeHtml(t('ui.life'))}</h3>
           ${kv(t('ui.home'), escapeHtml(npc.homeId ? buildingLabel(sim, npc.homeId) : t('ui.homeless')))}
           ${kv(t('ui.work'), escapeHtml(work))}
@@ -140,6 +141,24 @@ export class InspectPanel extends Panel {
       </div>
       <div class="btn-row">${button(t('dialog.opt.talk_instead'), 'talk', {}, { cls: 'primary' })}</div>
       <div class="muted small">${escapeHtml(t('ui.inspect_hint', { r: BALANCE.npc.ranks.skilled }))}</div>`;
+  }
+
+  /** What they're after, why (the reasons the GoalSystem weighed), and how close they are. */
+  goalHtml(goal, kv) {
+    const sim = this.sim;
+    const npc = this.npc;
+    const label = tr(sim, `goal_label.${goal.type}`, { money: goal.saved, money2: goal.target, biz_type: goal.biz || undefined, gender: npc.gender });
+    let html = kv(t('ui.goal'), escapeHtml(label) + (goal.packing ? ` <span class="warn">🧳 ${escapeHtml(t('ui.goal_packing', { gender: npc.gender }))}</span>` : ''));
+    if (goal.target && ['save', 'buy_house', 'business', 'business_ready'].includes(goal.type)) {
+      html += `<div class="need-row"><span>${escapeHtml(t('ui.goal_saved'))}</span>${bar(goal.progress * 100, 'xp', `${fmtMoney(goal.saved)} / ${fmtMoney(goal.target)}`)}</div>`;
+    }
+    const why = goal.why.filter((w) => !GOAL_AGAINST.includes(w));
+    const against = goal.why.filter((w) => GOAL_AGAINST.includes(w));
+    if (why.length) html += `<div class="muted small goal-why">${escapeHtml(t('ui.goal_because'))} ${escapeHtml(why.map((w) => goalWhyText(npc, w)).join(' · '))}</div>`;
+    if (against.length) html += `<div class="muted small goal-why">${escapeHtml(t('ui.goal_against'))} ${escapeHtml(against.map((w) => goalWhyText(npc, w)).join(' · '))}</div>`;
+    const done = (npc.goalsDone || []).filter((g) => !['grow', 'job', 'home'].includes(g.type));
+    if (done.length) html += kv(t('ui.goals_done'), escapeHtml(done.map((g) => t(`goal_short.${g.type}`)).join(', ')));
+    return html;
   }
 
   /** Where they are on the ladder: apprentice → worker → experienced → specialist → manager → owner. */

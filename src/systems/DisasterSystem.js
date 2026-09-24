@@ -217,7 +217,8 @@ export class DisasterSystem {
   /** Any building may catch fire — ovens, forges, dry weather and neglect make it likelier. */
   igniteChecks() {
     const sim = this.sim;
-    const risk = D.fireBaseRisk * sim.events.modifier('fire_risk') * (sim.time.season === 'winter' ? 1.4 : 1) * (sim.weather.type === 'rain' || sim.weather.type === 'snow' ? 0.3 : 1);
+    // (A night watch catches most fires before they start: CivicSystem's 'watch'.)
+    const risk = D.fireBaseRisk * sim.events.modifier('fire_risk') * (sim.tech?.mod('fire_risk') ?? 1) * (sim.time.season === 'winter' ? 1.4 : 1) * (sim.weather.type === 'rain' || sim.weather.type === 'snow' ? 0.3 : 1);
     for (const b of sim.world.buildingList) {
       if (b.type === 'well' || this.fireAt(b.id)) continue;
       const r = sim.property.rec(b.id);
