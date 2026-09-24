@@ -68,6 +68,7 @@ const taxNormal = someBuilding ? sim.finance.propertyTax(someBuilding) : 0;
 check('as headman you set the taxes', C.setPolicy('tax', 'high') && V.policies.tax === 'high');
 check('…and property taxes go up', !someBuilding || sim.finance.propertyTax(someBuilding) > taxNormal, `${taxNormal} → ${someBuilding && sim.finance.propertyTax(someBuilding)}`);
 const owner = sim.state.npcs.find((n) => n.owns);
+C.setPolicy('relief', 'normal'); // (you inherit your predecessor's policies — look at taxes alone)
 check('…business owners don\'t like high taxes', !owner || C.moodEffect(owner) < 0);
 C.setPolicy('relief', 'high');
 const poor = sim.state.npcs.find((n) => n.age >= 18 && !n.owns) ;

@@ -47,13 +47,18 @@ export class JobBoardPanel extends Panel {
     const check = sim.jobs.check(jobId);
     const active = sim.jobs.active?.jobId === jobId;
     const openings = sim.state.jobs.openings[jobId] || 0;
-    const owner = sim.economy.owner(def.employer);
+    const employer = sim.jobs.employerOf(jobId);
+    const owner = sim.economy.owner(employer);
     const what =
       def.type === 'shift'
         ? t('ui.job_shift', { hours: def.durationHours, from: `${def.hours[0]}:00`, to: `${def.hours[1]}:00` })
         : def.type === 'courier'
           ? t('ui.job_courier')
-          : t('ui.job_deliver', { qty: def.qty, item: t(`item.${def.item}.name`) });
+          : def.type === 'rounds'
+            ? t('ui.job_rounds', { n: def.qty })
+            : def.type === 'haul'
+              ? t('ui.job_haul', { qty: def.qty, item: t(`item.${def.item}.name`) })
+              : t('ui.job_deliver', { qty: def.qty, item: t(`item.${def.item}.name`) });
     const seasonal = def.seasons ? `<span class="chip">${escapeHtml(def.seasons.map((s) => t(`season.${s}`)).join(', '))}</span>` : '';
     return `<div class="job-card${active ? ' active' : ''}${check.ok ? '' : ' unavailable'}">
       <div class="job-top">
@@ -61,7 +66,7 @@ export class JobBoardPanel extends Panel {
         <div class="job-pay">💰 ${escapeHtml(fmtMoney(sim.jobs.pay(jobId)))} · ⭐ ${def.xp} XP</div>
       </div>
       <div class="desc">${escapeHtml(t(`job.${jobId}.desc`))}</div>
-      <div class="muted small">📍 ${escapeHtml(buildingLabel(sim, sim.economy.biz(def.employer)?.building))} · ${escapeHtml(t('ui.employer'))}: ${escapeHtml(npcName(owner))} · ${escapeHtml(what)}</div>
+      <div class="muted small">📍 ${escapeHtml(buildingLabel(sim, sim.economy.biz(employer)?.building))} · ${escapeHtml(t('ui.employer'))}: ${escapeHtml(npcName(owner))} · ${escapeHtml(what)}</div>
       <div class="job-bottom">
         <div class="reqs">${this.describeRequirements(def)} <span class="muted small">${escapeHtml(t('ui.openings', { n: openings }))}</span></div>
         ${active ? `<span class="badge">${escapeHtml(t('ui.in_progress'))}</span>` : button(t('ui.accept'), 'accept', { job: jobId }, { disabled: !check.ok, cls: 'primary', title: check.ok ? '' : tr(sim, `reason.${check.reason}`, check.params || {}) })}
@@ -116,8 +121,16 @@ export class JobBoardPanel extends Panel {
 
   renderJobs() {
     const sim = this.sim;
-    const ids = Object.keys(JOBS).filter((id) => !this.bizId || JOBS[id].employer === this.bizId);
-    let html = ids.map((id) => this.renderJob(id)).join('');
+    // Only work the village actually has (a bakery shift needs a bakery); what you can take now comes first.
+    const ids = Object.keys(JOBS)
+      .filter((id) => sim.jobs.employerOf(id) && (!this.bizId || sim.jobs.employerOf(id) === this.bizId))
+      .filter((id) => !JOBS[id].seasons || JOBS[id].seasons.includes(sim.time.season) || sim.jobs.active?.jobId === id)
+      .map((id) => ({ id, rank: sim.jobs.active?.jobId === id ? 0 : sim.jobs.check(id).ok ? 1 : (sim.state.jobs.openings[id] || 0) > 0 ? 2 : 3, level: JOBS[id].requires?.level || 1 }))
+      .sort((a, b) => a.rank - b.rank || a.level - b.level)
+      .map((x) => x.id);
+    const open = ids.filter((id) => sim.jobs.check(id).ok).length;
+    let html = `<div class="muted small">${escapeHtml(t('ui.jobs_available', { n: open, total: ids.length }))}</div>`;
+    html += ids.map((id) => this.renderJob(id)).join('');
     if (!this.bizId) {
       const reqs = sim.state.jobs.requests.filter((r) => !r.accepted);
       if (reqs.length) {

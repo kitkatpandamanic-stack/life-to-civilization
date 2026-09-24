@@ -95,6 +95,8 @@ export class BuildingViews {
   /** A shop sign over the door when a villager runs a business from this building. */
   addSign(entry) {
     const b = entry.building;
+    // A house of yours with a "to let" sign up (LettingSystem).
+    if (this.sim.letting?.listed(b.id)) return this.addLetSign(entry);
     const E = this.sim.economy;
     const bizId = E?.businessAtBuilding(b.id);
     const biz = bizId && E.biz(bizId);
@@ -111,6 +113,24 @@ export class BuildingViews {
     g.lineStyle(2, 0x4a3018, 1).strokeRoundedRect(x - 12, y - 5, 24, 20, 3);
     const t = this.scene.add
       .text(x, y + 5, icon, { fontFamily: '"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif', fontSize: '13px' })
+      .setOrigin(0.5)
+      .setDepth(bottom + 0.7);
+    entry.sign = [g, t];
+  }
+
+  /** A small green "to let" board on a post by the door. */
+  addLetSign(entry) {
+    const b = entry.building;
+    const doorX = b.door.tx * TS + TS / 2;
+    const bottom = (b.ty + b.h) * TS;
+    const x = doorX + 26;
+    const y = bottom - 10;
+    const g = this.scene.add.graphics().setDepth(bottom + 0.6);
+    g.fillStyle(0x5a3a1e, 1).fillRect(x - 1, y - 6, 3, 18); // post
+    g.fillStyle(0x3f7a3a, 1).fillRoundedRect(x - 13, y - 22, 26, 18, 3);
+    g.lineStyle(2, 0x244a22, 1).strokeRoundedRect(x - 13, y - 22, 26, 18, 3);
+    const t = this.scene.add
+      .text(x, y - 13, '🔑', { fontFamily: '"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif', fontSize: '12px' })
       .setOrigin(0.5)
       .setDepth(bottom + 0.7);
     entry.sign = [g, t];

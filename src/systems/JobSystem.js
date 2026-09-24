@@ -2,30 +2,40 @@
  * JobSystem — work the player takes on for village businesses, plus
  * favour requests from villagers.
  *
- * Openings refresh every morning and depend on the simulation:
- *   • the employer must be able to afford your pay
+ * Openings are posted every morning (and topped up at midday) and depend on the simulation:
+ *   • the employer must exist and be able to afford your pay — the starting
+ *     businesses, and (employerType) whichever bakery, carpenter's, warehouse…
+ *     the villagers have opened
  *   • farm harvesting needs ripe crops (none in winter)
  *   • seasonal jobs only exist in their season
+ *   • hauling needs a building site in the village that's short of the material
  *
  * Active job stages:
  *   harvest:  collect (harvest crops on the farm) → deliver (to the farmhouse)
  *   deliver:  collect (gather anywhere)            → deliver (to the employer)
  *   courier:  pickup (at the employer)             → deliver (to a house)
+ *   rounds:   pickup (letters at the employer)     → deliver (one to each of several houses)
+ *   haul:     pickup (materials at the employer)   → deliver (to a building site)
  *   shift:    go (to the workplace)                → working (time fast-forwards)
  */
 import { BALANCE } from '../config/balance.js';
-import { JOBS } from '../data/jobs.js';
+import { JOBS, JOB_REFRESH } from '../data/jobs.js';
 import { ITEMS } from '../data/items.js';
 import { REQUEST_TEMPLATES } from '../data/requests.js';
 import { traitValue } from '../data/traits.js';
 import { rand } from '../core/rng.js';
 import { Mod, skill, attr } from './Modifiers.js';
 
+/** What you gather for each kind of delivery (for the objective arrow). */
+const RESOURCE_OF = { wood: 'tree', stone: 'rock', berries: 'bush' };
+
 export class JobSystem {
   constructor(sim) {
     this.sim = sim;
+    sim.state.jobs.employers ??= {};
     sim.bus.on('time:hour', (h) => {
       if (h === BALANCE.jobs.refreshHour) this.refresh();
+      if (h === JOB_REFRESH.middayHour) this.topUp();
       if (h === 7) this.generateRequests();
     });
     sim.bus.on('time:day', () => this.onNewDay());
@@ -43,34 +53,76 @@ export class JobSystem {
     return JOBS[jobId];
   }
 
+  /** Who's hiring for this job today: a fixed business, or one of its type the village has. */
+  employerOf(jobId) {
+    const d = JOBS[jobId];
+    const E = this.sim.economy;
+    if (d.employer) return E.biz(d.employer) && !E.biz(d.employer).closed ? d.employer : null;
+    const chosen = this.js.employers[jobId];
+    if (chosen && E.biz(chosen) && !E.biz(chosen).closed) return chosen;
+    return this.pickEmployer(jobId);
+  }
+
+  /** Of the businesses of this type, the one best able to pay. */
+  pickEmployer(jobId) {
+    const E = this.sim.economy;
+    const list = E.ofType(JOBS[jobId].employerType || '').filter((id) => !E.biz(id).closed && E.biz(id).owner !== 'player');
+    return list.sort((a, b) => E.biz(b).money - E.biz(a).money)[0] || null;
+  }
+
   employerBuilding(jobId) {
-    return this.sim.economy.buildingOf(JOBS[jobId].employer);
+    const id = this.employerOf(jobId);
+    return id ? this.sim.economy.buildingOf(id) : null;
   }
   employerNpc(jobId) {
-    return this.sim.economy.owner(JOBS[jobId].employer);
+    const id = this.employerOf(jobId);
+    return id ? this.sim.economy.owner(id) : null;
   }
 
   ensureOpenings() {
     if (this.js.lastRefreshDay !== this.sim.time.day) this.refresh();
   }
 
+  /** A building site in the village that needs this material (for hauling jobs). */
+  siteNeeding(item) {
+    const C = this.sim.construction;
+    return C.sites()
+      .filter((c) => c.kind === 'building' && !C.isPlayers(c) && (C.missing(c)[item] || 0) >= 3)
+      .sort((a, b) => (C.missing(b)[item] || 0) - (C.missing(a)[item] || 0))[0] || null;
+  }
+
   /** Does this job exist today, according to the simulation? */
   existsToday(jobId) {
     const d = JOBS[jobId];
+    const E = this.sim.economy;
+    const emp = this.employerOf(jobId);
+    if (!emp) return false;
     if (d.seasons && !d.seasons.includes(this.sim.time.season)) return false;
-    if (this.sim.economy.biz(d.employer).money < d.pay) return false;
+    if (E.biz(emp).money < d.pay) return false;
     if (d.type === 'harvest' && this.sim.resources.countRipeCrops() < d.qty) return false;
+    if (d.type === 'haul' && (!this.siteNeeding(d.item) || E.stock(emp, d.item) < 3)) return false;
     return true;
   }
 
   refresh() {
+    for (const id of Object.keys(JOBS)) if (JOBS[id].employerType) this.js.employers[id] = this.pickEmployer(id);
     for (const [id, d] of Object.entries(JOBS)) this.js.openings[id] = this.existsToday(id) ? d.dailySlots : 0;
     this.js.lastRefreshDay = this.sim.time.day;
     this.sim.bus.emit('jobs:changed');
   }
 
+  /** Midday: more work comes in (half of the morning's openings again, where they've been taken). */
+  topUp() {
+    for (const [id, d] of Object.entries(JOBS)) {
+      if (!this.existsToday(id)) continue;
+      const extra = Math.max(1, Math.round(d.dailySlots * JOB_REFRESH.middayShare));
+      this.js.openings[id] = Math.min(d.dailySlots, (this.js.openings[id] || 0) + extra);
+    }
+    this.sim.bus.emit('jobs:changed');
+  }
+
   jobsForBusiness(bizId) {
-    return Object.keys(JOBS).filter((id) => JOBS[id].employer === bizId);
+    return Object.keys(JOBS).filter((id) => this.employerOf(id) === bizId);
   }
 
   pay(jobId) {
@@ -87,6 +139,7 @@ export class JobSystem {
     const h = this.sim.time.hour;
     if (this.active?.jobId === jobId) return { ok: false, reason: 'job_is_active' };
     if (this.active) return { ok: false, reason: 'job_active' };
+    if (!this.employerOf(jobId)) return { ok: false, reason: 'no_employer', params: { biz_type: d.employerType } };
     if (d.seasons && !d.seasons.includes(this.sim.time.season)) return { ok: false, reason: 'wrong_season' };
     if ((this.js.openings[jobId] || 0) <= 0) return { ok: false, reason: 'no_openings' };
     if (r.level && p.level < r.level) return { ok: false, reason: 'need_level', params: { level: r.level } };
@@ -101,6 +154,11 @@ export class JobSystem {
     return { ok: true };
   }
 
+  /** Homes of real villagers (for couriers and letters). */
+  homes() {
+    return [...new Set(this.sim.state.npcs.map((n) => n.homeId))].filter((h) => h && (h.startsWith('house_') || h.startsWith('vb') || h === 'farmhouse' || h === 'hall') && this.sim.world.buildings[h]);
+  }
+
   accept(jobId) {
     const c = this.check(jobId);
     if (!c.ok) {
@@ -108,15 +166,30 @@ export class JobSystem {
       return false;
     }
     const d = JOBS[jobId];
-    this.js.openings[jobId]--;
-    const job = { jobId, type: d.type, item: d.item || null, qty: d.qty || 0, harvested: 0, acceptedDay: this.sim.time.day, stage: 'collect', target: null };
-    if (d.type === 'courier') job.stage = 'pickup';
+    const job = { jobId, type: d.type, item: d.item || null, qty: d.qty || 0, harvested: 0, acceptedDay: this.sim.time.day, stage: 'collect', target: null, employer: this.employerOf(jobId) };
+    if (d.type === 'courier' || d.type === 'rounds' || d.type === 'haul') job.stage = 'pickup';
     if (d.type === 'shift') job.stage = 'go';
     if (d.type === 'courier') {
       // Deliver to a real villager's home (not the employer).
-      const homes = [...new Set(this.sim.state.npcs.map((n) => n.homeId))].filter((h) => h.startsWith('house_') || h === 'farmhouse' || h === 'hall');
-      job.target = rand.pick(homes);
+      job.target = rand.pick(this.homes());
     }
+    if (d.type === 'rounds') {
+      // Letters for several different houses: a walk round the village.
+      const homes = this.homes().filter((h) => h !== this.employerBuilding(jobId)?.id);
+      job.targets = [];
+      while (job.targets.length < d.qty && homes.length) job.targets.push(homes.splice(rand.int(0, homes.length - 1), 1)[0]);
+      job.qty = job.targets.length;
+    }
+    if (d.type === 'haul') {
+      const site = this.siteNeeding(d.item);
+      if (!site) {
+        this.sim.toast('reason.no_openings', {}, 'warn');
+        return false;
+      }
+      job.target = site.id;
+      job.qty = Math.min(d.qty, this.sim.construction.missing(site)[d.item]);
+    }
+    this.js.openings[jobId]--;
     this.js.active = job;
     const owner = this.employerNpc(jobId);
     if (owner) this.sim.social.meet(owner);
@@ -124,6 +197,15 @@ export class JobSystem {
     this.sim.toast('toast.job_accepted', { job: jobId }, 'good');
     this.sim.bus.emit('jobs:changed');
     return true;
+  }
+
+  /** The business this active job is for (fixed when you took it). */
+  jobEmployer(job = this.active) {
+    return job?.employer || (job && this.employerOf(job.jobId));
+  }
+  jobBuilding(job = this.active) {
+    const id = this.jobEmployer(job);
+    return id ? this.sim.economy.buildingOf(id) : null;
   }
 
   updateStage() {
@@ -154,18 +236,25 @@ export class JobSystem {
     const job = this.active;
     if (!job || job.stage !== 'deliver') return false;
     if (job.type === 'courier') return job.target === buildingId;
-    return this.employerBuilding(job.jobId).id === buildingId;
+    if (job.type === 'rounds') return job.targets.includes(buildingId);
+    if (job.type === 'haul') return false; // at the building site (see canTurnInSite)
+    return this.jobBuilding(job)?.id === buildingId;
   }
 
   canPickup(buildingId) {
     const job = this.active;
-    return !!job && job.type === 'courier' && job.stage === 'pickup' && this.employerBuilding(job.jobId).id === buildingId;
+    return !!job && ['courier', 'rounds', 'haul'].includes(job.type) && job.stage === 'pickup' && this.jobBuilding(job)?.id === buildingId;
+  }
+
+  canTurnInSite(siteId) {
+    const job = this.active;
+    return !!job && job.type === 'haul' && job.stage === 'deliver' && job.target === siteId;
   }
 
   canStartShift(buildingId) {
     const job = this.active;
     if (!job || job.type !== 'shift' || job.stage !== 'go') return { ok: false };
-    if (this.employerBuilding(job.jobId).id !== buildingId) return { ok: false };
+    if (this.jobBuilding(job)?.id !== buildingId) return { ok: false };
     const d = JOBS[job.jobId];
     const h = this.sim.time.hour;
     if (h < d.hours[0]) return { ok: false, reason: 'too_early', params: { hour: d.hours[0] } };
@@ -176,29 +265,96 @@ export class JobSystem {
   pickup() {
     const job = this.active;
     if (!job) return false;
-    if (!this.sim.inventory.canAdd('package', 1)) {
+    const inv = this.sim.inventory;
+    if (job.type === 'haul') {
+      // The materials come out of the employer's stock.
+      const b = this.sim.economy.biz(this.jobEmployer(job));
+      const n = Math.min(job.qty, Math.floor(b?.stock[job.item] || 0));
+      if (n <= 0) {
+        this.sim.toast('reason.employer_out_of_stock', { item: job.item }, 'warn');
+        return false;
+      }
+      b.stock[job.item] -= n;
+      inv.add(job.item, n, { force: true });
+      job.qty = n;
+      job.stage = 'deliver';
+      this.sim.toast('toast.haul_picked', { qty: n, item: job.item }, 'info');
+      this.sim.bus.emit('jobs:changed');
+      return true;
+    }
+    const n = job.type === 'rounds' ? job.targets.length : 1;
+    if (!inv.canAdd('package', n)) {
       this.sim.toast('reason.too_heavy', {}, 'warn');
       return false;
     }
-    this.sim.inventory.add('package', 1);
+    inv.add('package', n);
     job.stage = 'deliver';
-    this.sim.toast('toast.package_picked', { building: job.target }, 'info');
+    this.sim.toast(job.type === 'rounds' ? 'toast.letters_picked' : 'toast.package_picked', { building: job.target, n }, 'info');
     this.sim.bus.emit('jobs:changed');
     return true;
   }
 
-  turnIn() {
+  turnIn(buildingId = null) {
     const job = this.active;
     if (!job || job.stage !== 'deliver') return false;
     const d = JOBS[job.jobId];
-    if (job.type === 'courier') {
+    if (job.type === 'rounds') {
+      // One letter here; the round goes on until every house has had theirs.
+      const at = buildingId && job.targets.includes(buildingId) ? buildingId : job.targets[0];
+      this.sim.inventory.remove('package', 1);
+      job.targets = job.targets.filter((h) => h !== at);
+      const resident = this.sim.npcs.residentsOf(at)[0];
+      if (resident) this.sim.social.addRel(resident, 1);
+      if (job.targets.length) {
+        this.sim.toast('toast.letter_delivered', { n: job.targets.length }, 'info');
+        this.sim.bus.emit('jobs:changed');
+        return true;
+      }
+    } else if (job.type === 'courier') {
       this.sim.inventory.remove('package', 1);
     } else {
       if (this.sim.inventory.count(job.item) < job.qty) return false;
       this.sim.inventory.remove(job.item, job.qty);
-      const b = this.sim.economy.biz(d.employer);
-      b.stock[job.item] = (b.stock[job.item] || 0) + job.qty;
+      const b = this.sim.economy.biz(this.jobEmployer(job) || d.employer);
+      if (b) b.stock[job.item] = (b.stock[job.item] || 0) + job.qty;
     }
+    this.complete();
+    return true;
+  }
+
+  /** Hauling: the materials arrive at the building site (and the site's owner pays the supplier). */
+  turnInSite(siteId) {
+    const job = this.active;
+    if (!this.canTurnInSite(siteId)) return false;
+    const C = this.sim.construction;
+    const c = C.byId(siteId);
+    if (!c || c.status !== 'site') {
+      this.fail('site_gone');
+      return false;
+    }
+    const n = Math.min(job.qty, this.sim.inventory.count(job.item), C.missing(c)[job.item] || 0);
+    if (n <= 0) return false;
+    this.sim.inventory.remove(job.item, n);
+    // Whatever's left over (the site needed less by now) goes back to the supplier.
+    const extra = Math.min(job.qty - n, this.sim.inventory.count(job.item));
+    const E = this.sim.economy;
+    const emp = this.jobEmployer(job);
+    if (extra > 0) {
+      this.sim.inventory.remove(job.item, extra);
+      if (E.biz(emp)) E.biz(emp).stock[job.item] = (E.biz(emp).stock[job.item] || 0) + extra;
+    }
+    const cost = Math.round(n * (ITEMS[job.item]?.basePrice || 1) * 0.9);
+    const purse = this.sim.growth?.purse(c);
+    if (purse && E.biz(emp)) {
+      const fromBudget = Math.min(c.budget || 0, cost);
+      c.budget -= fromBudget;
+      const rest = Math.min(cost - fromBudget, Math.max(0, purse.get()));
+      purse.pay(rest);
+      E.biz(emp).money += fromBudget + rest;
+      E.ledger(emp, 'rev', fromBudget + rest);
+    }
+    c.lastProgressDay = this.sim.time.day;
+    C.receive(c, job.item, n);
     this.complete();
     return true;
   }
@@ -221,16 +377,16 @@ export class JobSystem {
     const job = this.active;
     const d = JOBS[job.jobId];
     const p = this.sim.state.player;
-    const b = this.sim.economy.biz(d.employer);
-    const pay = Math.min(this.pay(job.jobId), Math.max(0, b.money));
-    b.money -= pay;
+    const b = this.sim.economy.biz(this.jobEmployer(job));
+    const pay = Math.min(this.pay(job.jobId), Math.max(0, b?.money || 0));
+    if (b) b.money -= pay;
     p.money += pay;
     this.sim.state.stats.moneyEarned += pay;
     this.sim.state.stats.jobsCompleted++;
     const xp = this.sim.progression.addXp(d.xp);
     if (d.skill) this.sim.progression.addSkillXp(d.skill, d.skillXp || 0);
     this.sim.progression.addReputation(d.rep || BALANCE.reputation.jobComplete);
-    const owner = this.employerNpc(job.jobId);
+    const owner = b ? this.sim.economy.owner(this.jobEmployer(job)) : null;
     if (owner) {
       this.sim.social.addRel(owner, this.sim.social.relGain(owner, 4));
       this.sim.memory.remember(owner, 'player_did_job', { who: 'player', params: { job: job.jobId } });
@@ -249,15 +405,24 @@ export class JobSystem {
   fail(reasonKey = 'expired') {
     const job = this.active;
     if (!job) return;
-    if (job.type === 'courier') this.sim.inventory.remove('package', 1);
+    const inv = this.sim.inventory;
+    if (job.type === 'courier') inv.remove('package', 1);
+    if (job.type === 'rounds' && job.stage === 'deliver') inv.remove('package', job.targets.length);
+    // Hauled materials go back to the supplier.
+    if (job.type === 'haul' && job.stage === 'deliver') {
+      const n = Math.min(job.qty, inv.count(job.item));
+      inv.remove(job.item, n);
+      const b = this.sim.economy.biz(this.jobEmployer(job));
+      if (b) b.stock[job.item] = (b.stock[job.item] || 0) + n;
+    }
     this.sim.progression.addReputation(BALANCE.reputation.jobFail);
-    const owner = this.employerNpc(job.jobId);
+    const owner = this.sim.economy.owner(this.jobEmployer(job));
     if (owner) {
       this.sim.social.addRel(owner, -5);
       this.sim.memory.remember(owner, 'player_failed_job', { who: 'player', params: { job: job.jobId } });
     }
     this.js.active = null;
-    this.sim.toast(`toast.job_failed_${reasonKey}`, { job: job.jobId }, 'danger');
+    this.sim.toast(`toast.job_failed_${reasonKey === 'site_gone' ? 'expired' : reasonKey}`, { job: job.jobId }, 'danger');
     this.sim.bus.emit('jobs:changed');
   }
 
@@ -293,20 +458,33 @@ export class JobSystem {
           const crop = this.sim.resources.findNearest('crop', ptile.tx, ptile.ty, 200);
           return { key: 'objective.harvest', params: { have: job.harvested, qty: job.qty, item: job.item }, target: crop ? world.tileCenter(crop.tx, crop.ty) : null };
         }
-        const kind = job.item === 'wood' ? 'tree' : 'rock';
-        const obj = this.sim.resources.findNearest(kind, ptile.tx, ptile.ty, 40, (o) => kind !== 'rock' || o.variant === 'stone');
+        const kind = RESOURCE_OF[job.item];
+        const obj = kind ? this.sim.resources.findNearest(kind, ptile.tx, ptile.ty, 60, (o) => kind !== 'rock' || o.variant === 'stone') : null;
         return { key: `objective.collect_${job.item}`, params: { have: this.sim.inventory.count(job.item), qty: job.qty, item: job.item }, target: obj ? world.tileCenter(obj.tx, obj.ty) : null };
       }
       case 'deliver': {
-        const b = job.type === 'courier' ? world.buildings[job.target] : this.employerBuilding(job.jobId);
+        if (job.type === 'haul') {
+          const c = this.sim.construction.byId(job.target);
+          return { key: 'objective.haul_deliver', params: { qty: job.qty, item: job.item }, target: c ? world.tileCenter(c.tx + Math.floor(c.w / 2), c.ty + c.h) : null };
+        }
+        if (job.type === 'rounds') {
+          // The nearest house still waiting for its letter.
+          const next = job.targets.map((id) => world.buildings[id]).filter(Boolean).sort((a, b) => Math.abs(a.door.tx - ptile.tx) + Math.abs(a.door.ty - ptile.ty) - (Math.abs(b.door.tx - ptile.tx) + Math.abs(b.door.ty - ptile.ty)))[0];
+          return { key: 'objective.deliver_letters', params: { n: job.targets.length, building: next?.id }, target: next ? doorPos(next) : null };
+        }
+        const b = job.type === 'courier' ? world.buildings[job.target] : this.jobBuilding(job);
+        if (!b) return null;
         return { key: job.type === 'courier' ? 'objective.deliver_package' : 'objective.deliver', params: { qty: job.qty, item: job.item, building: b.id }, target: doorPos(b) };
       }
       case 'pickup': {
-        const b = this.employerBuilding(job.jobId);
-        return { key: 'objective.pickup', params: { building: b.id }, target: doorPos(b) };
+        const b = this.jobBuilding(job);
+        if (!b) return null;
+        const key = job.type === 'haul' ? 'objective.haul_pickup' : job.type === 'rounds' ? 'objective.pickup_letters' : 'objective.pickup';
+        return { key, params: { building: b.id, qty: job.qty, item: job.item }, target: doorPos(b) };
       }
       case 'go': {
-        const b = this.employerBuilding(job.jobId);
+        const b = this.jobBuilding(job);
+        if (!b) return null;
         return { key: 'objective.shift', params: { building: b.id, hour: d.hours[0], hour2: d.hours[1] }, target: doorPos(b) };
       }
       default:
@@ -319,7 +497,10 @@ export class JobSystem {
   generateRequests() {
     const R = BALANCE.requests;
     const js = this.js;
-    if (js.requests.length >= R.maxActive || !rand.chance(R.dailyChance * 2)) return;
+    // A newcomer gets asked for more small favours (it's how people get to know you).
+    const newcomer = this.sim.state.player.level <= 4;
+    const max = R.maxActive + (newcomer ? 1 : 0);
+    if (js.requests.length >= max || !rand.chance(Math.min(0.95, R.dailyChance * (newcomer ? 2.6 : 2)))) return;
     const season = this.sim.time.season;
     const candidates = [];
     for (const npc of this.sim.state.npcs) {

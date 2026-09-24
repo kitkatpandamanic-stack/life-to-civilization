@@ -37,6 +37,9 @@ node tools/smoke-sites.mjs          # discovery sites, outposts, hunters & miner
 node tools/smoke-goals.mjs          # villagers' goals: saving, founding, buying, settling, courting, leaving
 node tools/smoke-regions.mjs        # other settlements, prices, trade journeys, transport, roads, caravans
 node tools/smoke-civic.mjs          # headman & elections, policies, institutions, village → town, bank, legacy
+node tools/smoke-jobs.mjs           # early work: many jobs, letter rounds, hauling to building sites, new employers
+node tools/smoke-ledger.mjs         # the money ledger behind "Your affairs": categories, transfers, net worth
+node tools/smoke-letting.mjs        # finding tenants: to-let sign, viewings, asking, adverts at home and in other towns
 ```
 
 In dev mode (`npm run dev` only) there's a **debug panel on F9**: live stats, simulation
@@ -53,6 +56,7 @@ discover know-how and skip time. The browser console also has `dev.*` helpers (`
 | F | Inspect (a villager, a building) |
 | 1–9 | Pick an option in menus and conversations |
 | I · C · J · M · B | Inventory · Character · Journal · Map · Build |
+| K · L | Your workers · Your affairs (stats, finances, possessions, property, records) |
 | Q | Eat the most suitable food |
 | Esc | Close a window / game menu (save, load, language) |
 
@@ -115,6 +119,18 @@ src/
 
 ## What's in the game
 
+- **Letting your houses.** Put a "to let" sign on a house you own and villagers who could use a
+  better home — the homeless, lodgers, crowded families, grown children still at home, tenants
+  paying too much, people with a long walk to work — ask to see it, walk over in the evening and
+  decide; if they say no, they tell you why (too dear, too small, happy where they are…). Advertise
+  in the village to reach people who aren't looking, or post a notice in a town you trade with and
+  a family may come from there to rent it. Or just ask someone, in conversation.
+- **Your affairs (L).** Everything about you on five pages: a summary with your net worth; your
+  finances (income and spending by category for this week, last week, four weeks or all time, the
+  last 14 days as a chart, money moved in and out of the bank and your businesses, and what's coming
+  due); your possessions (every material, food, tool and good in your pockets and your chest, with
+  its value and your tools' wear); your property and businesses (buildings, land, outposts,
+  businesses, stakes and loans, workers); and your lifetime records, skills and achievements.
 - **Your own path.** Craftsman, farmer, merchant, builder, miner, explorer, entrepreneur, investor —
   or any mix. Skills gate real content, and at skill levels 3 and 7 you choose one of two **perks**
   (the other is gone for good), so builds differ. Crafted **tools, furniture and food have quality**

@@ -410,3 +410,21 @@ table.books tr.today { color: var(--gold); }
 .inst-row { margin: 4px 0 6px; line-height: 1.35; }
 .inst-row:not(.got) b { opacity: 0.75; }
 .inst-row .good { color: #8ad07a; }
+
+/* Your affairs (AffairsPanel) */
+.aff-row { display: grid; grid-template-columns: minmax(110px, 1.2fr) 1fr auto; align-items: center; gap: 8px; margin: 3px 0; }
+.aff-row > span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.aff-row .mini-bar { margin: 0; }
+.aff-row.clickable { grid-template-columns: minmax(110px, 1.2fr) 1fr auto; cursor: pointer; }
+.aff-row.clickable:hover { background: rgba(255, 255, 255, 0.05); }
+.aff-good { display: grid; grid-template-columns: 22px 1fr auto auto 56px; align-items: center; gap: 6px; margin: 2px 0; }
+.aff-good-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.aff-good > span:last-child { text-align: right; }
+.aff-total { margin: 8px 0; padding-top: 6px; border-top: 1px solid var(--line); }
+.aff-chart { display: flex; align-items: center; gap: 3px; height: 84px; padding: 2px 0; border-bottom: 1px dashed var(--line); }
+.aff-day { flex: 1; display: flex; flex-direction: column; align-items: stretch; justify-content: center; height: 84px; }
+.aff-in { background: linear-gradient(0deg, #6aa84f, #9ad07a); border-radius: 2px 2px 0 0; margin-top: auto; }
+.aff-out { background: linear-gradient(180deg, #c0392b, #e0705a); border-radius: 0 0 2px 2px; margin-bottom: auto; }
+.aff-key { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: middle; }
+.aff-key.in { background: #8ac06a; }
+.aff-key.out { background: #d0604a; }

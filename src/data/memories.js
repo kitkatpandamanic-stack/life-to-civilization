@@ -70,6 +70,7 @@ export const MEMORY_KINDS = {
   evicted: { imp: 4, val: -4, bond: { t: -25, f: -10, c: 25 }, share: true },
   bought_home: { imp: 5, val: 4 },
   sold_home_to_player: { imp: 3, val: 0, bond: { r: 3 } },
+  rented_from_player: { imp: 3, val: 2, bond: { t: 6, r: 2 } }, // moved into a house you let
   sold_business_to_player: { imp: 5, val: 1, bond: { r: 5 } },
 
   // ---- business and career

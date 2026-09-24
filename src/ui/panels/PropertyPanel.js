@@ -9,6 +9,7 @@ import { t, npcName, fmtMoney, itemName } from '../../i18n/i18n.js';
 import { tr, escapeHtml, buildingLabel, dateString, npcRole, districtLabel } from '../format.js';
 import { bar, button, portrait } from '../widgets.js';
 import { RENT_LEVELS } from '../../systems/PropertySystem.js';
+import { LETTING } from '../../systems/LettingSystem.js';
 
 export class PropertyPanel extends Panel {
   constructor(ui, buildingId) {
@@ -148,11 +149,45 @@ export class PropertyPanel extends Panel {
           ${this.bid === 'hall' ? this.villageFundHtml(kv) : ''}
         </div>
         <div class="col">
+          ${r.owner === 'player' && isHome && this.bid !== sim.state.player.homeId && !bizId ? this.lettingHtml(kv) : ''}
           <h3>${escapeHtml(t('ui.ownership_history'))}</h3>
           <div class="chronicle">${history}</div>
         </div>
       </div>
       <div class="btn-row">${btns.join(' ')}</div>`;
+  }
+
+  /** Finding tenants for a house of yours: the sign, who might be interested, viewings, advertisements. */
+  lettingHtml(kv) {
+    const sim = this.sim;
+    const Lt = sim.letting;
+    const P = sim.property;
+    const id = this.bid;
+    const p = sim.state.player;
+    let html = `<h3>🔑 ${escapeHtml(t('letting.title'))}</h3>`;
+    const occupants = P.occupants(id);
+    if (occupants > 0) return html + kv(t('letting.tenants'), escapeHtml(t('letting.tenants_line', { n: occupants, money: fmtMoney(P.weeklyRent(id)) })));
+    if (!Lt.lettable(id)) return html + `<div class="muted small">${escapeHtml(t('letting.not_fit'))}</div>`;
+    const listed = Lt.listed(id);
+    const it = Lt.interest(id);
+    const viewer = sim.state.npcs.find((n) => n.viewing?.building === id);
+    html += kv(t('letting.sign'), escapeHtml(t(listed ? 'letting.sign_up' : 'letting.sign_down')));
+    html += kv(t('letting.interested'), escapeHtml(t('letting.interested_n', { n: it.yes.length })));
+    if (it.yes.length) html += `<div class="muted small">${escapeHtml(it.yes.slice(0, 3).map((x) => `${npcName(x.n)} (${t(`letting_why.${x.r.reason}`)})`).join(', '))}</div>`;
+    if (it.main) html += `<div class="muted small">${escapeHtml(t('letting.put_off', { reason: t(`reason.letting_${it.main}`) }))}</div>`;
+    if (viewer) html += `<div class="rumor">👀 ${escapeHtml(tr(sim, 'letting.viewing_today', { npc: viewer.id }))}</div>`;
+    if (Lt.advertised(id)) html += `<div class="muted small">📣 ${escapeHtml(t('letting.advertised_until', { n: Lt.S.listings[id].advertisedUntil - sim.time.day }))}</div>`;
+    for (const ad of Lt.S.ads.filter((a) => a.building === id)) html += `<div class="muted small">📜 ${escapeHtml(tr(sim, 'letting.ad_out', { settlement: ad.settlement, n: Math.max(0, ad.arrive - sim.time.day) }))}</div>`;
+    const btns = [button(t(listed ? 'letting.take_down' : 'letting.put_up'), 'let_sign', { on: listed ? 0 : 1 }, { cls: listed ? '' : 'primary' })];
+    btns.push(button(t('letting.advertise', { money: fmtMoney(LETTING.adCost) }), 'let_ad', {}, { disabled: p.money < LETTING.adCost || Lt.advertised(id) }));
+    const away = (sim.settlements?.contacts() || []).filter(() => !Lt.S.ads.some((a) => a.building === id));
+    for (const s of away) {
+      const cost = Lt.awayAdCost(s);
+      btns.push(button(tr(sim, 'letting.advertise_in', { settlement: s, money: cost }), 'let_away', { s }, { disabled: p.money < cost }));
+    }
+    html += `<div class="btn-row">${btns.join(' ')}</div>`;
+    html += `<div class="muted small">${escapeHtml(t(away.length || Lt.S.ads.some((a) => a.building === id) ? 'letting.hint' : 'letting.hint_no_contacts'))}</div>`;
+    return html;
   }
 
   /** Owner, staff, pay and prices, reputation, the week's books, what's on the shelves. */
@@ -217,6 +252,15 @@ export class PropertyPanel extends Panel {
         else this.sim.toast(`reason.${r.reason}`, r.params || {}, 'warn');
         break;
       }
+      case 'let_sign':
+        this.sim.letting.list(this.bid, data.on === '1');
+        break;
+      case 'let_ad':
+        this.sim.letting.advertise(this.bid);
+        break;
+      case 'let_away':
+        this.sim.letting.advertiseAway(this.bid, data.s);
+        break;
       case 'rent_level':
         P.setRentLevel(this.bid, data.level);
         break;
@@ -232,7 +276,7 @@ export class PropertyPanel extends Panel {
         const m = Number(data.money);
         const p = this.sim.state.player;
         if (p.money >= m) {
-          p.money -= m;
+          this.sim.ledger ? this.sim.ledger.as('donations', () => (p.money -= m)) : (p.money -= m);
           this.sim.state.village.treasury += m;
           p.donated = (p.donated || 0) + m;
           this.sim.progression.addReputation(m / 50);

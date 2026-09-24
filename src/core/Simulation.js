@@ -36,6 +36,8 @@
  *    ├── settlements  SettlementSystem (other places beyond the valley, caravans, your trade journeys, roads)
  *    ├── legacy       LegacySystem (your family's deeds and renown, passed down the generations)
  *    ├── civic        CivicSystem (headman and council, elections, policies, institutions, the valley's status)
+ *    ├── letting      LettingSystem (finding tenants for your houses: signs, viewings, advertisements)
+ *    ├── ledger       LedgerSystem (where your money comes from and goes, day by day; your net worth)
  *    ├── actions      PlayerActionSystem
  *    ├── home         HomeSystem (tier, storage chest, comfort)
  *    ├── crafting     CraftingSystem (recipes at stations)
@@ -95,6 +97,8 @@ import { GoalSystem } from '../systems/GoalSystem.js';
 import { SettlementSystem } from '../systems/SettlementSystem.js';
 import { LegacySystem } from '../systems/LegacySystem.js';
 import { CivicSystem } from '../systems/CivicSystem.js';
+import { LedgerSystem } from '../systems/LedgerSystem.js';
+import { LettingSystem } from '../systems/LettingSystem.js';
 import { rand } from './rng.js';
 
 const MAX_CHRONICLE = 200;
@@ -150,7 +154,9 @@ export class Simulation {
     this.goals = new GoalSystem(this);
     this.settlements = new SettlementSystem(this);
     this.legacy = new LegacySystem(this);
-    this.civic = new CivicSystem(this); // last: it weighs up everyone and everything
+    this.civic = new CivicSystem(this); // it weighs up everyone and everything
+    this.letting = new LettingSystem(this);
+    this.ledger = new LedgerSystem(this); // last: it watches the others handle your money
     this.jobs.ensureOpenings();
     this.bus.on('time:day', () => this.onNewDay());
   }

@@ -115,6 +115,8 @@ export class DialoguePanel extends Panel {
         opt(tr(sim, 'dialog.opt.give_request', { qty: req.qty, item: req.item }), 'fulfill', { id: req.id }, !ok, ok ? '' : t('dialog.opt.have_n', { have: sim.inventory.count(req.item), qty: req.qty }));
       }
       opt(t('dialog.opt.gift'), 'gift_menu', {}, !sim.social.canGift(npc), sim.social.canGift(npc) ? '' : t('dialog.opt.gift_done'));
+      // A house of yours standing empty: ask if they'd like to rent it (LettingSystem).
+      if (npc.age >= 18 && npc.homeId !== sim.state.player.homeId && Object.keys(sim.property.all).some((id) => sim.letting.lettable(id))) opt(t('dialog.opt.offer_house'), 'offer_house', {}, npc.houseAskedDay === sim.time.day, npc.houseAskedDay === sim.time.day ? t('dialog.opt.asked_already') : '');
       const L = sim.lineage;
       if (sim.state.player.partner === npc.id) {
         const c = L.canPropose(npc);
@@ -291,6 +293,12 @@ export class DialoguePanel extends Panel {
       case 'gift_menu':
         this.view = 'gift';
         break;
+      case 'offer_house': {
+        npc.houseAskedDay = sim.time.day;
+        const r = sim.letting.ask(npc);
+        this.line = r.ok ? this.say('dialog.let_yes', { building: r.building, money: sim.property.weeklyRent(r.building) }) : this.say(`dialog.let_no.${r.reason}`, { building: r.building });
+        break;
+      }
       case 'give_gift': {
         const r = sim.social.gift(npc, data.item);
         if (r) this.line = this.say(r.liked ? 'dialog.gift_love' : 'dialog.gift_ok', { item: data.item });

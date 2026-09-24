@@ -174,6 +174,8 @@ export function getActions(scene, target) {
 /** A construction site (or your house while it's being upgraded). */
 function siteActions(scene, c, add) {
   const sim = scene.sim;
+  // A hauling job: the materials you carried are for this site.
+  if (sim.jobs.canTurnInSite(c.id)) add('action.deliver_haul', { qty: sim.jobs.active.qty, item: sim.jobs.active.item }, () => sim.jobs.turnInSite(c.id));
   add('action.work_site', {}, () => scene.workOnSite(c), sim.construction.canWork(c));
   const missing = sim.construction.missing(c);
   const carrying = Object.keys(missing).some((id) => sim.inventory.count(id) > 0);
@@ -311,14 +313,20 @@ function buildingActions(scene, id, add) {
   }
 
   // Job steps first — they're usually the reason you came.
-  if (jobs.canPickup(id)) add('action.pickup_package', {}, () => jobs.pickup());
+  if (jobs.canPickup(id)) {
+    const job = jobs.active;
+    if (job.type === 'haul') add('action.pickup_haul', { qty: job.qty, item: job.item }, () => jobs.pickup());
+    else if (job.type === 'rounds') add('action.pickup_letters', { n: job.targets.length }, () => jobs.pickup());
+    else add('action.pickup_package', {}, () => jobs.pickup());
+  }
   if (jobs.canTurnIn(id)) {
     const job = jobs.active;
-    if (job.type === 'courier') add('action.deliver_package', {}, () => jobs.turnIn());
-    else add('action.deliver_goods', { qty: job.qty, item: job.item }, () => jobs.turnIn());
+    if (job.type === 'courier') add('action.deliver_package', {}, () => jobs.turnIn(id));
+    else if (job.type === 'rounds') add('action.deliver_letter', {}, () => jobs.turnIn(id));
+    else add('action.deliver_goods', { qty: job.qty, item: job.item }, () => jobs.turnIn(id));
   }
   const job = jobs.active;
-  if (job?.type === 'shift' && job.stage === 'go' && jobs.employerBuilding(job.jobId).id === id) {
+  if (job?.type === 'shift' && job.stage === 'go' && jobs.jobBuilding(job)?.id === id) {
     add('action.start_shift', { hours: JOBS[job.jobId].durationHours }, () => scene.workShift(), jobs.canStartShift(id));
   }
 

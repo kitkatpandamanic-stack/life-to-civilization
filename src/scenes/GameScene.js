@@ -299,7 +299,7 @@ export class GameScene extends Phaser.Scene {
     if (this.busy) return;
     const sim = this.sim;
     const job = sim.jobs.active;
-    const check = sim.jobs.canStartShift(sim.jobs.employerBuilding(job.jobId).id);
+    const check = sim.jobs.canStartShift(sim.jobs.jobBuilding(job)?.id);
     if (!check.ok) return;
     this.busy = true;
     this.player.cancelAction();
@@ -460,7 +460,7 @@ export class GameScene extends Phaser.Scene {
         p.energy = Math.max(p.energy, 40);
         p.hunger = Math.max(p.hunger, 35);
         const fee = Math.min(Math.max(0, Math.floor(p.money)), BALANCE.needs.collapseFee);
-        p.money -= fee;
+        sim.ledger ? sim.ledger.as('health', () => (p.money -= fee)) : (p.money -= fee);
         sim.needs.resolveEmergency();
         this.player.setHidden(false);
         this.busy = false;

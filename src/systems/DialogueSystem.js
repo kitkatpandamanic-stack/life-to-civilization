@@ -19,7 +19,7 @@ const PLAYER_MEMORY_LINES = new Set([
   'player_promoted', 'player_loved_gift', 'player_helped', 'player_let_down', 'bought_from_player', 'quit_player',
   'heard_player_good', 'heard_player_bad', 'saw_friend_fired', 'player_failed_job', 'left_player_for_business',
   'player_helped_build', 'player_fought_fire', 'explored_with_player', 'sold_business_to_player',
-  'player_backed_dream', 'player_asked_stay', 'player_let_down_backer',
+  'player_backed_dream', 'player_asked_stay', 'player_let_down_backer', 'rented_from_player',
 ]);
 const SELF_MEMORY_LINES = new Set([
   'got_job', 'quit_job', 'unpaid_wages', 'promoted_rank', 'grew_up', 'took_up_hobby', 'was_sick', 'went_hungry', 'slept_rough',

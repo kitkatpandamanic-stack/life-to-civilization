@@ -35,6 +35,7 @@ import { PropertyPanel } from './panels/PropertyPanel.js';
 import { ExpeditionPanel } from './panels/ExpeditionPanel.js';
 import { JourneyPanel } from './panels/JourneyPanel.js';
 import { HallPanel } from './panels/HallPanel.js';
+import { AffairsPanel } from './panels/AffairsPanel.js';
 
 const REFRESH_EVENTS = ['inventory:changed', 'storage:changed', 'construction:changed', 'land:changed', 'workers:changed', 'business:changed', 'player:changed', 'jobs:changed', 'economy:changed', 'social:changed', 'player:levelup', 'player:skillup', 'chronicle'];
 
@@ -145,6 +146,7 @@ export class UIManager {
       ['M', 'ui.map', 'map'],
       ['B', 'ui.key_build', 'build'],
       ['K', 'ui.workers', 'workers'],
+      ['L', 'affairs.title', 'affairs'],
       ['Q', 'ui.key_eat', null],
       ['Esc', 'ui.menu', 'menu'],
     ];
@@ -415,6 +417,7 @@ export class UIManager {
       menu: () => new MenuPanel(this),
       build: () => new BuildPanel(this),
       workers: () => new WorkersPanel(this),
+      affairs: () => new AffairsPanel(this),
     };
     if (factories[id]) this.openPanel(factories[id]());
   }
@@ -532,7 +535,7 @@ export class UIManager {
       this.scene.interaction.interact('F');
       return;
     }
-    const panelKeys = { KeyI: 'inventory', KeyC: 'character', KeyJ: 'journal', KeyM: 'map', KeyK: 'workers' };
+    const panelKeys = { KeyI: 'inventory', KeyC: 'character', KeyJ: 'journal', KeyM: 'map', KeyK: 'workers', KeyL: 'affairs' };
     if (panelKeys[code]) {
       this.closeContextMenu();
       this.togglePanel(panelKeys[code]);

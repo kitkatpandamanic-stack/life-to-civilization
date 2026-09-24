@@ -351,6 +351,8 @@ export class NPCSystem {
     // 5. No job? Go and look for one (mornings).
     const labouring = npc.dayLabour?.day === this.time.day;
     if (occ.seeksJob && npc.age >= 16 && h >= 8 && h < 13 && npc.searchedDay !== this.time.day && !labouring) return { type: 'job_search' };
+    // Coming to look at a house you're letting (LettingSystem): in the evening, after work.
+    if (npc.viewing && npc.viewing.day === this.time.day && h >= 16 && h < 20) return { type: 'viewing', where: npc.viewing.building };
     // 6. Evening: food, shopping, socializing — then home.
     if (npc.hunger < NB.eatAt) return this.eatChoice(npc, false);
     // Decided to go furniture shopping at the player's workshop (see BusinessSystem.pickCustomers).
@@ -481,6 +483,18 @@ export class NPCSystem {
         npc.task.stage = 'running';
         return this.walkTo(npc, b.door.tx + rand.int(-2, 2), b.door.ty + rand.int(0, 1));
       }
+      case 'viewing': {
+        // Walk over and look the house over from the doorstep.
+        const b = this.world.buildings[desired.where];
+        if (!b) {
+          npc.task.done = true;
+          return;
+        }
+        this.leaveBuilding(npc);
+        npc.task.target = { building: desired.where };
+        npc.task.stage = 'walking';
+        return this.walkTo(npc, b.door.tx, b.door.ty + 1);
+      }
       case 'leave': {
         const to = npc.leaveTo || { tx: 6, ty: 46 };
         npc.task.stage = 'walking';
@@ -519,6 +533,9 @@ export class NPCSystem {
         else task.done = true;
       }
     } else if ((task.type === 'eat' || task.type === 'shop') && task.stage === 'inside' && now >= task.until) {
+      task.done = true;
+    } else if (task.type === 'viewing' && task.stage === 'looking' && now >= task.until) {
+      this.sim.letting?.decide(npc); // seen enough: yes or no
       task.done = true;
     }
   }
@@ -626,6 +643,13 @@ export class NPCSystem {
       case 'leave':
         this.departed(npc);
         break;
+      case 'viewing': {
+        task.stage = 'looking';
+        task.until = now + 30;
+        const b = this.world.buildings[task.target.building];
+        if (b) this.face(npc, b.door.tx, b.door.ty);
+        break;
+      }
       case 'firefight':
         task.stage = 'fighting';
         this.face(npc, this.world.buildings[task.target.building].door.tx, this.world.buildings[task.target.building].ty + 1);
@@ -1443,6 +1467,8 @@ export class NPCSystem {
       }
       case 'firefight':
         return { key: moving ? 'running_to_fire' : 'fighting_fire', params: { building: t.target?.building } };
+      case 'viewing':
+        return { key: moving ? 'going_to_view' : 'viewing_house', params: { building: t.target?.building } };
       case 'school':
         return { key: npc.occupation === 'child' ? (moving ? 'going_to_school' : 'at_school') : 'teaching', params: { building: t.data?.where } };
       case 'leisure':
@@ -1471,6 +1497,7 @@ export class NPCSystem {
     if (npc.task?.type === 'job_search') return '🔎';
     if (npc.task?.type === 'leave' || npc.goal?.packDay) return '🧳'; // leaving — or packing to
     if (npc.task?.type === 'firefight') return '🪣';
+    if (npc.task?.type === 'viewing') return '🔑';
     if (npc.task?.type === 'leisure' && npc.task.plan === 'build' && npc.task.stage === 'idle') return '🔨';
     if (npc.unpaidDays > 0) return '💸';
     if (npc.carry) return npc.carry.item === 'wood' ? '🪵' : npc.carry.item === 'fish' ? '🐟' : '🪨';

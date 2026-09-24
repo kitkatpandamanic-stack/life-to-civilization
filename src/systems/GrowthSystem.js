@@ -514,10 +514,14 @@ export class GrowthSystem {
   }
 
   /** Newcomers walk in along the west road. */
-  arrive() {
+  /**
+   * opts.homeId — they come for a particular house (your advertisement: LettingSystem) and move straight in;
+   * opts.from — the settlement they come from; opts.size — at most this many of them.
+   */
+  arrive(opts = {}) {
     const sim = this.sim;
     const r = rand.float();
-    const count = r < 0.55 ? 1 : r < 0.85 ? 2 : 3;
+    const count = Math.min(opts.size || 3, r < 0.55 ? 1 : r < 0.85 ? 2 : 3);
     const surnameIdx = rand.int(11, 29);
     const allTraits = Object.keys(TRAITS);
     const trades = ['farmhand', 'woodcutter', 'miner', 'store_clerk', 'tavern_server', 'baker_hand', 'carpenter_hand', 'fisher', null, null];
@@ -566,9 +570,11 @@ export class GrowthSystem {
     sim.state.settlement.migrantsArrived = (sim.state.settlement.migrantsArrived || 0) + people.length;
     sim.state.settlement.turnedAway = 0;
     // They come from somewhere: a known settlement (which loses them), or just "from the west".
-    const from = sim.settlements?.originFor(people.length);
+    const from = opts.from || sim.settlements?.originFor(people.length);
+    if (opts.from && sim.settlements) sim.settlements.get(opts.from).pop = Math.max(10, sim.settlements.get(opts.from).pop - people.length);
     for (const n of people) if (from) n.from = from;
-    sim.chronicle(from ? 'chronicle.migrants_from' : 'chronicle.migrants_arrived', { npc: first.id, gender: first.gender, n: people.length, settlement: from || undefined });
+    if (opts.homeId) sim.property.moveIn(people, opts.homeId, 'moved');
+    else sim.chronicle(from ? 'chronicle.migrants_from' : 'chronicle.migrants_arrived', { npc: first.id, gender: first.gender, n: people.length, settlement: from || undefined });
     sim.bus.emit('settlement:arrived', people.map((p) => p.id));
     return people;
   }

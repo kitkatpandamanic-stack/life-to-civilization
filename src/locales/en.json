@@ -687,7 +687,11 @@
     "found_outpost": "Found a {building_type} here ({money})",
     "look_around": "Look around",
     "journey": "Go on a trade journey",
-    "village_affairs": "Village affairs"
+    "village_affairs": "Village affairs",
+    "pickup_haul": "Load up: {item} ×{qty}",
+    "pickup_letters": "Collect the letters ({n})",
+    "deliver_letter": "Deliver a letter",
+    "deliver_haul": "Deliver the materials: {item} ×{qty}"
   },
   "reason": {
     "nothing_here": "Nothing to do here.",
@@ -795,7 +799,25 @@
     "needs_tech": "The village doesn't know how to make these yet ({tech}).",
     "too_new": "You haven't lived here long enough.",
     "no_bank": "The village has no bank.",
-    "bank_short": "The bank can't pay out right now."
+    "bank_short": "The bank can't pay out right now.",
+    "no_employer": "Nobody in the village runs one yet ({biz_type}).",
+    "employer_out_of_stock": "They've run out of {item} for now.",
+    "letting_too_dear": "the rent is more than they can pay",
+    "letting_too_small": "it's too small for the family",
+    "letting_distrust": "they don't trust you as a landlord",
+    "letting_not_worth_it": "not worth moving for",
+    "letting_happy_here": "happy where they are",
+    "letting_owns_home": "they own their home",
+    "letting_not_looking": "not looking",
+    "letting_curious": "just curious",
+    "letting_no_home": "has nowhere to live",
+    "letting_lodging": "lodging in a spare room",
+    "letting_crowded": "crowded at home",
+    "letting_own_place": "wants a place of their own",
+    "letting_near_work": "closer to work",
+    "letting_better_deal": "a better deal",
+    "not_lettable": "You can't let it as it is.",
+    "ad_out": "There's already a notice out for it."
   },
   "toast": {
     "hungry": "You're getting hungry. Press Q to eat.",
@@ -934,7 +956,15 @@
     "you_elected": "You've been elected headman ({n} votes)! Set the village's course in the hall.",
     "you_lost_election": "{npc} won the election. You got {n} votes.",
     "institution_founded": "The village now has a {institution}.",
-    "village_status": "The valley's settlement has become {status}!"
+    "village_status": "The valley's settlement has become {status}!",
+    "haul_picked": "You loaded up {item} ×{qty}. Take it to the building site.",
+    "letters_picked": "You have {n} letters to deliver.",
+    "letter_delivered": "Letter delivered. {n} to go.",
+    "viewing_booked": "{npc} would like to see your house ({building}) this evening.",
+    "viewing_declined": "{npc} looked at your house and said no: {letting}.",
+    "new_tenant": "{npc} is renting your house ({building}) for {money} a week.",
+    "ad_no_takers": "Nobody in {settlement} answered your notice about {building}.",
+    "newcomers_rented": "{npc} came from {settlement} to rent your house ({building})."
   },
   "objective": {
     "harvest": "Harvest ripe wheat in the farm fields ({have}/{qty})",
@@ -945,7 +975,14 @@
     "pickup": "Pick up the package at: {building}",
     "shift": "Go to {building} and start your shift ({hour}–{hour2})",
     "request": "{npc} needs {item} ×{qty} (you have {have})",
-    "first_tip": "You arrived with almost nothing. Find work: read the notice board on the plaza, or talk to villagers."
+    "first_tip": "You arrived with almost nothing. Find work: read the notice board on the plaza, or talk to villagers.",
+    "collect_berries": "Pick berries from the bushes ({have}/{qty})",
+    "collect_fish": "Catch fish at the river or lake ({have}/{qty})",
+    "collect_meat": "Hunt game in the woods ({have}/{qty})",
+    "pickup_letters": "Collect the letters at: {building}",
+    "deliver_letters": "Deliver the letters ({n} left) — next: {building}",
+    "haul_pickup": "Collect {item} ×{qty} at: {building}",
+    "haul_deliver": "Carry {item} ×{qty} to the building site"
   },
   "job": {
     "farm_harvest": {
@@ -975,6 +1012,78 @@
     "smith_apprentice": {
       "name": "Smith's apprentice",
       "desc": "Work the bellows and swing the hammer at the forge. Hard work, good pay."
+    },
+    "farm_chores": {
+      "name": "Morning chores at the farm",
+      "desc": "Feed the animals, muck out, carry water. An early start."
+    },
+    "spring_planting": {
+      "name": "Spring planting",
+      "desc": "Help the farmer sow the fields while the ground is soft."
+    },
+    "firewood": {
+      "name": "Firewood for the tavern",
+      "desc": "The tavern's fires and oven need feeding. Chop wood and bring it in."
+    },
+    "tavern_cellar": {
+      "name": "Cellar work",
+      "desc": "Roll barrels, stack crates and sweep out the tavern's cellar."
+    },
+    "berry_picking": {
+      "name": "Berry picking",
+      "desc": "The store sells wild berries. Pick them from the bushes and bring them in."
+    },
+    "market_porter": {
+      "name": "Unloading carts",
+      "desc": "Help unload the carts at the store and carry the goods inside."
+    },
+    "mail_rounds": {
+      "name": "Letter rounds",
+      "desc": "Collect letters at the store and deliver one to each house on the list."
+    },
+    "snow_clearing": {
+      "name": "Clearing snow",
+      "desc": "Shovel the snow from in front of the shops so customers can get in."
+    },
+    "lumber_haul": {
+      "name": "Timber haul",
+      "desc": "Carry a load of timber from the lumberyard to a house being built in the village."
+    },
+    "fish_catch": {
+      "name": "Fish for the tavern",
+      "desc": "The tavern wants fresh fish for tonight's pot. Needs a fishing rod."
+    },
+    "tavern_server": {
+      "name": "Evening at the tavern",
+      "desc": "Serve food and drink on a busy evening. Tips are good if people like you."
+    },
+    "stone_haul": {
+      "name": "Stone haul",
+      "desc": "Carry stone from the quarry to a building site in the village."
+    },
+    "bakery_shift": {
+      "name": "Early shift at the bakery",
+      "desc": "Knead dough and fire the ovens before dawn. Smells wonderful."
+    },
+    "carpenter_helper": {
+      "name": "Carpenter's helper",
+      "desc": "Saw, plane and hold things steady in the carpenter's workshop."
+    },
+    "warehouse_loader": {
+      "name": "Warehouse loader",
+      "desc": "Load and unload the carts and caravans at the warehouse."
+    },
+    "fishery_crew": {
+      "name": "Fishing crew",
+      "desc": "Fish for the fishery and bring in the catch. Needs a fishing rod."
+    },
+    "hunt_meat": {
+      "name": "Game for the tavern",
+      "desc": "Hunt deer or rabbits and bring the meat to the tavern. Needs a bow."
+    },
+    "mill_hand": {
+      "name": "Mill hand",
+      "desc": "Heave sacks of grain and flour at the mill. Hard, honest work."
     }
   },
   "chronicle": {
@@ -1154,7 +1263,9 @@
     "policy_tax_high": "The headman raised the village taxes.",
     "policy_relief_low": "The headman cut poor relief.",
     "policy_relief_normal": "The headman set poor relief back to normal.",
-    "policy_relief_high": "The headman made poor relief more generous."
+    "policy_relief_high": "The headman made poor relief more generous.",
+    "npc_rented_player": "{npc} moved into {building}, rented from you.",
+    "newcomers_rented": "{npc} came from {settlement} to rent {building} from you ({n} in all)."
   },
   "event": {
     "good_harvest": {
@@ -1733,7 +1844,12 @@
     "goal_saved": "Saved",
     "goal_because": "Because:",
     "goals_done": "Achieved",
-    "goal_against": "Holding them back:"
+    "goal_against": "Holding them back:",
+    "job_rounds": "Deliver {n} letters",
+    "job_haul": "Carry {item} ×{qty} to a building site",
+    "jobs_available": "You can take {n} of {total} jobs right now.",
+    "req_tool_bow": "Own a bow",
+    "req_tool_fishing_rod": "Own a fishing rod"
   },
   "dialog": {
     "intro": [
@@ -2114,7 +2230,8 @@
       "back_business": "I'll put {money} into your business (for {n}% of it).",
       "ask_stay": "Please — stay in the valley.",
       "asked_already": "you asked recently",
-      "offer_job": "I could give you work."
+      "offer_job": "I could give you work.",
+      "offer_house": "I have a house to let…"
     },
     "no_gifts": "You have nothing suitable to give.",
     "chat_again": [
@@ -2220,7 +2337,38 @@
     "stay_no": [
       "I'm sorry. My mind's made up.",
       "It's kind of you. But there's nothing for me here."
-    ]
+    ],
+    "let_yes": [
+      "A house? {building}, for {money} a week? Yes — we'll take it!",
+      "You've no idea how long I've been waiting for something like this. We'll move in right away."
+    ],
+    "let_no": {
+      "too_dear": [
+        "I'd love to, but I couldn't pay that rent.",
+        "That's more than I earn in a week, near enough. Too dear for me."
+      ],
+      "too_small": [
+        "It's too small for all of us, I'm afraid."
+      ],
+      "distrust": [
+        "Rent from you? After what happened? No, thank you."
+      ],
+      "not_worth_it": [
+        "It's not bad, but it's not worth moving for."
+      ],
+      "happy_here": [
+        "Thank you, but I'm happy where I am."
+      ],
+      "owns_home": [
+        "I've a house of my own, thank you."
+      ],
+      "not_looking": [
+        "I'm not looking for a house just now."
+      ],
+      "no_house": [
+        "You don't have a house free, do you?"
+      ]
+    }
   },
   "rank": {
     "apprentice": "apprentice {occ}",
@@ -2286,7 +2434,9 @@
     "fighting_fire": "Fighting the fire ({building})",
     "going_to_school": "Off to school",
     "at_school": "At school",
-    "teaching": "Teaching at the school"
+    "teaching": "Teaching at the school",
+    "going_to_view": "Going to look at a house to rent",
+    "viewing_house": "Looking over a house to rent"
   },
   "schedule": {
     "wake": "Wake up",
@@ -2729,7 +2879,8 @@
     "player_asked_stay": "You talked them into staying in the valley.",
     "player_let_down_backer": "Couldn't pay back all the money you put up.",
     "became_headman": "Was elected headman.",
-    "bank_loan": "Borrowed {money} from the village bank."
+    "bank_loan": "Borrowed {money} from the village bank.",
+    "rented_from_player": "Rented a house from you: {building}."
   },
   "talk": {
     "deflect": [
@@ -3086,6 +3237,10 @@
       ],
       "bank_loan": [
         "The bank lent me the money to start out. Now I have to make it pay."
+      ],
+      "rented_from_player": [
+        "Thank you for the house. It's good to have a proper home.",
+        "The house you let us suits us fine. Mind the roof in spring, though."
       ]
     },
     "work": {
@@ -4926,5 +5081,164 @@
     "player_bought_business": "{name} took over {building}.",
     "player_benefactor": "{name} gave a building back to the village.",
     "player_upgraded": "{name} made the family home into {tier}."
+  },
+  "affairs": {
+    "title": "Your affairs",
+    "tab_summary": "Summary",
+    "tab_finances": "Finances",
+    "tab_possessions": "Possessions",
+    "tab_property": "Property & business",
+    "tab_records": "Records",
+    "generation": "Generation {n}",
+    "days_in": "{n} days in {place}",
+    "role_headman": "headman",
+    "net_worth": "Net worth",
+    "worth_cash": "Cash in hand",
+    "worth_bank": "Savings in the bank",
+    "worth_goods": "Goods and materials",
+    "worth_buildings": "Buildings",
+    "worth_land": "Land",
+    "worth_businesses": "Businesses",
+    "worth_investments": "Stakes and loans",
+    "worth_debts": "Debts",
+    "nothing_yet": "Nothing yet — everyone starts somewhere.",
+    "this_week": "This week",
+    "income": "Income",
+    "spending": "Spending",
+    "net": "Net",
+    "standing": "At a glance",
+    "money_now": "Money",
+    "reputation": "Reputation",
+    "home": "Home",
+    "workers": "Workers",
+    "businesses": "Businesses",
+    "jobs_done": "Jobs done",
+    "current_job": "Current job",
+    "period_week": "This week",
+    "period_last": "Last week",
+    "period_month": "4 weeks",
+    "period_all": "All time",
+    "none": "Nothing here yet.",
+    "last_14": "The last 14 days",
+    "day_tip": "In {in} · out {out}",
+    "transfers": "Money moved",
+    "transfers_hint": "Money put in or taken out of the bank or your businesses' tills, borrowed or repaid, or inherited — not earned or spent.",
+    "coming_due": "Coming due",
+    "rent_due": "Rent (due in {n} days)",
+    "loan_due": "Loan repayment ({left} left)",
+    "wages_day": "Your workers' wages, per day",
+    "upkeep_week": "Feed for your animals, per week",
+    "last_taxes": "Taxes you paid last week",
+    "pockets_chest": "{a} + {b}",
+    "cat_resource": "Raw materials",
+    "cat_material": "Materials",
+    "cat_food": "Food",
+    "cat_seed": "Seeds",
+    "cat_furniture": "Furniture",
+    "cat_tool": "Tools",
+    "cat_quest": "Other",
+    "no_goods": "You own nothing but the clothes on your back.",
+    "goods_value": "Worth altogether",
+    "carrying": "Carrying and storage",
+    "pockets": "Pockets (weight)",
+    "chest": "Storage chest (weight)",
+    "tools": "Tools and their wear",
+    "no_tools": "No tools.",
+    "buildings": "Buildings",
+    "rented": "rented out: {n} people, {money}/week",
+    "your_home": "your home",
+    "empty": "empty",
+    "condition": "condition {n}%",
+    "land": "Land",
+    "outposts": "Outposts",
+    "profit_week": "(profit this week)",
+    "biz_line": "till {money} · {n} staff",
+    "investments": "Stakes and loans",
+    "stake": "{n}% stake · paid you {money}",
+    "loan_out": "loan · {money} still owed",
+    "closed": "closed",
+    "day": "day",
+    "lifetime": "A lifetime",
+    "rec_jobs_done": "Jobs done",
+    "rec_favours": "Favours for villagers",
+    "rec_contracts": "Contracts fulfilled",
+    "rec_earned": "Earned in all",
+    "rec_spent": "Spent in all",
+    "rec_trees": "Trees felled",
+    "rec_rocks": "Rocks broken",
+    "rec_crops": "Crops harvested",
+    "rec_crafted": "Things made",
+    "rec_masterworks": "Masterworks",
+    "rec_expeditions": "Expeditions",
+    "rec_journeys": "Trade journeys",
+    "rec_sites": "Places explored",
+    "rec_deeds": "Deeds remembered",
+    "perks": "Perks",
+    "ambitions": "Ambitions achieved"
+  },
+  "ledger": {
+    "jobs": "Jobs",
+    "favours": "Favours",
+    "contracts": "Contracts",
+    "shopping": "Shopping",
+    "sales": "Sales",
+    "repairs": "Tool repairs",
+    "business": "Your workshop",
+    "staff": "Workers' wages",
+    "taxes": "Taxes",
+    "loans": "Village loan",
+    "rent": "Rent",
+    "rent_income": "Rent from tenants",
+    "property": "Land and property",
+    "building": "Building",
+    "crafting": "Forge hire",
+    "food": "Meals out",
+    "lodging": "Beds at the inn",
+    "trade": "Trade journeys",
+    "losses": "Losses (robbery, accidents)",
+    "transport": "Transport and feed",
+    "donations": "Roads and gifts to the village",
+    "travel": "Expeditions",
+    "finds": "Finds",
+    "businesses": "Buying and opening businesses",
+    "business_till": "Your businesses' tills",
+    "investments": "Investments",
+    "dividends": "Dividends",
+    "headman": "Headman's stipend",
+    "bank": "The bank",
+    "family": "Family and inheritance",
+    "other": "Other",
+    "health": "Healer",
+    "advertising": "Advertising your houses"
+  },
+  "letting": {
+    "title": "Tenants",
+    "tenants": "Let to",
+    "tenants_line": "{n} people · {money} a week",
+    "not_fit": "Nobody will rent it as it is — it needs repairs first (or it's not empty).",
+    "sign": "\"To let\" sign",
+    "sign_up": "up",
+    "sign_down": "not up",
+    "interested": "Might take it at this rent",
+    "interested_n": "{n} villagers",
+    "put_off": "What puts others off: {reason}",
+    "viewing_today": "{npc} is coming to look at it this evening.",
+    "advertised_until": "Advertised in the village for {n} more days.",
+    "ad_out": "Notice posted in {settlement} — answers in about {n} days.",
+    "put_up": "Put up a \"to let\" sign",
+    "take_down": "Take the sign down",
+    "advertise": "Advertise in the village ({money})",
+    "advertise_in": "Advertise in {settlement} ({money})",
+    "hint": "With the sign up, villagers who could use a better home come to look at it in the evening. Advertising reaches people who aren't even looking. A notice in another town can bring a family from there. Cheaper rent means more takers.",
+    "hint_no_contacts": "With the sign up, villagers who could use a better home come to look at it in the evening. Advertising reaches people who aren't even looking. Once the valley trades with other towns, you can advertise there too."
+  },
+  "letting_why": {
+    "no_home": "has nowhere to live",
+    "lodging": "lodging in a spare room",
+    "crowded": "crowded at home",
+    "own_place": "wants a place of their own",
+    "near_work": "closer to work",
+    "better_deal": "a better deal than now",
+    "curious": "saw your notice"
   }
 }

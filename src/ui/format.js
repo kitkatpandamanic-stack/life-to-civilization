@@ -111,6 +111,7 @@ export function resolveParams(sim, params = {}) {
     else if (k === 'status') out[k] = t(`village_status.${v}`);
     else if (k === 'renown') out[k] = t(`renown.${v}`);
     else if (k === 'deed') out[k] = deedText(sim, v);
+    else if (k === 'letting') out[k] = t(`reason.letting_${v}`);
   }
   return out;
 }
