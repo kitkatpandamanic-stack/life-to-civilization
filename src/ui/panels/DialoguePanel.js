@@ -11,6 +11,7 @@ import { button, portrait, hearts, icon, bar, card } from '../widgets.js';
 import { ITEMS } from '../../data/items.js';
 import { JobBoardPanel } from './JobBoardPanel.js';
 import { GOAL_AGAINST } from '../../data/goals.js';
+import { RENTAL } from '../../data/housing.js';
 
 export class DialoguePanel extends Panel {
   constructor(ui, npcId) {
@@ -117,6 +118,15 @@ export class DialoguePanel extends Panel {
       opt(t('dialog.opt.gift'), 'gift_menu', {}, !sim.social.canGift(npc), sim.social.canGift(npc) ? '' : t('dialog.opt.gift_done'));
       // A house of yours standing empty: ask if they'd like to rent it (LettingSystem).
       if (npc.age >= 18 && npc.homeId !== sim.state.player.homeId && Object.keys(sim.property.all).some((id) => sim.letting.lettable(id))) opt(t('dialog.opt.offer_house'), 'offer_house', {}, npc.houseAskedDay === sim.time.day, npc.houseAskedDay === sim.time.day ? t('dialog.opt.asked_already') : '');
+      // Someone you get on with could look after your houses (LettingSystem).
+      if (npc.age >= 20 && sim.letting.yourHouses().length) {
+        const Lt = sim.letting;
+        if (Lt.manager?.npc === npc.id) opt(t('dialog.opt.end_manager'), 'end_manager');
+        else if (!Lt.manager) {
+          const c = Lt.canHireManager(npc);
+          opt(t('dialog.opt.ask_manager', { n: Math.round(RENTAL.managerFee * 100) }), 'ask_manager', {}, !c.ok, c.ok ? '' : tr(sim, `reason.${c.reason}`, c.params || {}));
+        }
+      }
       // Learning from them, teaching them, paying for their studies (StudySystem).
       const St = sim.study;
       const tut = St.tutoring(npc);
@@ -340,6 +350,15 @@ export class DialoguePanel extends Panel {
         this.line = r.ok ? this.say('dialog.sponsor_yes', { settlement: r.uni, field: r.degree }) : this.say('dialog.sponsor_no');
         break;
       }
+      case 'ask_manager': {
+        const r = sim.letting.hireManager(npc);
+        this.line = this.say(r.ok ? 'dialog.manager_yes' : 'dialog.manager_no', { n: Math.round(RENTAL.managerFee * 100) });
+        break;
+      }
+      case 'end_manager':
+        sim.letting.dismissManager();
+        this.line = this.say('dialog.manager_ended');
+        break;
       case 'offer_house': {
         npc.houseAskedDay = sim.time.day;
         const r = sim.letting.ask(npc);

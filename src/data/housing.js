@@ -56,6 +56,30 @@ export const PUBLIC_BUILDINGS = ['hall'];
 /** Kinds of building that serve everyone: never left empty, never abandoned (the village keeps them up). */
 export const PUBLIC_TYPES = ['well', 'storage_shed', 'school', 'grammar_school', 'trade_school', 'institute', 'library', 'mill', 'market_hall', 'watch_house', 'clinic', 'guild_hall', 'bank'];
 
+/** Renting homes out: what you may ask, notice, upkeep, managers, villagers who invest in houses to let. */
+export const RENTAL = {
+  minAsk: 0.4, // the rent you ask can go from this share of the going rent…
+  maxAsk: 2.5, // …to this many times it
+  noticeDays: 7, // given notice, a household has a week to find somewhere else
+  minStayDays: 14, // a tenancy can't be ended without cause before this
+  noticeRep: 1, // putting out a tenant who pays costs you a little standing
+  raiseTolerance: 1.35, // tenants give notice if the rent goes this far above the going rent (or beyond their means)
+  upkeepPerDay: 1, // keeping a house you let out in repair (paid to the lumberyard)
+  pastTenants: 6, // how many past tenancies a house remembers
+  investChance: 0.1, // per week, a well-off villager may buy a house to let…
+  investDemand: 1.0, // …when homes are in demand (PropertySystem.demand)
+  investReserve: 1.6, // …if they have the price × this
+  investExtra: 150, // …and this much besides
+  maxRentals: 3, // houses one villager lets out at most
+  managerFee: 0.1, // a property manager takes this share of the rent…
+  managerMinFee: 3, // …and at least this a week
+  managerRel: 15, // someone who'll look after your houses must think this well of you
+  managerRepairBelow: 60, // they have houses repaired when they fall below this condition
+  managerRepairMarkup: 1.3, // (paying a builder: money for the materials too)
+  managerAdAfter: 3, // days empty before they pay for an advertisement
+  managerNoticeWeeks: 2, // weeks behind before they give a tenant notice
+};
+
 export const HOUSING = {
   rentPerWeekShare: 0.045, // weekly rent ≈ 4.5% of the home's value
   villageEvictWeeks: 4, // the village is patient with tenants who can't pay…

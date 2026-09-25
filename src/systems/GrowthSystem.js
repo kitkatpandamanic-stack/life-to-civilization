@@ -250,14 +250,14 @@ export class GrowthSystem {
     const m = G.lotMargin;
     const rect = [lot.tx - m, lot.ty - m, lot.tx + def.w - 1 + m, lot.ty + def.h - 1 + m];
     if (owner === 'village') {
-      T2.acquireLot('village', ...rect, { pay: false });
+      T2.acquireLot('village', ...rect, { pay: false, whole: true });
       return;
     }
     const price = T2.lotPrice(owner.id, ...rect);
     const paid = Math.max(0, Math.min(price, Math.floor((owner.money - cost) * 0.5)));
     owner.money -= paid;
     T2.payTo('village', paid);
-    T2.acquireLot(owner.id, ...rect, { pay: false, price: paid, how: paid < price ? 'granted' : 'lot' });
+    T2.acquireLot(owner.id, ...rect, { pay: false, price: paid, how: paid < price ? 'granted' : 'lot', whole: true });
   }
 
   /** Weekly: who needs to build, and who can? */

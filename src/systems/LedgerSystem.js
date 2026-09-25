@@ -39,6 +39,8 @@ const SOURCES = [
   ['finance', 'borrow', 'loans'],
   ['finance', 'repay', 'loans'],
   ['property', 'collectRent', 'rent_income'],
+  ['property', 'onDay', 'upkeep'],
+  ['letting', 'onDay', 'management'],
   ['property', 'market', 'property'],
   ['property', 'playerBuy', 'property'],
   ['property', 'restore', 'property'],

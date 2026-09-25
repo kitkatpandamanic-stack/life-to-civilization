@@ -106,6 +106,21 @@ export function installDebugPanel(dev) {
     },
     wspots: () => (showSpots = !showSpots),
     wdog: (sim) => sim.workers.watchdog(),
+    // Renting: a house of yours with a household in it, and rent day at once.
+    rental: (sim) => {
+      const P = sim.property;
+      const id = P.homes().find((h) => P.isVacant(h) && P.rec(h).owner !== 'player') || P.homes().find((h) => P.isVacant(h));
+      if (!id) return console.log('no vacant house');
+      if (P.rec(id).owner !== 'player') P.transfer(id, 'player', 'gift');
+      const n = sim.state.npcs.find((x) => x.age >= 18 && x.homeId !== id && P.rec(x.homeId)?.owner !== x.id && !P.lease(x.homeId)) || sim.state.npcs.find((x) => x.age >= 18);
+      sim.letting.moveIn(n, id, 'debug');
+      console.log('rental', id, 'tenant', n.id, P.lease(id));
+    },
+    rentday: (sim) => {
+      sim.property.collectRent();
+      sim.property.market();
+      console.log('rent day', sim.state.letting.lastRent);
+    },
     hire3: (sim) => {
       const look = sim.state.npcs[0].look;
       for (let i = 0; i < 3; i++) {
@@ -235,7 +250,7 @@ export function installDebugPanel(dev) {
         ${btn('contact', 'Contact all settlements')}${btn('week', 'Settlements: a week')}${btn('caravans', 'Send caravans')}${btn('horse', 'Get a horse cart')}
         ${btn('election', 'Election now')}${btn('headman', 'Make me headman')}${btn('fund', 'Fill civic fund')}${btn('renown', '+20 renown')}
         ${btn('edu_school', 'Build school')}${btn('edu_trade', 'Build trade school')}${btn('edu_institute', 'Build institute')}${btn('edu_teacher', 'Make a teacher')}${btn('edu_enrol', 'Enrol now')}
-        ${btn('hire3', 'Hire 3 workers')}${btn('edu_week', 'Education: a week')}${btn('edu_year', 'School year ends')}${btn('edu_research', '+20 research')}${btn('edu_spread', 'Know-how spreads')}${btn('edu_talent', 'Talented pupil')}${btn('edu_scholar', 'Scholar arrives')}${btn('edu_inspect', 'Inspect learning')}
+        ${btn('rental', 'A house to let, let')}${btn('rentday', 'Rent day')}${btn('hire3', 'Hire 3 workers')}${btn('edu_week', 'Education: a week')}${btn('edu_year', 'School year ends')}${btn('edu_research', '+20 research')}${btn('edu_spread', 'Know-how spreads')}${btn('edu_talent', 'Talented pupil')}${btn('edu_scholar', 'Scholar arrives')}${btn('edu_inspect', 'Inspect learning')}
       </div>
       ${workersHtml(sim)}
       <div class="dbg-sel">

@@ -12,7 +12,8 @@
  */
 import { Panel } from '../Panel.js';
 import { t, fmtMoney, npcName, itemName } from '../../i18n/i18n.js';
-import { escapeHtml, buildingLabel, villageName, parcelName } from '../format.js';
+import { escapeHtml, buildingLabel, villageName, parcelName, tr } from '../format.js';
+import { RENTAL } from '../../data/housing.js';
 import { bar, icon, tabs, portrait, stat, statGrid, emptyState } from '../widgets.js';
 import { propBadges } from '../property.js';
 import { ITEMS } from '../../data/items.js';
@@ -238,18 +239,26 @@ export class AffairsPanel extends Panel {
     const H = sim.holdings;
     // Your properties: what they bring in, what they cost, and each one's state at a glance.
     const mine = Object.entries(P.all).filter(([, r]) => r.owner === 'player').map(([id]) => id);
-    const rented = mine.filter((id) => id !== sim.state.player.homeId && P.isHome(id) && sim.npcs.residentsOf(id).some((n) => P.landlord(n) === 'player'));
-    const income = rented.reduce((s, id) => s + P.weeklyRent(id), 0);
-    const upkeep = mine.reduce((s, id) => s + (sim.finance?.propertyTax?.(id) || 0), 0);
-    const summary = mine.length ? statGrid([stat(t('affairs.props_n'), String(mine.length)), stat(t('affairs.rent_week'), fmtMoney(income), 'pos'), stat(t('affairs.tax_week'), fmtMoney(upkeep), upkeep ? 'neg' : ''), stat(t('affairs.net'), this.money(income - upkeep))]) : '';
+    const rented = mine.filter((id) => id !== sim.state.player.homeId && P.rentedOut(id));
+    const income = rented.reduce((s, id) => s + (P.lease(id)?.rent ?? P.weeklyRent(id)), 0);
+    // Taxes, the upkeep of houses let out, and the manager's share.
+    const Lt = sim.letting;
+    const fee = Lt.manager ? Math.max(RENTAL.managerMinFee, Math.round(income * RENTAL.managerFee)) : 0;
+    const upkeep = mine.reduce((s, id) => s + (sim.finance?.propertyTax?.(id) || 0), 0) + rented.length * RENTAL.upkeepPerDay * 7 + fee;
+    const summary = mine.length ? statGrid([stat(t('affairs.props_n'), String(mine.length)), stat(t('affairs.rent_week'), fmtMoney(income), 'pos'), stat(t('affairs.costs_week'), fmtMoney(upkeep), upkeep ? 'neg' : ''), stat(t('affairs.net'), this.money(income - upkeep))]) : '';
+    // The houses you let: how many are let, empty, under notice — and who manages them.
+    const houses = Lt.yourHouses();
+    const empty = houses.filter((id) => !P.occupants(id)).length;
+    const notices = houses.filter((id) => P.lease(id)?.notice).length;
+    const letting = houses.length ? `<div class="muted small">🔑 ${escapeHtml(t('affairs.letting_line', { n: rented.length, e: empty, k: notices }))}${Lt.manager ? ` · 🧑‍💼 ${escapeHtml(tr(sim, 'manager.looks_after', { npc: Lt.manager.npc }))}` : ` · ${escapeHtml(t('manager.none_hint'))}`}</div>` : '';
     const buildings = mine
       .map((id) => {
         const lvl = sim.structures?.rec(id) ? ` · ${t('structure.level_short', { n: sim.structures.level(id) })}` : '';
-        const rent = rented.includes(id) ? `${fmtMoney(P.weeklyRent(id))} ${t('rent_ui.per_week')}` : '';
+        const rent = rented.includes(id) ? `${fmtMoney(P.lease(id)?.rent ?? P.weeklyRent(id))} ${t('rent_ui.per_week')}` : '';
         return `<div class="prop-row" data-action="building" data-id="${id}"><div><div class="prop-name">${escapeHtml(buildingLabel(sim, id))}<span class="muted small">${escapeHtml(lvl)}</span></div><div>${propBadges(sim, id)}</div></div><span class="muted small">${escapeHtml(rent)}</span><b>${escapeHtml(fmtMoney(P.value(id)))}</b></div>`;
       })
       .join('');
-    const land = sim.land.holdings().map((id) => `<div class="prop-row" data-action="land" data-id="${id}"><div><div class="prop-name">🏞️ ${escapeHtml(parcelName(sim, id))}</div><div class="muted small">${escapeHtml(t(`land_kind.${sim.land.info(id)?.kind || 'meadow'}`))} · ${escapeHtml(t('ui.tiles_n', { n: sim.land.plot(id)?.n || 0 }))}</div></div><span></span><b>${escapeHtml(fmtMoney(sim.land.price(id)))}</b></div>`).join('');
+    const land = sim.land.holdings().map((id) => `<div class="prop-row" data-action="land" data-id="${id}"><div><div class="prop-name">🏞️ ${escapeHtml(parcelName(sim, id))}</div><div class="muted small">${escapeHtml(t(`land_kind.${sim.land.info(id)?.kind || 'meadow'}`))} · ${escapeHtml(t('ui.tiles_n', { n: sim.territory?.parcel(id)?.n || 0 }))}</div></div><span></span><b>${escapeHtml(fmtMoney(sim.land.price(id)))}</b></div>`).join('');
     const businesses = H.mine()
       .map((id) => {
         const b = E.biz(id);
@@ -272,7 +281,7 @@ export class AffairsPanel extends Panel {
     return `
       <div class="char-cols">
         <div class="col">
-          <h3>${escapeHtml(t('affairs.buildings'))}</h3>${summary}${buildings || emptyState('🏠', t('affairs.no_props_title'), t('affairs.no_props_text'))}
+          <h3>${escapeHtml(t('affairs.buildings'))}</h3>${summary}${letting}${buildings || emptyState('🏠', t('affairs.no_props_title'), t('affairs.no_props_text'))}
           <h3>${escapeHtml(t('affairs.land'))}</h3>${land || none}
           <h3>${escapeHtml(t('affairs.outposts'))}</h3>${outposts || none}
         </div>

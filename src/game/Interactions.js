@@ -318,6 +318,12 @@ function buildingActions(scene, id, add) {
   if (works) siteActions(scene, works, add);
   // Your own building: see what could be done to it.
   if (sim.structures?.rec(id) && sim.property.rec(id)?.owner === 'player' && !works) add('action.improve_building', {}, () => ui.openProperty(id, 'building'));
+  // A house you let out: call on the tenants (the lease, the rent, notice). An empty one: the "to let" sign.
+  const pr = sim.property.rec(id);
+  if (pr?.owner === 'player' && id !== p.homeId && sim.property.isHome(id) && !bizId) {
+    if (pr.lease) add('action.call_on_tenants', {}, () => ui.openProperty(id));
+    else if (sim.letting.lettable(id)) add(sim.letting.listed(id) ? 'action.take_sign_down' : 'action.put_sign_up', {}, () => sim.letting.list(id, !sim.letting.listed(id)));
+  }
   // A house of yours that stands empty: move in.
   if (!sim.world.buildings[id]?.player && sim.construction.canMoveIn(id)) add('action.move_in', {}, () => sim.construction.moveIn(id));
 

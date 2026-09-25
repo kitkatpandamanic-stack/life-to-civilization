@@ -79,7 +79,8 @@ if (kid) {
 
 // 5. Mentors and apprentices.
 const farm = sim.economy.ofType('farm')[0];
-const hands = sim.state.npcs.filter((n) => n.employer === farm || n.owns === farm);
+// (The same people the game considers: working age, here, not already someone's apprentice.)
+const hands = sim.state.npcs.filter((n) => (n.employer === farm || n.owns === farm) && n.age >= 14 && !n.away && !n.apprentice);
 if (hands.length >= 2) {
   hands.sort((a, b) => b.level - a.level);
   hands[0].level = Math.max(hands[0].level, 8);

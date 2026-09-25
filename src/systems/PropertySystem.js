@@ -4,15 +4,24 @@
  *   state.property[buildingId] = {
  *     owner: npcId | 'player' | 'village' | null,
  *     condition: 0–100, abandoned, emptyDays, forSale, rentLevel,
- *     arrears: weeks of unpaid rent, history: [{ owner, from, how, price }]
+ *     arrears: weeks of unpaid rent, history: [{ owner, from, how, price }],
+ *     ask: the rent you've set (null = the going rent at your rent level), forRent (a villager's house to let),
+ *     lease: { tenant, since, rent, paid, missed, next?, notice?: { by, until, why } },   a tenancy
+ *     tenancies: [{ tenant, from, to, paid, how }]                                         past tenancies
  *   }
  *
  * A living housing market: tenants pay rent to their landlord (a villager,
  * you, or the village), grown-up children move out, crowded families look
  * for bigger homes, people who save enough buy a house, the poor sell, the
  * evicted end up on the street, and empty houses slowly fall apart.
+ *
+ * Renting (building spec, Phase 5): a household renting a whole house has a lease — the rent
+ * agreed, since when, what they've paid. Landlords (you, villagers who invest in houses, the
+ * village) set the rent; tenants who find it too steep give notice; a landlord can give notice
+ * too (with cause — rent owing — or after a first fortnight, at some cost to their name). Houses
+ * let out cost their landlord upkeep; well-off villagers buy houses to let.
  */
-import { HOME_CAPACITY, PROPERTY_VALUE, PUBLIC_BUILDINGS, PUBLIC_TYPES, HOUSING as H } from '../data/housing.js';
+import { HOME_CAPACITY, PROPERTY_VALUE, PUBLIC_BUILDINGS, PUBLIC_TYPES, HOUSING as H, RENTAL as RT } from '../data/housing.js';
 import { AREAS } from '../data/villageLayout.js';
 import { GOALS } from '../data/goals.js';
 import { rand } from '../core/rng.js';
@@ -145,9 +154,48 @@ export class PropertySystem {
     return v;
   }
 
+  /** The going rent for a home like this, where it is, as things are (before the landlord's own pricing). */
+  marketRent(id) {
+    return Math.max(3, Math.round(this.value(id) * H.rentPerWeekShare));
+  }
+
+  /** What the landlord asks a week: the rent they've set, or the going rent at their level (cheap / normal / high). */
   weeklyRent(id) {
     const r = this.rec(id);
-    return Math.max(3, Math.round(this.value(id) * H.rentPerWeekShare * (RENT_LEVELS[r?.rentLevel] || 1)));
+    if (r?.ask) return r.ask;
+    return Math.max(3, Math.round(this.marketRent(id) * (RENT_LEVELS[r?.rentLevel] || 1)));
+  }
+
+  /** The range of rents a landlord may ask for this home. */
+  rentBounds(id) {
+    const m = this.marketRent(id);
+    return { min: Math.max(2, Math.round(m * RT.minAsk)), max: Math.round(m * RT.maxAsk), market: m };
+  }
+
+  /**
+   * What state a building is in, as a place to live: owner_occupied · rented · for_rent · vacant ·
+   * under_construction · under_renovation · abandoned — or business / public / other for the rest.
+   */
+  housingState(id) {
+    const sim = this.sim;
+    const c = sim.construction.byId(id);
+    if (c && c.status === 'site' && c.kind === 'building') return 'under_construction';
+    const r = this.rec(id);
+    if (!r) return null;
+    if (r.ruined || r.abandoned) return 'abandoned';
+    if (sim.structures?.works(id)) return 'under_renovation';
+    if (PUBLIC_BUILDINGS.includes(id) || PUBLIC_TYPES.includes(this.type(id))) return 'public';
+    if (sim.economy.businessAtBuilding(id)) return 'business';
+    if (!this.isHome(id)) return 'other';
+    if (id === sim.state.player.homeId) return 'owner_occupied';
+    if (this.occupants(id) > 0) return sim.npcs.residentsOf(id).some((n) => this.landlord(n)) ? 'rented' : 'owner_occupied';
+    if (r.owner === 'player' ? sim.letting?.listed(id) : r.forRent || (r.owner === 'village' && r.condition >= 35)) return 'for_rent';
+    return 'vacant';
+  }
+
+  /** A house let out to tenants (its owner lives elsewhere). */
+  rentedOut(id) {
+    return this.housingState(id) === 'rented';
   }
 
   ownerName(id) {
@@ -182,7 +230,11 @@ export class PropertySystem {
     const from = r.owner;
     r.owner = owner;
     r.forSale = false;
+    r.forRent = false;
+    r.ask = null;
     r.arrears = 0;
+    // The tenants bought it: no more rent.
+    if (r.lease && this.sim.npcs.residentsOf(id).some((n) => n.id === owner || n.family.includes(owner))) this.endLease(id, 'bought');
     // The ground it stands on goes with it.
     if (from !== owner) this.sim.territory?.buildingSold(id, from, owner);
     this.sim.bus.emit('property:changed', id);
@@ -202,6 +254,7 @@ export class PropertySystem {
 
   /** Move villagers into a home (a household moving together, or one person). */
   moveIn(npcs, id, reason = 'moved') {
+    const wasEmpty = this.occupants(id) === 0 && id !== this.sim.state.player.homeId;
     for (const n of npcs) {
       const from = n.homeId;
       if (from === id) continue;
@@ -218,6 +271,9 @@ export class PropertySystem {
     }
     this.sim.npcs.invalidateHouseholds();
     for (const n of npcs) this.sim.habits.derive(n);
+    // Taking a whole house from a landlord: a lease, at the rent asked.
+    const head = npcs.filter((n) => n.age >= 18).sort((a, b) => b.money - a.money)[0];
+    if (wasEmpty && head && this.landlord(head)) this.startLease(id, head);
     this.sim.structures?.movedIn(id, npcs);
     this.sim.bus.emit('property:changed', id);
   }
@@ -262,8 +318,161 @@ export class PropertySystem {
   setRentLevel(id, level) {
     const r = this.rec(id);
     if (!r || r.owner !== 'player' || !RENT_LEVELS[level]) return;
+    const before = this.weeklyRent(id);
     r.rentLevel = level;
+    r.ask = null;
+    this.rentChanged(id, before);
     this.sim.bus.emit('property:changed', id);
+  }
+
+  /** Set the rent for a house of yours (a week), within what the market will bear. */
+  setRent(id, amount) {
+    const r = this.rec(id);
+    if (!r || r.owner !== 'player') return { ok: false, reason: 'not_yours' };
+    const b = this.rentBounds(id);
+    const before = this.weeklyRent(id);
+    r.ask = Math.max(b.min, Math.min(b.max, Math.round(amount)));
+    this.rentChanged(id, before);
+    this.sim.bus.emit('property:changed', id);
+    return { ok: true, rent: r.ask };
+  }
+
+  /**
+   * The rent went up or down. A sitting tenant pays the new rent from next rent day — or, if it's
+   * now beyond them (or far above the going rent), gives notice. A cut is noticed, and liked.
+   */
+  rentChanged(id, before) {
+    const sim = this.sim;
+    const L = this.rec(id)?.lease;
+    const now = this.weeklyRent(id);
+    if (!L || now === before) return;
+    L.next = now;
+    const tenant = sim.npcs.byId(L.tenant);
+    if (!tenant || L.notice) return;
+    const landlord = this.rec(id).owner;
+    const who = landlord === 'player' ? 'player' : sim.npcs.byId(landlord) ? landlord : null;
+    if (now > before) {
+      const budget = this.householdBudget(tenant);
+      if (now > budget * 1.15 || now > this.marketRent(id) * RT.raiseTolerance) {
+        this.giveNotice(id, { by: 'tenant', why: now > budget * 1.15 ? 'rent_beyond_means' : 'rent_too_high' });
+      } else if (who) sim.memory.remember(tenant, 'rent_raised', { who, params: { building: id, money: now } });
+    } else if (who) sim.memory.remember(tenant, 'rent_lowered', { who, params: { building: id, money: now } });
+  }
+
+  /** What a household can pay a week: the head's means and most of their partner's. */
+  householdBudget(npc) {
+    const spouse = this.sim.family.spouse(npc);
+    return this.rentBudget(npc) + (spouse && spouse.homeId === npc.homeId ? this.rentBudget(spouse) * 0.6 : 0);
+  }
+
+  // ------------------------------------------------------------------ tenancies
+
+  lease(id) {
+    return this.rec(id)?.lease || null;
+  }
+
+  /** A household has taken the whole house: the rent is agreed. */
+  startLease(id, head) {
+    const r = this.rec(id);
+    if (!r || !head) return null;
+    r.lease = { tenant: head.id, since: this.sim.time.day, rent: this.weeklyRent(id), paid: 0, missed: 0 };
+    return r.lease;
+  }
+
+  /** The tenancy is over (they left, were put out, or bought the house). */
+  endLease(id, how) {
+    const r = this.rec(id);
+    const L = r?.lease;
+    if (!L) return;
+    r.tenancies ??= [];
+    r.tenancies.push({ tenant: L.tenant, from: L.since, to: this.sim.time.day, paid: L.paid, how });
+    if (r.tenancies.length > RT.pastTenants) r.tenancies.shift();
+    r.lease = null;
+    this.sim.bus.emit('property:changed', id);
+  }
+
+  /** Can this landlord end the tenancy? With cause (rent owing) at once; otherwise not in the first fortnight. */
+  canGiveNotice(id, by = 'player') {
+    const r = this.rec(id);
+    const L = r?.lease;
+    if (!r || r.owner !== by) return { ok: false, reason: 'not_yours' };
+    if (!L) return { ok: false, reason: 'no_tenant' };
+    if (L.notice) return { ok: false, reason: 'notice_given' };
+    const cause = r.arrears > 0;
+    const left = RT.minStayDays - (this.sim.time.day - L.since);
+    if (!cause && left > 0) return { ok: false, reason: 'too_soon', params: { n: left } };
+    return { ok: true, cause };
+  }
+
+  /**
+   * Notice to quit: the household has a week to find somewhere else, then goes.
+   * by: 'landlord' (you or a villager landlord) or 'tenant' (they're leaving of their own accord).
+   */
+  giveNotice(id, { by = 'landlord', why = null } = {}) {
+    const sim = this.sim;
+    const r = this.rec(id);
+    const L = r?.lease;
+    if (!L || L.notice) return { ok: false, reason: L ? 'notice_given' : 'no_tenant' };
+    let cause = r.arrears > 0;
+    if (by === 'landlord' && r.owner === 'player') {
+      const chk = this.canGiveNotice(id);
+      if (!chk.ok) return chk;
+      cause = chk.cause;
+    }
+    L.notice = { by, until: sim.time.day + RT.noticeDays, why: why || (by === 'landlord' ? (cause ? 'arrears' : 'landlord') : 'moving') };
+    const tenant = sim.npcs.byId(L.tenant);
+    if (by === 'landlord' && tenant) {
+      const who = r.owner === 'player' ? 'player' : sim.npcs.byId(r.owner) ? r.owner : null;
+      sim.memory.remember(tenant, cause ? 'notice_for_arrears' : 'given_notice', { who, params: { building: id } });
+      if (r.owner === 'player') {
+        if (!cause) sim.progression.addReputation(-RT.noticeRep);
+        sim.toast('toast.notice_given', { npc: tenant.id, gender: tenant.gender, building: id, n: RT.noticeDays }, 'info');
+      }
+      sim.chronicle('chronicle.notice_given', { npc: tenant.id, gender: tenant.gender, building: id });
+    } else if (tenant && r.owner === 'player') {
+      sim.toast('toast.tenant_notice', { npc: tenant.id, gender: tenant.gender, building: id, n: RT.noticeDays, letting: L.notice.why }, 'warn');
+    }
+    sim.bus.emit('property:changed', id);
+    return { ok: true };
+  }
+
+  /** Withdraw notice you gave — or, if they gave it, talk them round (they stay if the rent now suits them). */
+  withdrawNotice(id) {
+    const L = this.lease(id);
+    if (!L?.notice) return false;
+    if (L.notice.by === 'tenant') {
+      const tn = this.sim.npcs.byId(L.tenant);
+      if (!tn || this.weeklyRent(id) > this.householdBudget(tn) * 1.15 || this.weeklyRent(id) > this.marketRent(id) * RT.raiseTolerance) return false;
+    }
+    delete L.notice;
+    this.sim.bus.emit('property:changed', id);
+    return true;
+  }
+
+  /** The notice is up: the household moves out — to another home if they can find one. */
+  vacate(id) {
+    const sim = this.sim;
+    const L = this.lease(id);
+    const how = L?.notice?.by === 'tenant' ? 'moved_out' : 'notice';
+    const members = sim.npcs.residentsOf(id).slice();
+    for (const n of members) {
+      n.homeId = null;
+      n.plan = null;
+      if (n.task && ['home', 'sleep', 'rest', 'sick'].includes(n.task.type)) n.task = null;
+      n.evictedFrom ??= {};
+      n.evictedFrom[id] = sim.time.day; // they won't be back for a while
+    }
+    sim.npcs.invalidateHouseholds();
+    this.endLease(id, how);
+    const head = members.find((m) => m.id === L?.tenant) || members.find((m) => m.age >= 18) || members[0];
+    if (head) {
+      const opt = this.options(members.length, this.householdBudget(head) * 1.1, head.money / H.buyReserve, head)[0];
+      if (opt) this.settle(members, opt, head, 'moved');
+      else for (const n of members) this.findRoof(n);
+      sim.chronicle('chronicle.tenants_left', { npc: head.id, gender: head.gender, building: id, n: members.length });
+      if (this.rec(id)?.owner === 'player') sim.toast('toast.tenants_left', { npc: head.id, gender: head.gender, building: id }, 'info');
+    }
+    sim.bus.emit('building:changed', id);
   }
 
   /** Materials and money needed to bring a building back to full condition. */
@@ -336,8 +545,15 @@ export class PropertySystem {
           } else if (owner && owner.money >= H.repairCostPerDay + 5) {
             owner.money -= H.repairCostPerDay;
             repaired = true;
-          } else if (r.owner === 'player') repaired = true; // you maintain your own buildings
-          if (repaired && r.owner !== 'player') {
+          } else if (r.owner === 'player') {
+            // You keep your own buildings up; a house you let out costs you its upkeep.
+            if (!this.rentedOut(id)) repaired = true;
+            else if (sim.state.player.money >= RT.upkeepPerDay) {
+              sim.state.player.money -= RT.upkeepPerDay;
+              repaired = true;
+            }
+          }
+          if (repaired && (r.owner !== 'player' || this.rentedOut(id))) {
             const yard = sim.economy.biz('lumberyard');
             if (yard) yard.money += H.repairCostPerDay;
           }
@@ -349,6 +565,16 @@ export class PropertySystem {
         if (r.owner === 'player' || (ownerAlive && r.owner !== 'village' && this.isHome(id))) r.condition = Math.max(0, r.condition - H.wearPerDay);
         else if (r.emptyDays >= H.abandonAfterDays) r.abandoned = true;
         if (r.abandoned) r.condition = Math.max(0, r.condition - H.abandonedDecayPerDay);
+      }
+      // Tenancies: notice running out; a household gone of its own accord.
+      if (r.lease) {
+        if (r.lease.notice && day >= r.lease.notice.until) this.vacate(id);
+        else if (this.occupants(id) === 0) this.endLease(id, 'left');
+        else if (!sim.npcs.byId(r.lease.tenant)) {
+          // The tenant died or left the valley: whoever's left of the household carries on.
+          const next = sim.npcs.residentsOf(id).filter((n) => n.age >= 18)[0];
+          if (next) r.lease.tenant = next.id;
+        }
       }
       if (!ownerAlive && r.owner) {
         // Nobody left to claim it: the village takes it over.
@@ -383,6 +609,7 @@ export class PropertySystem {
       if (!byHome.has(n.homeId)) byHome.set(n.homeId, { landlord, payers: [] });
       byHome.get(n.homeId).payers.push(n);
     }
+    let toPlayer = 0;
     // Businesses in rented premises (that nobody lives in) pay commercial rent from the till.
     const E = sim.economy;
     for (const bizId of E.active()) {
@@ -399,8 +626,18 @@ export class PropertySystem {
     }
     for (const [id, { landlord, payers }] of byHome) {
       const r = this.rec(id);
+      const lodgers = payers.every((p) => p.lodger);
+      // A household renting the whole house pays what was agreed (a new rent from the week after it's set).
+      if (!lodgers && !r.lease) this.startLease(id, payers.filter((p) => p.age >= 18).sort((a, b) => b.money - a.money)[0] || payers[0]);
+      const L = lodgers ? null : r.lease;
+      if (L?.next !== undefined) {
+        L.rent = L.next;
+        delete L.next;
+      }
+      // The village and villager landlords keep their rents in line with the going rate; you set yours by hand.
+      if (L && landlord !== 'player') L.rent = this.weeklyRent(id);
       // Lodgers rent a room, not the whole house.
-      const rent = Math.ceil(this.weeklyRent(id) * (payers.every((p) => p.lodger) ? 0.5 : 1));
+      const rent = L ? L.rent : Math.ceil(this.weeklyRent(id) * 0.5);
       const share = Math.ceil(rent / payers.length);
       let paid = 0;
       for (const n of payers) {
@@ -409,13 +646,18 @@ export class PropertySystem {
         paid += x;
       }
       this.payTo(landlord, paid);
+      if (landlord === 'player') toPlayer += paid;
+      if (L) L.paid += paid;
       if (landlord === 'player' && paid > 0) sim.toast('toast.rent_received', { money: paid, building: id }, 'gain');
       if (paid < rent * 0.7) {
         r.arrears++;
+        if (L) L.missed++;
         const limit = landlord === 'village' ? H.villageEvictWeeks : H.landlordEvictWeeks;
         if (r.arrears >= limit) this.evict(id, payers, landlord);
       } else r.arrears = 0;
     }
+    // What this week's rent brought you (the property manager takes a share of it).
+    sim.state.letting && (sim.state.letting.lastRent = { day: sim.time.day, money: toPlayer });
   }
 
   evict(id, payers, landlord) {
@@ -429,6 +671,7 @@ export class PropertySystem {
       this.sim.memory.remember(n, 'evicted', { who: landlord === 'player' ? 'player' : this.sim.npcs.byId(landlord) ? landlord : null, params: { building: id } });
     }
     this.sim.npcs.invalidateHouseholds();
+    this.endLease(id, 'evicted');
     this.rec(id).arrears = 0;
     this.sim.chronicle('chronicle.npc_evicted', { npc: payers[0].id, gender: payers[0].gender, building: id });
     if (landlord === 'player') this.sim.progression.addReputation(-2);
@@ -470,14 +713,19 @@ export class PropertySystem {
 
   /** Homes available to move into, best first for this household. */
   options(size, maxRent, buyBudget = 0, npc = null) {
+    const ownRentals = npc ? this.rentalsOf(npc.id).length : 0;
     const out = [];
     const day = this.sim.time.day;
     for (const id of this.homes()) {
       if (!this.isVacant(id) || this.capacity(id) < size) continue;
+      // Your houses are taken only when you're letting them (the sign up, or a manager seeing to it).
+      if (this.rec(id).owner === 'player' && !this.sim.letting?.listed(id)) continue;
       // A landlord won't take back a tenant they evicted (for a good while).
       if (npc?.evictedFrom?.[id] !== undefined && day - npc.evictedFrom[id] < 84) continue;
       const r = this.rec(id);
       const price = this.value(id);
+      // (A villager doesn't move out of their own home into one they let out.)
+      if (ownRentals && r.owner === npc.id) continue;
       const buyable = buyBudget > 0 && (r.forSale || r.owner === 'village' || !r.owner) && buyBudget >= price;
       const rent = this.weeklyRent(id);
       if (!buyable && rent > maxRent) continue;
@@ -529,32 +777,82 @@ export class PropertySystem {
     this.moveIn(members, id, reason);
   }
 
+  /** Someone without a home finds a roof: family first, then anything they can afford, a spare room, the hall. */
+  findRoof(n) {
+    if (n.age < 16) {
+      const kin = this.sim.family.relatives(n).find((r) => r.homeId);
+      this.moveIn([n], kin ? kin.homeId : 'hall', 'moved');
+      return;
+    }
+    const kinHome = this.sim.family.relatives(n).map((r) => r.homeId).find((h) => h && this.isHome(h) && this.occupants(h) < this.capacity(h) + 1 && !this.sim.economy.businessAtBuilding(h));
+    if (kinHome) {
+      this.moveIn([n], kinHome, 'moved');
+      return;
+    }
+    const opt = this.options(1, this.rentBudget(n), n.money / H.buyReserve, n)[0];
+    if (opt) this.settle([n], opt, n, 'moved');
+    else {
+      // No house free? Lodge in a spare room (paying the householder), or the village hall takes them in.
+      const room = this.lodging(n);
+      if (room) {
+        this.moveIn([n], room, 'moved');
+        n.lodger = true;
+      } else if (this.occupants('hall') < this.capacity('hall')) this.moveIn([n], 'hall', 'moved');
+    }
+  }
+
+  /** The houses this villager lets out (owned, not lived in by them). */
+  rentalsOf(npcId) {
+    return Object.entries(this.all)
+      .filter(([id, r]) => r.owner === npcId && this.isHome(id) && this.sim.npcs.byId(npcId)?.homeId !== id)
+      .map(([id]) => id);
+  }
+
+  /**
+   * Villagers as landlords: someone well off buys a house that's on the market to let it —
+   * the rent pays for the next one. Greedy landlords ask more, generous ones less.
+   */
+  investInHouses() {
+    const sim = this.sim;
+    // Only when people need homes (rents are worth having) — and the village keeps its own houses for
+    // newcomers and the needy (their rent pays for the school), selling only a surplus.
+    if (!RT.investChance || this.demand() < RT.investDemand) return;
+    let villageSpare = this.homes().filter((id) => this.rec(id)?.owner === 'village' && this.isVacant(id)).length;
+    for (const n of sim.state.npcs) {
+      if (n.age < 25 || n.age > 68 || !n.homeId || n.leaving || n.money < RT.investExtra) continue;
+      if (this.rec(n.homeId)?.owner !== n.id && !n.owns) continue; // they see to their own roof first
+      const have = this.rentalsOf(n.id).length;
+      if (have >= RT.maxRentals || !rand.chance(RT.investChance * (n.traits.includes('entrepreneur') || n.traits.includes('ambitious') ? 1.6 : 1) * (n.traits.includes('careful') ? 0.6 : 1))) continue;
+      const buy = this.homes()
+        .filter((id) => {
+          const r = this.rec(id);
+          if (!r || r.owner === n.id || r.owner === 'player' || PUBLIC_BUILDINGS.includes(id) || r.abandoned || r.condition < 45) return false;
+          if (!(r.forSale || (!r.owner && this.isVacant(id)) || (r.owner === 'village' && villageSpare >= 2 && this.isVacant(id)))) return false;
+          if (this.occupants(id) > 0 && !r.forSale) return false;
+          return n.money >= this.value(id) * RT.investReserve + RT.investExtra;
+        })
+        .sort((a, b) => this.marketRent(b) / this.value(b) - this.marketRent(a) / this.value(a))[0];
+      if (!buy) continue;
+      const price = this.value(buy);
+      const r = this.rec(buy);
+      if (r.owner === 'village') villageSpare = Math.max(0, villageSpare - 1);
+      n.money -= price;
+      this.payTo(r.owner, price);
+      this.transfer(buy, n.id, 'bought', price);
+      r.forRent = true;
+      r.rentLevel = n.traits.includes('greedy') ? 'high' : n.traits.includes('generous') ? 'cheap' : 'normal';
+      sim.memory.remember(n, 'bought_rental', { params: { building: buy, money: price } });
+      sim.chronicle(have ? 'chronicle.npc_more_rentals' : 'chronicle.npc_became_landlord', { npc: n.id, gender: n.gender, building: buy, n: have + 1 });
+    }
+  }
+
   market() {
     const sim = this.sim;
     const npcs = sim.state.npcs;
     // 1. Homeless people look for a roof: family first, then anything they can afford.
-    for (const n of npcs.filter((x) => !x.homeId && x.age >= 16)) {
-      const kinHome = sim.family.relatives(n).map((r) => r.homeId).find((h) => h && this.isHome(h) && this.occupants(h) < this.capacity(h) + 1 && !this.sim.economy.businessAtBuilding(h));
-      if (kinHome) {
-        this.moveIn([n], kinHome, 'moved');
-        continue;
-      }
-      const opt = this.options(1, this.rentBudget(n), n.money / H.buyReserve, n)[0];
-      if (opt) this.settle([n], opt, n, 'moved');
-      else {
-        // No house free? Lodge in a spare room (paying the householder), or the village hall takes them in.
-        const room = this.lodging(n);
-        if (room) {
-          this.moveIn([n], room, 'moved');
-          n.lodger = true;
-        } else if (this.occupants('hall') < this.capacity('hall')) this.moveIn([n], 'hall', 'moved');
-      }
-    }
+    for (const n of npcs.filter((x) => !x.homeId && x.age >= 16)) this.findRoof(n);
     // Minors without a home go with a relative (or the village hall looks after them).
-    for (const n of npcs.filter((x) => !x.homeId && x.age < 16)) {
-      const kin = sim.family.relatives(n).find((r) => r.homeId);
-      this.moveIn([n], kin ? kin.homeId : 'hall', 'moved');
-    }
+    for (const n of npcs.filter((x) => !x.homeId && x.age < 16)) this.findRoof(n);
     // 2. Grown-up children move out of their parents' home.
     for (const n of npcs) {
       if (n.age < H.moveOutAge || n.kin?.spouse || n.money < H.moveOutMoney || !n.homeId) continue;
@@ -613,8 +911,16 @@ export class PropertySystem {
       const owner = sim.npcs.byId(r.owner);
       if (owner && this.isHome(id) && owner.brokeWeeks >= 4 && !r.forSale && owner.age >= 18) r.forSale = true;
       else if (owner && r.forSale && owner.homeId === id && owner.money > 80) r.forSale = false;
-      // Owners who don't live in a second home rent it out; an empty inherited house goes on sale.
-      if (owner && this.isHome(id) && owner.homeId !== id && this.occupants(id) === 0 && r.emptyDays > 21) r.forSale = true;
+      // Owners who don't live in a second home let it — if they can keep it up; otherwise it goes on sale.
+      if (owner && this.isHome(id) && owner.homeId !== id && this.occupants(id) === 0) {
+        if (!r.forSale && !r.forRent && owner.money >= 60) r.forRent = true;
+        if (r.emptyDays > (r.forRent ? 42 : 21) || (r.forRent && owner.money < 20)) {
+          r.forSale = true;
+          r.forRent = false;
+        }
+      }
     }
+    // 6. Villagers with money put it into houses to let.
+    this.investInHouses();
   }
 }

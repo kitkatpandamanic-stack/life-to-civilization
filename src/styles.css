@@ -325,6 +325,9 @@ h3:first-child { margin-top: 0; }
 .land-chip.mine .lc-owner { color: var(--c-primary); }
 .land-chip.sale .lc-owner { color: var(--c-success); }
 .land-owner { font-weight: 800; margin-bottom: 8px; }
+/* Setting the rent */
+.rent-set { display: flex; align-items: center; gap: 8px; margin: 4px 0 6px; }
+.rent-set .rent-ask { font-size: 20px; min-width: 64px; text-align: center; font-variant-numeric: tabular-nums; }
 .land-owner.mine { color: var(--c-primary); }
 
 /* Current task */

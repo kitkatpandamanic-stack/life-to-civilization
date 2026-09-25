@@ -707,7 +707,10 @@
     "give_lesson": "Give a lesson (2 h)",
     "read_library": "Read at the library (1 h)",
     "work_beside": "Work beside {npc} (half a day)",
-    "improve_building": "Improve the building…"
+    "improve_building": "Improve the building…",
+    "call_on_tenants": "Call on your tenants",
+    "put_sign_up": "Put up a \"to let\" sign",
+    "take_sign_down": "Take the \"to let\" sign down"
   },
   "reason": {
     "nothing_here": "Nothing to do here.",
@@ -878,7 +881,20 @@
     "no_room": "No free ground beside it ({n} more tiles needed) — it needs clear land its owner may build on.",
     "no_renovation_needed": "It's as good as it can be at this level.",
     "go_to_land": "Go to the land to buy it.",
-    "sold_with_building": "This land is sold with the building on it."
+    "sold_with_building": "This land is sold with the building on it.",
+    "no_tenant": "Nobody rents it.",
+    "notice_given": "Notice has already been given.",
+    "too_soon": "They've only just moved in — you can give notice in {n} days (sooner if they owe rent).",
+    "wont_stay": "They won't stay at this rent.",
+    "is_manager": "They already look after your houses.",
+    "have_manager": "Someone already looks after your houses.",
+    "no_houses": "You have no houses to let.",
+    "need_rel": "They'd need to know you better (relationship {n}+).",
+    "letting_rent_beyond_means": "the rent is more than they can pay",
+    "letting_rent_too_high": "the rent is far above the going rate",
+    "letting_moving": "they're moving on",
+    "letting_arrears": "rent owed",
+    "letting_landlord": "the landlord wants the house back"
   },
   "toast": {
     "hungry": "You're getting hungry. Press Q to eat.",
@@ -1038,7 +1054,13 @@
     "course_signed": "You've signed up for the {field} course at {building}.",
     "works_started": "Work begins on {building}: {works}.",
     "works_done": "Finished! {building}: {works}.",
-    "worker_levelled": "{npc} is getting good at this — level {n}."
+    "worker_levelled": "{npc} is getting good at this — level {n}.",
+    "notice_given": "{npc} has been given notice to leave {building} ({n} days).",
+    "tenant_notice": "{npc} is leaving {building} in {n} days: {letting}.",
+    "tenants_left": "{npc}'s household has moved out of {building}.",
+    "manager_hired": "{npc} will look after your houses for {n}% of the rent.",
+    "manager_quit": "{npc} has stopped looking after your houses — you couldn't pay.",
+    "manager_repaired": "{npc} had {building} repaired ({money})."
   },
   "objective": {
     "harvest": "Harvest ripe wheat in the farm fields ({have}/{qty})",
@@ -1413,7 +1435,11 @@
     "npc_bought_land": {
       "m": "{npc} bought a plot of land.",
       "f": "{npc} bought a plot of land."
-    }
+    },
+    "notice_given": "{npc} was given notice to leave {building}.",
+    "tenants_left": "{npc} moved out of {building}.",
+    "npc_became_landlord": "{npc} bought {building} to let it out — a landlord now.",
+    "npc_more_rentals": "{npc} bought {building} to let — {n} houses now."
   },
   "event": {
     "good_harvest": {
@@ -2456,7 +2482,9 @@
       "ask_lessons": "Could you teach me {field}? ({money})",
       "ask_apprentice": "Would you take me on as your apprentice ({field})?",
       "offer_apprentice": "Would you like to learn {field} from me?",
-      "offer_sponsor": "I'll pay for your studies in {settlement} ({money})"
+      "offer_sponsor": "I'll pay for your studies in {settlement} ({money})",
+      "ask_manager": "Would you look after my houses? ({n}% of the rent)",
+      "end_manager": "You needn't look after my houses any more"
     },
     "no_gifts": "You have nothing suitable to give.",
     "chat_again": [
@@ -2616,6 +2644,18 @@
     ],
     "sponsor_no": [
       "That's kind, but it's not needed."
+    ],
+    "manager_yes": [
+      "Look after your houses? Gladly — I'll see they're let, kept up, and paid for.",
+      "For {n}% of the rent? Done. I'll keep an eye on them."
+    ],
+    "manager_no": [
+      "I don't think so. I've enough on my plate.",
+      "Not me — ask someone else."
+    ],
+    "manager_ended": [
+      "As you like. Your houses were no trouble.",
+      "Fair enough. You know where I am."
     ]
   },
   "rank": {
@@ -3160,7 +3200,13 @@
     "player_journeyman": "Saw you through your apprenticeship ({field}).",
     "improved_building": "Had {building} improved.",
     "sold_land_to_player": "Sold you land: {plot}.",
-    "bought_land": "Bought land: {plot}."
+    "bought_land": "Bought land: {plot}.",
+    "given_notice": "Was given notice to leave {building}.",
+    "notice_for_arrears": "Was given notice for the rent owed on {building}.",
+    "rent_raised": "The rent on {building} went up to {money}.",
+    "rent_lowered": "The rent on {building} came down to {money}.",
+    "bought_rental": "Bought {building} to let.",
+    "manages_player_houses": "Looks after your houses for you."
   },
   "talk": {
     "deflect": [
@@ -3604,6 +3650,26 @@
       "improved_building": [
         "We finally had the house done up. You wouldn't know it.",
         "Built on at last — there's room to breathe now."
+      ],
+      "given_notice": [
+        "You put us out of {building}. We paid every week, you know.",
+        "I haven't forgotten the notice you gave us."
+      ],
+      "rent_raised": [
+        "The rent's gone up again. Everything costs more these days, I suppose.",
+        "{money} a week now for {building}. We'll manage — just."
+      ],
+      "rent_lowered": [
+        "Thank you for bringing the rent down. It makes a real difference.",
+        "The lower rent — that was decent of you."
+      ],
+      "manages_player_houses": [
+        "Your houses are in good hands, don't you worry.",
+        "I looked in on your tenants this week. All well."
+      ],
+      "bought_rental": [
+        "I've bought {building} to let. The rent will pay for itself in time.",
+        "A house to let — that's where money should go, not under the bed."
       ]
     },
     "work": {
@@ -4273,7 +4339,8 @@
     "built": "built it",
     "bought": "bought it",
     "inherited": "inherited it",
-    "escheat": "taken over by the village"
+    "escheat": "taken over by the village",
+    "gift": "given"
   },
   "rent_level": {
     "cheap": "Cheap",
@@ -5664,7 +5731,9 @@
     "rent_week": "Rent / week",
     "no_props_title": "No property yet",
     "no_props_text": "Build a house on land of your own, or buy an empty one in the village — then let it and collect rent.",
-    "tax_week": "Taxes / week"
+    "tax_week": "Taxes / week",
+    "costs_week": "Costs a week",
+    "letting_line": "{n} let · {e} empty · {k} leaving"
   },
   "ledger": {
     "jobs": "Jobs",
@@ -5702,7 +5771,9 @@
     "advertising": "Advertising your houses",
     "education": "Your education",
     "scholarships": "Paying for others' studies",
-    "wages_apprentice": "An apprentice's pay"
+    "wages_apprentice": "An apprentice's pay",
+    "upkeep": "Upkeep of houses you let",
+    "management": "Property manager"
   },
   "letting": {
     "title": "Tenants",
@@ -6405,7 +6476,8 @@
     "vacant": "Vacant",
     "for_sale": "For sale",
     "arrears": "Rent owed",
-    "needs_repair": "Needs repair"
+    "needs_repair": "Needs repair",
+    "notice": "Leaving soon"
   },
   "demand": {
     "high": "High",
@@ -6418,7 +6490,9 @@
     "per_week": "/ week",
     "suggested": "Suggested",
     "range": "Going rate for homes this size",
-    "demand": "Demand for homes"
+    "demand": "Demand for homes",
+    "from_next_week": "The tenants pay {money} until the next rent day.",
+    "hint": "Set exactly what you ask. Tenants already living there pay the new rent from the next rent day — raise it too far and they'll give notice."
   },
   "wstate": {
     "working": "Working",
@@ -6528,5 +6602,36 @@
     "buy_hint": "You buy land standing on it (or right beside it). Land that belongs to nobody is bought from the village — it keeps the register.",
     "for_sale_short": "for sale",
     "chip_tip": "The land you're standing on. Click to look at it — and to buy it."
+  },
+  "lease": {
+    "title": "Tenancy",
+    "landlord": "Landlord",
+    "tenant": "Tenant",
+    "household": "(a household of {n})",
+    "since": "Since",
+    "rent": "Rent agreed",
+    "paid": "Paid so far",
+    "missed": "Weeks missed",
+    "missed_n": "{n} weeks",
+    "leaving": "{npc} has given notice: they leave in {n} days ({letting}).",
+    "notice_out": "{npc} has been given notice: they leave in {n} days.",
+    "talk_round": "Ask them to stay",
+    "withdraw": "Take back the notice",
+    "give_notice": "Give notice",
+    "confirm": "Give them notice? They'll have {n} days to leave, and people will think a little less of you.",
+    "confirm_cause": "Give them notice for the rent they owe? They'll have {n} days to leave.",
+    "stayed": "{n} days",
+    "past": "Past tenants"
+  },
+  "lease_end": {
+    "left": "moved away",
+    "notice": "given notice",
+    "moved_out": "gave notice and left",
+    "evicted": "evicted for rent owed",
+    "bought": "bought the house"
+  },
+  "manager": {
+    "looks_after": "{npc} looks after your houses",
+    "none_hint": "no manager yet — ask someone who knows you well"
   }
 }

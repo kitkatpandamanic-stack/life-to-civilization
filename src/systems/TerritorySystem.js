@@ -195,10 +195,15 @@ export class TerritorySystem {
    * the owner doesn't already own is carved out of the village's land and made theirs.
    * Returns the price paid (0 if it was all theirs already), or -1 if it can't be had.
    */
-  acquireLot(by, x1, y1, x2, y2, { pay = true, price: paid, how = 'lot' } = {}) {
+  acquireLot(by, x1, y1, x2, y2, { pay = true, price: paid, how = 'lot', whole = false } = {}) {
     const take = this.lotTake(by, x1, y1, x2, y2);
-    if (!take.size) return 0;
     const price = paid ?? this.lotPrice(by, x1, y1, x2, y2, take);
+    // A new building's lot is its own piece of land — cut from the owner's own land too (not from a signposted plot).
+    if (whole) for (let y = y1; y <= y2; y++) for (let x = x1; x <= x2; x++) {
+      const q = this.parcelAt(x, y);
+      if (q && q.kind !== 'plot' && this.owner(q.id) === by) take.add(q.id);
+    }
+    if (!take.size) return 0;
     if (pay && by !== 'village' && price > 0) {
       const purse = by === 'player' ? { get: () => this.sim.state.player.money, pay: (v) => (this.sim.state.player.money -= v) } : this.sim.structures?.purseOf(null, by) || null;
       const n = this.sim.npcs.byId(by);

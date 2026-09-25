@@ -17,8 +17,15 @@
  * looking. An advertisement in another settlement you trade with brings a family
  * from there, days later, straight to your door — if the rent suits them and the
  * valley appeals. And you can simply ask someone, in conversation.
+ *
+ * A property manager (a villager who thinks well of you, asked in conversation) looks after
+ * your houses for a share of the rent: puts up signs on empty ones, advertises those that stay
+ * empty, has run-down houses repaired, and gives notice to tenants who stop paying.
+ *   state.letting.manager = { npc, since, fees }
  */
 import { rand } from '../core/rng.js';
+import { RENTAL as RT } from '../data/housing.js';
+import { ITEMS } from '../data/items.js';
 
 export const LETTING = {
   viewChance: 0.35, // each morning, chance someone asks to see a listed house…
@@ -246,11 +253,105 @@ export class LettingSystem {
     return true;
   }
 
+  // ------------------------------------------------------------------ a property manager
+
+  get manager() {
+    const m = this.S.manager;
+    return m && this.sim.npcs.byId(m.npc) ? m : null;
+  }
+
+  /** Your houses (not your own home) — what a manager looks after. */
+  yourHouses() {
+    const P = this.P;
+    return Object.keys(P.all).filter((id) => P.rec(id).owner === 'player' && P.isHome(id) && id !== this.sim.state.player.homeId && !this.sim.economy.businessAtBuilding(id));
+  }
+
+  /** Would this villager look after your houses? */
+  canHireManager(npc) {
+    if (!npc || npc.age < 20 || npc.leaving || npc.away) return { ok: false, reason: 'not_now' };
+    if (this.manager?.npc === npc.id) return { ok: false, reason: 'is_manager' };
+    if (this.manager) return { ok: false, reason: 'have_manager' };
+    if (!this.yourHouses().length) return { ok: false, reason: 'no_houses' };
+    if ((npc.rel || 0) < RT.managerRel) return { ok: false, reason: 'need_rel', params: { n: RT.managerRel } };
+    return { ok: true };
+  }
+
+  hireManager(npc) {
+    const chk = this.canHireManager(npc);
+    if (!chk.ok) return chk;
+    this.S.manager = { npc: npc.id, since: this.sim.time.day, fees: 0 };
+    this.sim.memory.remember(npc, 'manages_player_houses', { who: 'player' });
+    this.sim.toast('toast.manager_hired', { npc: npc.id, gender: npc.gender, n: Math.round(RT.managerFee * 100) }, 'good');
+    this.sim.bus.emit('property:changed');
+    return { ok: true };
+  }
+
+  dismissManager(reason = 'dismissed') {
+    const m = this.S.manager;
+    if (!m) return false;
+    const n = this.sim.npcs.byId(m.npc);
+    delete this.S.manager;
+    if (n && reason === 'unpaid') this.sim.toast('toast.manager_quit', { npc: n.id, gender: n.gender }, 'warn');
+    this.sim.bus.emit('property:changed');
+    return true;
+  }
+
+  /** The manager's day: signs up, advertisements out, repairs done, and tenants who don't pay are given notice. */
+  managerDay() {
+    const m = this.manager;
+    if (!m) {
+      if (this.S.manager) delete this.S.manager; // they've died or left the valley
+      return;
+    }
+    const sim = this.sim;
+    const P = this.P;
+    const p = sim.state.player;
+    for (const id of this.yourHouses()) {
+      const r = P.rec(id);
+      if (this.lettable(id)) {
+        if (!this.listed(id)) this.list(id, true);
+        else if (r.emptyDays >= RT.managerAdAfter && !this.advertised(id) && p.money >= L.adCost * 3) this.advertise(id);
+      }
+      // Repairs: a builder paid for the work and the materials.
+      if (!r.ruined && r.condition < RT.managerRepairBelow) {
+        const cost = P.restoreCost(id);
+        let money = cost.money;
+        for (const [item, q] of Object.entries(cost.materials)) money += q * (ITEMS[item]?.basePrice || 3);
+        money = Math.round(money * RT.managerRepairMarkup);
+        if (p.money >= money + 20) {
+          p.money -= money;
+          r.condition = 100;
+          r.abandoned = false;
+          const yard = sim.economy.biz('lumberyard');
+          if (yard) yard.money += Math.round(money * 0.5);
+          sim.toast('toast.manager_repaired', { npc: m.npc, building: id, money }, 'info');
+          sim.bus.emit('building:changed', id);
+        }
+      }
+      if (r.lease && !r.lease.notice && r.arrears >= RT.managerNoticeWeeks) P.giveNotice(id, { by: 'landlord' });
+    }
+    // Rent day is pay day.
+    if (sim.time.weekday === 0) {
+      const rent = this.S.lastRent?.day === sim.time.day ? this.S.lastRent.money : 0;
+      const fee = Math.max(RT.managerMinFee, Math.round(rent * RT.managerFee));
+      const n = sim.npcs.byId(m.npc);
+      if (p.money < fee) {
+        sim.memory.remember(n, 'player_unpaid', { who: 'player' });
+        this.dismissManager('unpaid');
+        return;
+      }
+      p.money -= fee;
+      n.money += fee;
+      m.fees += fee;
+    }
+  }
+
   // ------------------------------------------------------------------ newcomers answering an advertisement
 
   onDay() {
     const sim = this.sim;
     const day = sim.time.day;
+    this.managerDay();
     // Take signs down from houses that are no longer free (or no longer yours).
     for (const id of Object.keys(this.S.listings)) if (!this.lettable(id)) {
       delete this.S.listings[id];

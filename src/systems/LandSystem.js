@@ -32,9 +32,17 @@ export class LandSystem {
     return this.sim.state.land.owned;
   }
 
-  /** Your land, not counting the lots under your buildings (those go with the building). */
+  /** Your land, not counting the ground your buildings stand on (it goes with the building). */
   holdings() {
-    return this.owned.filter((id) => this.T?.parcel(id)?.kind !== 'lot' || !this.T.buildingsOn(id).length);
+    const T2 = this.T;
+    if (!T2) return this.owned.slice();
+    return this.owned.filter((id) => {
+      const p = T2.parcel(id);
+      const on = T2.buildingsOn(id);
+      if (!p || !on.length) return !!p;
+      // Just a building's lot (not much more than the building and a strip around it).
+      return p.n > on.reduce((s, b) => s + (b.w + 2) * (b.h + 2), 0) * 2;
+    });
   }
 
   /** A plot by id: a signposted plot, or any other piece of land (its shape). */

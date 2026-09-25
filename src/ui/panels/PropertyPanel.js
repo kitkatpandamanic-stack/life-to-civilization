@@ -6,7 +6,7 @@
 import { FINANCE } from '../../systems/FinanceSystem.js';
 import { Panel } from '../Panel.js';
 import { t, npcName, fmtMoney, itemName } from '../../i18n/i18n.js';
-import { tr, escapeHtml, buildingLabel, dateString, npcRole, districtLabel } from '../format.js';
+import { tr, escapeHtml, buildingLabel, dateString, npcRole, districtLabel, agoText } from '../format.js';
 import { bar, button, portrait, tabs, stat, statGrid, status, condBar, emptyState, notice } from '../widgets.js';
 import { propBadges, rentMarket } from '../property.js';
 import { structureHtml, structureParts, structureAction, jobLabel, levelName } from '../structure.js';
@@ -218,7 +218,8 @@ export class PropertyPanel extends Panel {
           ${this.bid === 'hall' ? this.villageFundHtml(kv) : ''}
         </div>
         <div class="col">
-          ${r.owner === 'player' && isHome && this.bid !== sim.state.player.homeId && !bizId ? this.rentHtml(kv) + this.lettingHtml(kv) : ''}
+          ${r.owner === 'player' && isHome && this.bid !== sim.state.player.homeId && !bizId ? this.rentHtml(kv) + this.lettingHtml(kv) : r.lease ? this.tenancyHtml(kv) : ''}
+          ${isHome && r.tenancies?.length ? this.pastTenantsHtml() : ''}
           ${sim.structures.works(this.bid) ? structureHtml(sim, this.bid, { compact: true }) : ''}
           <h3>${escapeHtml(t('ui.ownership_history'))}</h3>
           <div class="chronicle">${history}</div>
@@ -230,15 +231,22 @@ export class PropertyPanel extends Panel {
   /** Your rent: what you ask, what the market suggests, the going range, demand — and the level you set. */
   rentHtml(kv) {
     const sim = this.sim;
-    const r = sim.property.rec(this.bid);
+    const P = sim.property;
+    const r = P.rec(this.bid);
     const m = rentMarket(sim, this.bid);
+    const ask = P.weeklyRent(this.bid);
+    const bounds = P.rentBounds(this.bid);
+    const step = Math.max(1, Math.round(bounds.market * 0.1));
+    const L = r.lease;
     const demand = status(t(`demand.${m.demand}`), m.demand === 'high' ? 'good' : m.demand === 'low' ? 'warn' : 'neutral', m.demand === 'high' ? '📈' : m.demand === 'low' ? '📉' : '➖');
     return `<h3>💰 ${escapeHtml(t('rent_ui.title'))}</h3>
-      ${kv(t('rent_ui.asking'), `${fmtMoney(sim.property.weeklyRent(this.bid))} ${escapeHtml(t('rent_ui.per_week'))}`)}
+      <div class="rent-set">${button('−', 'rent_step', { d: -step }, { cls: 'sm', disabled: ask <= bounds.min })}<b class="rent-ask">${escapeHtml(fmtMoney(ask))}</b><span class="muted small">${escapeHtml(t('rent_ui.per_week'))}</span>${button('+', 'rent_step', { d: step }, { cls: 'sm', disabled: ask >= bounds.max })}</div>
+      ${L && L.rent !== ask ? `<div class="muted small">${escapeHtml(t('rent_ui.from_next_week', { money: fmtMoney(L.rent) }))}</div>` : ''}
       ${kv(t('rent_ui.suggested'), fmtMoney(m.suggested))}
       ${kv(t('rent_ui.range'), m.range)}
       ${kv(t('rent_ui.demand'), demand)}
-      <div class="btn-row"><span class="hint">${escapeHtml(t('ui.set_rent'))}</span>${Object.keys(RENT_LEVELS).map((lvl) => button(t(`rent_level.${lvl}`), 'rent_level', { level: lvl }, { cls: `sm ${r.rentLevel === lvl ? 'selected' : 'ghost'}` })).join('')}</div>
+      <div class="btn-row"><span class="hint">${escapeHtml(t('ui.set_rent'))}</span>${Object.keys(RENT_LEVELS).map((lvl) => button(t(`rent_level.${lvl}`), 'rent_level', { level: lvl }, { cls: `sm ${!r.ask && r.rentLevel === lvl ? 'selected' : 'ghost'}` })).join('')}</div>
+      <div class="muted small">${escapeHtml(t('rent_ui.hint'))}</div>
       ${r.arrears > 0 ? notice('danger', escapeHtml(t('ui.rent_arrears', { n: r.arrears }))) : ''}`;
   }
 
@@ -251,7 +259,9 @@ export class PropertyPanel extends Panel {
     const p = sim.state.player;
     let html = `<h3>🔑 ${escapeHtml(t('letting.title'))}</h3>`;
     const occupants = P.occupants(id);
-    if (occupants > 0) return html + kv(t('letting.tenants'), escapeHtml(t('letting.tenants_line', { n: occupants, money: fmtMoney(P.weeklyRent(id)) })));
+    const mgr = Lt.manager;
+    if (mgr) html += `<div class="muted small">🧑‍💼 ${escapeHtml(tr(sim, 'manager.looks_after', { npc: mgr.npc }))}</div>`;
+    if (occupants > 0) return html + (P.lease(id) ? this.tenancyHtml(kv, true) : kv(t('letting.tenants'), escapeHtml(t('letting.tenants_line', { n: occupants, money: fmtMoney(P.weeklyRent(id)) }))));
     if (!Lt.lettable(id)) return html + `<div class="muted small">${escapeHtml(t('letting.not_fit'))}</div>`;
     const listed = Lt.listed(id);
     const it = Lt.interest(id);
@@ -273,6 +283,50 @@ export class PropertyPanel extends Panel {
     html += `<div class="btn-row">${btns.join(' ')}</div>`;
     html += `<div class="muted small">${escapeHtml(t(away.length || Lt.S.ads.some((a) => a.building === id) ? 'letting.hint' : 'letting.hint_no_contacts'))}</div>`;
     return html;
+  }
+
+  /** The tenancy: who rents it, since when, the rent agreed, what they've paid — and notice, given or received. */
+  tenancyHtml(kv, mine = false) {
+    const sim = this.sim;
+    const P = sim.property;
+    const id = this.bid;
+    const r = P.rec(id);
+    const L = r.lease;
+    const tenant = sim.npcs.byId(L.tenant);
+    const who = tenant ? `<span class="clickable" data-action="inspect_npc" data-id="${tenant.id}">${escapeHtml(npcName(tenant))}</span>` : '—';
+    const n = P.occupants(id);
+    let html = mine ? '' : `<h3>🔑 ${escapeHtml(t('lease.title'))}</h3>${kv(t('lease.landlord'), escapeHtml(this.ownerLabel(r.owner)))}`;
+    html += kv(t('lease.tenant'), `${who}${n > 1 ? ` <span class="muted small">${escapeHtml(t('lease.household', { n }))}</span>` : ''}`);
+    html += kv(t('lease.since'), escapeHtml(`${dateString(L.since)} · ${agoText(sim.time.day - L.since)}`));
+    html += kv(t('lease.rent'), `${escapeHtml(fmtMoney(L.rent))} ${escapeHtml(t('rent_ui.per_week'))}`);
+    html += kv(t('lease.paid'), escapeHtml(fmtMoney(L.paid)));
+    if (L.missed) html += kv(t('lease.missed'), escapeHtml(t('lease.missed_n', { n: L.missed })));
+    if (r.arrears > 0) html += notice('danger', escapeHtml(t('ui.rent_arrears', { n: r.arrears })));
+    if (L.notice) {
+      const days = Math.max(0, L.notice.until - sim.time.day);
+      html += notice('warn', escapeHtml(tr(sim, L.notice.by === 'tenant' ? 'lease.leaving' : 'lease.notice_out', { npc: L.tenant, gender: tenant?.gender, n: days, letting: L.notice.why })));
+    }
+    if (!mine) return html;
+    // Ending it: you give notice (with cause, or after the first fortnight) — or take it back.
+    const btns = [];
+    if (L.notice) btns.push(button(t(L.notice.by === 'tenant' ? 'lease.talk_round' : 'lease.withdraw'), 'notice_withdraw', {}, { cls: 'ghost' }));
+    else {
+      const chk = P.canGiveNotice(id);
+      if (this.confirmNotice && chk.ok) btns.push(`<span class="warn small">${escapeHtml(t(chk.cause ? 'lease.confirm_cause' : 'lease.confirm', { n: 7 }))}</span>`, button(t('ui.yes'), 'notice', {}, { cls: 'danger' }), button(t('ui.no'), 'notice_no', {}, { cls: 'ghost' }));
+      else btns.push(button(t('lease.give_notice'), 'notice_ask', {}, { cls: 'ghost', disabled: !chk.ok, title: chk.ok ? '' : tr(sim, `reason.${chk.reason}`, chk.params || {}) }));
+    }
+    html += `<div class="btn-row">${btns.join(' ')}</div>`;
+    return html;
+  }
+
+  /** Who rented it before, for how long, and how it ended. */
+  pastTenantsHtml() {
+    const sim = this.sim;
+    const rows = [...(sim.property.rec(this.bid).tenancies || [])].reverse().map((x) => {
+      const n = sim.npcs.byId(x.tenant) || sim.family?.person(x.tenant);
+      return `<div class="small">${escapeHtml(n ? npcName(n) : '—')} <span class="muted">· ${escapeHtml(t('lease.stayed', { n: Math.max(1, x.to - x.from) }))} · ${escapeHtml(fmtMoney(x.paid))} · ${escapeHtml(t(`lease_end.${x.how}`))}</span></div>`;
+    });
+    return `<h3>${escapeHtml(t('lease.past'))}</h3>${rows.join('')}`;
   }
 
   /** Owner, staff, pay and prices, reputation, the week's books, what's on the shelves. */
@@ -353,6 +407,24 @@ export class PropertyPanel extends Panel {
         break;
       case 'rent_level':
         P.setRentLevel(this.bid, data.level);
+        break;
+      case 'rent_step':
+        P.setRent(this.bid, P.weeklyRent(this.bid) + Number(data.d));
+        break;
+      case 'notice_ask':
+        this.confirmNotice = true;
+        break;
+      case 'notice_no':
+        this.confirmNotice = false;
+        break;
+      case 'notice': {
+        this.confirmNotice = false;
+        const r = P.giveNotice(this.bid);
+        if (!r.ok) this.sim.toast(`reason.${r.reason}`, r.params || {}, 'warn');
+        break;
+      }
+      case 'notice_withdraw':
+        if (!P.withdrawNotice(this.bid)) this.sim.toast('reason.wont_stay', {}, 'warn');
         break;
       case 'borrow': {
         const r = this.sim.finance.borrow(Number(data.n));

@@ -122,7 +122,8 @@ const status0 = V.status;
 for (let i = 0; i < 12 && sim.state.npcs.length + 1 < 36; i++) sim.growth.arrive();
 C.checkStatus();
 C.checkStatus();
-check('with people and institutions, the village becomes something more', V.status !== status0 && ['large_village', 'town'].includes(V.status), `${status0} → ${V.status}`);
+// (If the valley had already grown into a large village by now, a town also needs its school and readers — EducationWorldSystem.)
+check('with people and institutions, the village becomes something more', status0 === 'village' ? V.status !== status0 && ['large_village', 'town'].includes(V.status) : ['large_village', 'town'].includes(V.status), `${status0} → ${V.status}`);
 check('…which goes into the history book', sim.state.history.entries.some((e) => e.key.startsWith('chronicle.village_status')));
 check('…and draws newcomers', C.attractiveness() > 0);
 

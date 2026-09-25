@@ -4,7 +4,6 @@
  */
 import { t, fmtMoney } from '../i18n/i18n.js';
 import { status } from './widgets.js';
-import { RENT_LEVELS } from '../systems/PropertySystem.js';
 
 /** The states a building is in: [{ key, kind, ico }] — the first is the main one. */
 export function propStates(sim, id) {
@@ -17,15 +16,16 @@ export function propStates(sim, id) {
   if (r.ruined) add('ruin', 'danger', '🏚️');
   else if (r.abandoned) add('abandoned', 'danger', '🏚️');
   if (id === sim.state.player.homeId) add('your_home', 'good', '🏠');
-  else if (sim.economy.businessAtBuilding(id)) add('business', 'info', '🏪');
-  else if (P.isHome(id)) {
-    const people = P.occupants(id);
-    const landlord = people && sim.npcs.residentsOf(id).some((n) => P.landlord(n));
-    if (people && landlord) add('rented', 'good', '🔑');
-    else if (people) add('owner_occupied', 'neutral', '🏠');
-    else if (sim.letting?.listed(id)) add('for_rent', 'warn', '📋');
-    else add('vacant', 'warn', '🚪');
+  else {
+    // The one housing state (PropertySystem.housingState): rented, lived in by its owner, to let, empty.
+    const hs = P.housingState(id);
+    if (hs === 'business') add('business', 'info', '🏪');
+    else if (hs === 'rented') add('rented', 'good', '🔑');
+    else if (hs === 'owner_occupied') add('owner_occupied', 'neutral', '🏠');
+    else if (hs === 'for_rent') add('for_rent', 'warn', '📋');
+    else if (hs === 'vacant') add('vacant', 'warn', '🚪');
   }
+  if (r.lease?.notice) add('notice', 'warn', '📤');
   if (r.forSale) add('for_sale', 'info', '🏷️');
   if (r.arrears > 0) add('arrears', 'danger', '⚠️');
   if (!r.ruined && r.condition < 40) add('needs_repair', 'danger', '🔧');
@@ -43,9 +43,9 @@ export function rentMarket(sim, id) {
   const P = sim.property;
   const cap = P.capacity(id);
   const r = P.rec(id);
-  const base = Math.round(P.weeklyRent(id) / (RENT_LEVELS[r?.rentLevel] || 1));
+  const base = P.marketRent(id);
   const like = P.homes().filter((h) => h !== id && !P.rec(h)?.ruined && Math.abs(P.capacity(h) - cap) <= 1 && h !== 'hall');
-  const rents = like.map((h) => Math.round(P.weeklyRent(h) / (RENT_LEVELS[P.rec(h)?.rentLevel] || 1)));
+  const rents = like.map((h) => P.marketRent(h));
   // The middle half of what similar homes go for (the odd bargain or palace aside).
   const sorted = [...rents, base].sort((a, b) => a - b);
   const lo = rents.length >= 3 ? Math.min(base, sorted[Math.floor(sorted.length * 0.25)]) : Math.round(base * 0.8);
