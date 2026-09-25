@@ -143,6 +143,11 @@ export function installDebugPanel(dev) {
     bt_works: () => console.log(dev.bt.works()),
     bt_developer: () => console.log(dev.bt.developer()),
     bt_flats: () => console.log(dev.bt.flats()),
+    // Contracts and crews (see contractTools.js — also dev.ct.* in the console).
+    ct_farm: () => console.log(dev.ct.farm()),
+    ct_repair: () => console.log(dev.ct.repair()),
+    ct_finish: () => console.log(dev.ct.finish()),
+    ct_list: () => console.log(dev.ct.list()),
     bt_settype: (sim) => {
       const me = sim.world.toTile(sim.state.player.x, sim.state.player.y);
       const id = sim.territory.idAt(me.tx, me.ty);
@@ -225,7 +230,7 @@ export function installDebugPanel(dev) {
       const prog = t?.stage === 'working' && t.until ? `${Math.max(0, Math.round(100 - ((t.until - now) / 60) * 100))}%` : '';
       const path = sim.npcs.paths.get(n.id);
       const next = W.candidates(n, c).find((x) => x.key !== c.task?.key);
-      return `<div class="dbg-w"><b>${n.id}</b> ${c.state} · ${t?.type || '-'}:${t?.stage || '-'} ${prog}<br>task ${c.task?.key || '—'} spot ${c.task?.spot ? `${c.task.spot.tx},${c.task.spot.ty}` : '—'} · path ${path ? path.length : 'none'} · ${Math.round((now - (c.stateSince ?? now)))}m in state · unstuck ${c.unstuck || 0}${c.lastStuck ? ` (${c.lastStuck.why})` : ''}<br>next ${next?.key || '—'} · blocked ${Object.keys(c.blocked).length} · queue ${c.queue.join(',') || '—'}
+      return `<div class="dbg-w"><b>${n.id}</b> ${c.state} · ${t?.type || '-'}:${t?.stage || '-'} ${prog}<br>${sim.contracts.jobOf(n.id) ? `contract #${sim.contracts.jobOf(n.id).id} · ` : ''}task ${c.task?.key || '—'} (${c.task?.status || '-'}) spot ${c.task?.spot ? `${c.task.spot.tx},${c.task.spot.ty}` : '—'} · path ${path ? path.length : 'none'} · ${Math.round((now - (c.stateSince ?? now)))}m in state · unstuck ${c.unstuck || 0}${c.lastStuck ? ` (${c.lastStuck.why})` : ''}<br>next ${next?.key || '—'} · blocked ${Object.keys(c.blocked).length} · queue ${c.queue.join(',') || '—'}
         <div>${['reset', 'cancel', 'next', 'teleport'].map((a) => `<button data-dbgw="${a}:${n.id}">${a}</button>`).join('')}</div></div>`;
     });
     return rows.length ? `<div class="dbg-head"><b>Workers</b> <button data-dbg="wspots">${showSpots ? 'hide' : 'show'} spots & paths</button> <button data-dbg="wdog">run watchdog</button></div>${rows.join('')}` : '';
@@ -290,7 +295,7 @@ export function installDebugPanel(dev) {
         ${btn('contact', 'Contact all settlements')}${btn('week', 'Settlements: a week')}${btn('caravans', 'Send caravans')}${btn('horse', 'Get a horse cart')}
         ${btn('election', 'Election now')}${btn('headman', 'Make me headman')}${btn('fund', 'Fill civic fund')}${btn('renown', '+20 renown')}
         ${btn('edu_school', 'Build school')}${btn('edu_trade', 'Build trade school')}${btn('edu_institute', 'Build institute')}${btn('edu_teacher', 'Make a teacher')}${btn('edu_enrol', 'Enrol now')}
-        ${btn('rental', 'A house to let, let')}${btn('rentday', 'Rent day')}${btn('housing', 'Households review homes')}${btn('bt_hood', 'Create neighbourhood')}${btn('bt_district', 'Create district (shops)')}${btn('bt_places', 'Recount places')}${btn('bt_complete', 'Complete construction near')}${btn('bt_land', 'Inspect land here')}${btn('bt_works', 'Public works now')}${btn('bt_pave', 'Pave road here')}${btn('bt_infra', 'Infrastructure numbers')}${btn('bt_developer', 'NPC develops a row')}${btn('bt_buylot', 'NPC buys a lot')}${btn('bt_flats', 'Block of flats here')}${btn('bt_settype', 'Cycle land type here')}${btn('bt_demolish', 'Demolish nearest')}${btn('bt_convert', 'Nearest → shop')}${btn('hire3', 'Hire 3 workers')}${btn('edu_week', 'Education: a week')}${btn('edu_year', 'School year ends')}${btn('edu_research', '+20 research')}${btn('edu_spread', 'Know-how spreads')}${btn('edu_talent', 'Talented pupil')}${btn('edu_scholar', 'Scholar arrives')}${btn('edu_inspect', 'Inspect learning')}
+        ${btn('rental', 'A house to let, let')}${btn('rentday', 'Rent day')}${btn('housing', 'Households review homes')}${btn('bt_hood', 'Create neighbourhood')}${btn('bt_district', 'Create district (shops)')}${btn('bt_places', 'Recount places')}${btn('bt_complete', 'Complete construction near')}${btn('bt_land', 'Inspect land here')}${btn('bt_works', 'Public works now')}${btn('bt_pave', 'Pave road here')}${btn('bt_infra', 'Infrastructure numbers')}${btn('bt_developer', 'NPC develops a row')}${btn('bt_buylot', 'NPC buys a lot')}${btn('bt_flats', 'Block of flats here')}${btn('bt_settype', 'Cycle land type here')}${btn('bt_demolish', 'Demolish nearest')}${btn('bt_convert', 'Nearest → shop')}${btn('hire3', 'Hire 3 workers')}${btn('ct_farm', 'Farmer harvest → workers')}${btn('ct_repair', 'Repair job → workers')}${btn('ct_finish', 'Finish contract')}${btn('ct_list', 'List contracts')}${btn('edu_week', 'Education: a week')}${btn('edu_year', 'School year ends')}${btn('edu_research', '+20 research')}${btn('edu_spread', 'Know-how spreads')}${btn('edu_talent', 'Talented pupil')}${btn('edu_scholar', 'Scholar arrives')}${btn('edu_inspect', 'Inspect learning')}
       </div>
       ${workersHtml(sim)}
       <div class="dbg-sel">

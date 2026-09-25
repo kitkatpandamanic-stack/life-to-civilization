@@ -307,7 +307,11 @@ function buildingActions(scene, id, add) {
   // Contracts: hand over goods here, or collect goods to haul.
   for (const c of sim.contracts.at(id)) {
     if (c.kind === 'haul' && c.from === id && c.collected < c.qty) add('action.contract_collect', { qty: c.qty - c.collected, item: c.item }, () => sim.contracts.collect(c.id));
-    else if (c.building === id && c.kind !== 'build') {
+    else if (c.kind === 'repair' && c.building === id) add('action.contract_repair', { n: Math.round(sim.property.rec(id)?.condition ?? 0) }, () => scene.repairForContract(c.id), sim.contracts.canRepair(c));
+    else if (c.kind === 'harvest' && c.building === id) {
+      // The farmer's wheat you picked: hand it over at the farmhouse.
+      if ((c.owed || 0) > 0) add('action.contract_handover', { qty: sim.contracts.deliverable(c), item: c.item }, () => sim.contracts.deliver(c.id), sim.contracts.deliverable(c) > 0 ? OK : { ok: false, reason: 'contract_nothing', params: { item: c.item } });
+    } else if (c.building === id && c.kind !== 'build') {
       const n = sim.contracts.deliverable(c);
       add('action.contract_deliver', { qty: n || c.qty - c.delivered, item: c.item }, () => sim.contracts.deliver(c.id), n > 0 ? OK : { ok: false, reason: c.minQ !== undefined ? 'contract_quality' : 'contract_nothing', params: { item: c.item } });
     }

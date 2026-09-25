@@ -12,6 +12,7 @@ import { ITEMS } from '../../data/items.js';
 import { JobBoardPanel } from './JobBoardPanel.js';
 import { GOAL_AGAINST } from '../../data/goals.js';
 import { RENTAL } from '../../data/housing.js';
+import { contractAction, crewPicker, openCrew, contractCard } from '../contracts.js';
 
 export class DialoguePanel extends Panel {
   constructor(ui, npcId) {
@@ -109,6 +110,13 @@ export class DialoguePanel extends Panel {
         opt(t(leaving ? 'dialog.opt.plans_leaving' : 'dialog.opt.plans'), 'plans');
       }
       opt(t('dialog.opt.work'), 'work');
+      // Work they need done — asked of you in person (ContractSystem): their fields, their house, their site.
+      const K = sim.contracts;
+      const mine = sim.state.contracts.active.find((c) => c.issuer === npc.id && K.canDelegate(c));
+      if (mine) {
+        opt(t('dialog.opt.job_how'), 'job_how');
+        if (mine.kind === 'harvest' && K.deliverable(mine) > 0) opt(tr(sim, 'dialog.opt.job_handover', { qty: K.deliverable(mine), item: mine.item }), 'job_handover', { id: mine.id });
+      } else if (K.needOf(npc)) opt(t('dialog.opt.job_need'), 'job_offer', {}, false, t('dialog.opt.job_need_note'));
       const req = sim.jobs.requestFor(npc.id);
       if (req && !req.accepted) opt(t('dialog.opt.help'), 'request');
       if (req && req.accepted) {
@@ -183,6 +191,40 @@ export class DialoguePanel extends Panel {
       return opts.join('');
     }
 
+    if (this.view === 'job') {
+      // Their offer: take it, hear the details, or say no.
+      const o = sim.contracts.get(this.jobId);
+      if (!o || !sim.state.contracts.offers.includes(o)) {
+        opt(t('dialog.opt.back'), 'back');
+        return opts.join('');
+      }
+      if (this.jobDetails) opts.push(contractCard(sim, o, 'offer').replace(/<div class="btn-row">[\s\S]*?<\/div>/, ''));
+      const chk = sim.contracts.canAccept(o.id);
+      opt(t('dialog.opt.job_accept'), 'job_accept', {}, !chk.ok, chk.ok ? '' : tr(sim, `reason.${chk.reason}`, chk.params || {}));
+      if (!this.jobDetails) opt(t('dialog.opt.job_details'), 'job_details');
+      opt(t('dialog.opt.job_decline'), 'job_decline');
+      return opts.join('');
+    }
+
+    if (this.view === 'job_plan') {
+      // Taken on: you'll do it, your workers will, or both.
+      const c = sim.state.contracts.active.find((x) => x.id === this.jobId);
+      if (c) {
+        opt(t('dialog.opt.job_myself'), 'job_myself');
+        const n = sim.workers.list().length;
+        opt(t('dialog.opt.job_workers'), 'job_crew', {}, !n, n ? '' : t('contract.no_workers'));
+      }
+      opt(t('dialog.opt.back'), 'back');
+      return opts.join('');
+    }
+
+    if (this.view === 'job_crew') {
+      const c = sim.state.contracts.active.find((x) => x.id === this.jobId);
+      if (c) opts.push(crewPicker(sim, c));
+      opt(t('dialog.opt.back'), 'back');
+      return opts.join('');
+    }
+
     if (this.view === 'request') {
       const req = sim.jobs.requestFor(npc.id);
       opt(t('dialog.opt.accept_request'), 'accept_request', { id: req?.id });
@@ -228,6 +270,11 @@ export class DialoguePanel extends Panel {
     return opts.join('');
   }
 
+  /** What they say when they ask: how much work, how much they'd pay, where. */
+  jobParams(o) {
+    return { qty: o.qty, hours: o.hours, item: o.item, money: o.pay, building: o.kind === 'haul' ? o.from : o.building, n: Math.round(this.sim.property.rec(o.building)?.condition ?? 0) };
+  }
+
   renderAbout() {
     const sim = this.sim;
     const npc = this.npc;
@@ -256,7 +303,77 @@ export class DialoguePanel extends Panel {
   onAction(action, data) {
     const sim = this.sim;
     const npc = this.npc;
+    // Contract buttons (the worker picker).
+    if (contractAction(sim, action, data)) {
+      if (action === 'crew_assign') {
+        const c = sim.state.contracts.active.find((x) => x.id === Number(data.id));
+        this.line = this.say(c?.workers.length ? 'dialog.job_crew_sent' : 'dialog.job_crew_none');
+        this.view = 'main';
+      }
+      return;
+    }
+    const K = sim.contracts;
     switch (action) {
+      case 'job_offer': {
+        const o = K.offerFromTalk(npc);
+        if (!o) {
+          this.line = this.say('dialog.work_none');
+          break;
+        }
+        this.jobId = o.id;
+        this.jobDetails = false;
+        this.line = this.say(`dialog.job_pitch.${o.kind}`, this.jobParams(o));
+        this.view = 'job';
+        break;
+      }
+      case 'job_details': {
+        const o = K.get(this.jobId);
+        if (!o) break;
+        this.jobDetails = true;
+        this.line = this.say('dialog.job_details_line', { n: K.recommended(o), what: tr(sim, `contract.work.${o.kind}`, { n: K.required(o) }), when: t('contract.time_allowed', { n: o.days }) });
+        break;
+      }
+      case 'job_accept': {
+        const r = K.accept(this.jobId);
+        if (!r.ok) {
+          this.line = tr(sim, `reason.${r.reason}`, r.params || {});
+          break;
+        }
+        this.line = this.say('dialog.job_thanks');
+        this.view = 'job_plan';
+        break;
+      }
+      case 'job_decline': {
+        K.decline(this.jobId);
+        this.line = this.say('dialog.job_declined');
+        this.view = 'main';
+        break;
+      }
+      case 'job_myself': {
+        if (sim.state.contracts.tracked !== this.jobId) K.track(this.jobId);
+        this.line = this.say('dialog.job_myself');
+        this.view = 'main';
+        break;
+      }
+      case 'job_crew':
+        openCrew(sim, this.jobId);
+        this.view = 'job_crew';
+        this.line = this.say('dialog.job_crew_ask');
+        break;
+      case 'job_how': {
+        const c = sim.state.contracts.active.find((x) => x.issuer === npc.id);
+        if (!c) break;
+        this.jobId = c.id;
+        const left = K.required(c) - (c.done || 0);
+        this.line = this.say(c.done ? 'dialog.job_progress' : 'dialog.job_not_started', { n: Math.max(0, Math.ceil(left)), what: tr(sim, `contract.work.${c.kind}`, { n: Math.max(0, Math.ceil(left)) }) });
+        this.view = 'job_plan';
+        break;
+      }
+      case 'job_handover': {
+        const n = K.deliver(Number(data.id));
+        if (n) this.line = this.say(K.isActive(Number(data.id)) ? 'dialog.job_handed' : 'dialog.job_all_done', { qty: n, item: 'wheat' });
+        break;
+      }
       case 'chat':
         if (sim.social.chat(npc)) this.line = this.topicLine('chat');
         else this.line = this.say('dialog.chat_again');

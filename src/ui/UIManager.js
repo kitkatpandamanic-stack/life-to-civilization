@@ -338,6 +338,11 @@ export class UIManager {
         this.objectiveEl.classList.remove('hidden');
         const have = sim.inventory.count(req.item);
         this.objectiveEl.innerHTML = `<div class="obj-head">🤝 ${escapeHtml(t('ui.favour'))}</div><div class="obj-text">${escapeHtml(tr(sim, 'objective.request', { npc: req.npcId, item: req.item, qty: req.qty, have }))}</div>`;
+      } else if (sim.contracts.objective()) {
+        // A contract you're following ("Go to job"): what to do next, and where.
+        const co = sim.contracts.objective();
+        this.objectiveEl.classList.remove('hidden');
+        this.objectiveEl.innerHTML = `<div class="obj-head">📜 ${escapeHtml(t(`contract.kind.${co.contract.kind}`))}</div><div class="obj-text">${escapeHtml(tr(sim, co.key, co.params))}</div>`;
       } else if (p.level === 1 && sim.state.stats.jobsCompleted === 0) {
         this.objectiveEl.classList.remove('hidden');
         this.objectiveEl.innerHTML = `<div class="obj-head">💡 ${escapeHtml(t('ui.tip'))}</div><div class="obj-text">${escapeHtml(t('objective.first_tip'))}</div>`;

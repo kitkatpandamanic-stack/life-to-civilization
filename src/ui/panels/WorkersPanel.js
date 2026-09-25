@@ -57,7 +57,7 @@ export class WorkersPanel extends Panel {
       if (!s) return '';
       return s.kind === 'works' ? buildingLabel(sim, s.target) : t(`buildable.${s.type}.name`);
     };
-    const params = { what: t0.kind === 'build' || t0.kind === 'haul' || t0.kind === 'buy' ? siteName(t0.target) : '', building: t0.kind === 'repair' ? t0.target : undefined, item: t0.item };
+    const params = { what: t0.kind === 'build' || t0.kind === 'haul' || t0.kind === 'buy' ? siteName(t0.target) : '', building: ['repair', 'crepair', 'chaul'].includes(t0.kind) ? t0.target : undefined, item: t0.item };
     return tr(sim, `wtask.${t0.kind}`, params);
   }
 
@@ -96,6 +96,7 @@ export class WorkersPanel extends Panel {
       const task = this.taskText(c);
       const next = c.state === 'working' || c.state === 'moving' ? this.nextText(npc, c) : '';
       const where = sim.growth.districtAt(Math.floor(npc.x / 32), Math.floor(npc.y / 32));
+      const job = sim.contracts.jobOf(c.npcId);
       const prod = Math.round(W.productivity(c.npcId) * 100);
       const expected = W.expectedSalary(npc, c.rank);
       const promo = W.canPromote(c.npcId);
@@ -117,6 +118,7 @@ export class WorkersPanel extends Panel {
             <b>${escapeHtml(npcName(npc))}</b> <span class="muted small">${escapeHtml(t(`profession.${prof.profession}`))} · ${escapeHtml(t('ui.level_n', { level: npc.level }))}</span>
             <div style="margin:3px 0">${status(t(`wstate.${c.state}`), kind, ico)}${task ? ` <span class="small">${escapeHtml(task)}</span>` : ''}</div>
             ${next ? `<div class="hint">${escapeHtml(t('workers.next', { list: next }))}</div>` : ''}
+            ${job ? `<div class="hint">📜 ${escapeHtml(tr(sim, 'workers.on_contract', { kind: t(`contract.kind.${job.kind}`), npc: job.issuer !== 'village' ? job.issuer : undefined, building: job.building }))} ${button(t('workers.off_contract'), 'off_contract', { npc: c.npcId, id: job.id }, { cls: 'sm ghost' })}</div>` : ''}
             ${where ? `<div class="hint">📍 ${escapeHtml(districtLabel(where))}</div>` : ''}
             <div class="worker-stats small muted">${escapeHtml(t('stat.energy'))} ${Math.round(npc.energy)} · ${escapeHtml(t('stat.hunger'))} ${Math.round(npc.hunger)} · ${escapeHtml(t('stat.health'))} ${Math.round(npc.health)} · ${escapeHtml(t('workers.done_n', { n: c.stats.done }))}</div>
           </div>
@@ -159,6 +161,10 @@ export class WorkersPanel extends Panel {
       if (c) W.setSalary(data.npc, c.salary + Number(data.d));
     } else if (action === 'prio') W.setPriority(data.npc, data.cat, data.p);
     else if (action === 'enqueue') W.enqueue(data.npc, data.id);
+    else if (action === 'off_contract') {
+      const job = this.sim.contracts.jobOf(data.npc);
+      if (job) this.sim.contracts.assign(job.id, job.workers.filter((x) => x !== data.npc));
+    }
     else if (action === 'toggle') this.open = this.open === data.npc ? null : data.npc;
     else if (action === 'buy_toggle') W.state.buy = W.state.buy === false;
     else if (action === 'budget') W.state.budget = Math.max(0, (W.state.budget ?? WORKFORCE.buyBudgetPerDay) + Number(data.d));

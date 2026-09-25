@@ -710,7 +710,9 @@
     "improve_building": "Improve the building…",
     "call_on_tenants": "Call on your tenants",
     "put_sign_up": "Put up a \"to let\" sign",
-    "take_sign_down": "Take the \"to let\" sign down"
+    "take_sign_down": "Take the \"to let\" sign down",
+    "contract_repair": "Repair it for the owner (1 hour) — {n}% sound",
+    "contract_handover": "Hand over the harvest: {item} ×{qty}"
   },
   "reason": {
     "nothing_here": "Nothing to do here.",
@@ -1076,7 +1078,18 @@
     "manager_quit": "{npc} has stopped looking after your houses — you couldn't pay.",
     "manager_repaired": "{npc} had {building} repaired ({money}).",
     "demolished": "Pulled down: {btype}. What could be saved is yours.",
-    "demolish_confirm": "Pull down {building}? Click again to be sure."
+    "demolish_confirm": "Pull down {building}? Click again to be sure.",
+    "contract_paid": "Job done! {npc} paid you {money} · +{n} XP",
+    "contract_done_xp": "Contract fulfilled! You were paid {money} · +{n} XP",
+    "contract_handed": "Handed {item} ×{qty} to {npc}.",
+    "crew_xp": "{npc}: +{n} XP for the work (and {field} practice)",
+    "crew_assigned": {
+      "one": "{n} worker on the way to the job.",
+      "other": "{n} workers on the way to the job."
+    },
+    "crew_cleared": "Nobody's on that job now.",
+    "contractor_rank": "Your name as a contractor grows: {crank}.",
+    "repaired_for": "An hour's repairs: +{n} to {building}."
   },
   "objective": {
     "harvest": "Harvest ripe wheat in the farm fields ({have}/{qty})",
@@ -1094,7 +1107,14 @@
     "pickup_letters": "Collect the letters at: {building}",
     "deliver_letters": "Deliver the letters ({n} left) — next: {building}",
     "haul_pickup": "Collect {item} ×{qty} at: {building}",
-    "haul_deliver": "Carry {item} ×{qty} to the building site"
+    "haul_deliver": "Carry {item} ×{qty} to the building site",
+    "c_harvest": "Harvest ripe wheat in {npc}'s fields ({have}/{qty})",
+    "c_handover": "Take {item} ×{qty} to {building}",
+    "c_repair": "Repair {building} ({have}/{qty})",
+    "c_build": "Work on the building site ({have}/{qty} hours)",
+    "c_haul_pick": "Collect {item} ×{qty} at {building}",
+    "c_haul_drop": "Deliver {item} ×{qty} to {building}",
+    "c_deliver": "Bring {item} ×{qty} to {building}"
   },
   "job": {
     "farm_harvest": {
@@ -1478,7 +1498,8 @@
     "player_demolished": "You pulled down {btype} — the ground is free to build on again.",
     "building_demolished": "{npc} pulled down {btype}.",
     "village_demolished": "The village cleared away {btype} — the ground is free to build on again.",
-    "npc_converted": "{npc} turned {building} into a shop — the house had stood empty on a busy street."
+    "npc_converted": "{npc} turned {building} into a shop — the house had stood empty on a busy street.",
+    "contractor_rank": "The contracts you've seen through earned you a new standing: {crank}."
   },
   "event": {
     "good_harvest": {
@@ -2527,7 +2548,16 @@
       "offer_apprentice": "Would you like to learn {field} from me?",
       "offer_sponsor": "I'll pay for your studies in {settlement} ({money})",
       "ask_manager": "Would you look after my houses? ({n}% of the rent)",
-      "end_manager": "You needn't look after my houses any more"
+      "end_manager": "You needn't look after my houses any more",
+      "job_need": "You look busy — could you use a hand?",
+      "job_need_note": "they have work that needs doing",
+      "job_how": "About the job I'm doing for you…",
+      "job_handover": "Here's your harvest: {item} ×{qty}",
+      "job_accept": "I'll take it on.",
+      "job_details": "Tell me more.",
+      "job_decline": "Sorry, I can't.",
+      "job_myself": "I'll see to it myself.",
+      "job_workers": "My workers will do it."
     },
     "no_gifts": "You have nothing suitable to give.",
     "chat_again": [
@@ -2699,6 +2729,64 @@
     "manager_ended": [
       "As you like. Your houses were no trouble.",
       "Fair enough. You know where I am."
+    ],
+    "job_pitch": {
+      "harvest": [
+        "There's more wheat ripe in my fields than I can bring in alone — {qty} plants. Could you help me? I'd pay {money}.",
+        "My wheat's ready and my back isn't. Would you bring in {qty} plants for me? {money} for the work."
+      ],
+      "repair": [
+        "{building} is falling apart — only {n}% sound. Could you put it right? I'd pay {money}.",
+        "The roof leaks, the door sticks… {building} needs work. {money} if you'd see to it."
+      ],
+      "build": [
+        "My building's going far too slowly. Could you put {hours} hours in on the site? {money} for it.",
+        "I could use another pair of hands on the site — {hours} hours. I'd pay {money}."
+      ],
+      "haul": [
+        "I'm short of {item}. Could you fetch {qty} from {building} for me? {money} for the carrying.",
+        "Would you bring me {qty} × {item} from {building}? I'd pay {money} for your trouble."
+      ]
+    },
+    "job_details_line": [
+      "It's {what}. Best with {n} at it. {when}."
+    ],
+    "job_thanks": [
+      "Thank you! Will you do it yourself, or send your people?",
+      "Wonderful. Who'll be doing the work — you, or your workers?"
+    ],
+    "job_declined": [
+      "Ah well. Maybe someone else, then.",
+      "Never mind — I'll manage somehow."
+    ],
+    "job_myself": [
+      "Good. You know where to find me.",
+      "Right you are. I'll be glad of the help."
+    ],
+    "job_crew_ask": [
+      "Who'll you send?"
+    ],
+    "job_crew_sent": [
+      "Good — I'll show them what's what.",
+      "Send them over, I'll be expecting them."
+    ],
+    "job_crew_none": [
+      "No one? Then I'm counting on you."
+    ],
+    "job_progress": [
+      "Coming along nicely — {what} still to go.",
+      "Good work so far. {what} left."
+    ],
+    "job_not_started": [
+      "Nobody's started yet — {what} waiting.",
+      "Not a thing done yet. {what} waiting."
+    ],
+    "job_handed": [
+      "Thank you — that goes in the barn."
+    ],
+    "job_all_done": [
+      "That's the lot! Here's what I owe you.",
+      "All in — thank you. Here's your pay."
     ]
   },
   "rank": {
@@ -2776,7 +2864,8 @@
     "at_post_researcher": "At work in the institute",
     "waiting_materials": "Waiting for materials",
     "repairing": "Repairing",
-    "buying_materials": "Buying materials"
+    "buying_materials": "Buying materials",
+    "harvesting_contract": "Harvesting a field for you"
   },
   "schedule": {
     "wake": "Wake up",
@@ -5004,7 +5093,9 @@
       "craft": "Commission",
       "build": "Building work",
       "haul": "Haulage",
-      "order": "Order"
+      "order": "Order",
+      "harvest": "Harvest",
+      "repair": "Repairs"
     },
     "supply": "{building} is running short: deliver {qty} × {item}.",
     "craft": "{npc} wants {qty} × {item} made — {quality} or better — delivered to their home.",
@@ -5023,7 +5114,7 @@
     "hauled": "delivered {n} / {of} (carrying {got})",
     "delivered_n": "delivered {n} / {of}",
     "deadline": "Due by {date}",
-    "hint": "Contracts come from real needs around the village. Deliver at the building's door, work at the site, or collect and carry. Payment comes from whoever asked; missing a deadline costs you reputation.",
+    "hint": "Contracts come from real needs around the village — and the people who need the work ask you themselves when you talk to them. Do the work yourself, or put your workers on it (harvests, repairs, building work, haulage). Payment comes from whoever asked; missing a deadline costs you reputation.",
     "yours": "Your contracts",
     "offered": "On offer",
     "none": "Nothing on offer right now — check back tomorrow.",
@@ -5031,7 +5122,70 @@
     "order": "{building} orders {qty} × {item} from your {building2}.",
     "ship": "Send from stock ({n} there)",
     "order_feast": "{npc} is throwing a celebration and orders {qty} × {item} from your {building2}.",
-    "order_feast_village": "The village is holding a feast and orders {qty} × {item} from your {building2}."
+    "order_feast_village": "The village is holding a feast and orders {qty} × {item} from your {building2}.",
+    "harvest": "{npc}'s fields are full of ripe wheat: bring in {qty} plants and take the wheat to {building}.",
+    "repair": "{building} is in a bad way ({n}% sound). {npc} wants it put right: {qty} points of repair work.",
+    "repair_village": "{building} is in a bad way ({n}% sound). The village wants it put right: {qty} points of repair work.",
+    "client": "Client: {name}",
+    "at": "{building}",
+    "plants_done": "{n} / {of} plants",
+    "points_done": "{n} / {of} repair work",
+    "work": {
+      "harvest": {
+        "one": "{n} plant to harvest",
+        "other": "{n} plants to harvest"
+      },
+      "repair": {
+        "one": "{n} point of repair work",
+        "other": "{n} points of repair work"
+      },
+      "build": {
+        "one": "{n} hour of building work",
+        "other": "{n} hours of building work"
+      },
+      "haul": {
+        "one": "{n} load to carry",
+        "other": "{n} goods to carry"
+      }
+    },
+    "hands": {
+      "one": "best with {n} worker",
+      "other": "best with {n} workers"
+    },
+    "xp_reward": "+{n} XP for you",
+    "xp_n": "+{n} XP",
+    "status": {
+      "accepted": "Taken on",
+      "preparing": "Workers on their way",
+      "working": "Under way",
+      "waiting": "Waiting — nobody at it",
+      "completed": "Done",
+      "failed": "Fell through",
+      "cancelled": "Given up"
+    },
+    "workers_n": "Workers: {n} / {of} wanted",
+    "owed": "You're carrying {qty} × {item} of theirs — hand it over at {building}.",
+    "manage_workers": "Manage workers",
+    "go_to": "Go to job",
+    "tracking": "Following ✓",
+    "details": "Details",
+    "d": {
+      "work": "Work",
+      "hands": "Workers wanted",
+      "pay": "Payment",
+      "deadline": "Deadline",
+      "xp": "Your experience",
+      "wxp": "Each worker (for a fair share)",
+      "done_by": "Done so far"
+    },
+    "you": "You",
+    "no_workers": "You have no workers yet — hire someone first.",
+    "on_other": "on another job",
+    "available_workers": "Your workers (this job wants {n})",
+    "assign_n": "Put them on the job ({n})",
+    "recent": "Recently finished",
+    "rank_line": "{done} contracts seen through · up to {n} at once",
+    "rank_next": "next: {rank} at {n}"
   },
   "ambition": {
     "title": "Ambitions",
@@ -6627,7 +6781,10 @@
     "farm": "Working your fields",
     "workshop": "Working in your workshop",
     "haul_ws": "Carrying {item} to the workshop",
-    "repair": "Repairing {building}"
+    "repair": "Repairing {building}",
+    "charvest": "Harvesting a client's field",
+    "crepair": "Repairing {building} (contract)",
+    "chaul": "Hauling {item} from {building} (contract)"
   },
   "jobcat": {
     "construction": "Construction",
@@ -6666,7 +6823,9 @@
     "reliability": "Reliability",
     "more": "Priorities…",
     "less": "Hide",
-    "hire_line": "Age {age} · reliability {r} · works at {s}% pace"
+    "hire_line": "Age {age} · reliability {r} · works at {s}% pace",
+    "on_contract": "On a contract: {kind} at {building}",
+    "off_contract": "Take off the job"
   },
   "land_name": {
     "lot": "{building} lot",
@@ -7139,5 +7298,11 @@
     "shop_floor_rent": "let to a trader: {money} a week",
     "income": "The flats bring in",
     "hint": "Each flat has its own tenancy: its own rent, its own notice. The sign stays up while a flat is free. Rooms added to the building — a courtyard, a washroom, a lift — are for everyone in it."
+  },
+  "contractor_rank": {
+    "odd_jobs": "Odd-jobber",
+    "handyman": "Handyman",
+    "contractor": "Contractor",
+    "master_contractor": "Master contractor"
   }
 }

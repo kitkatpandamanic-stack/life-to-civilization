@@ -162,6 +162,28 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  /** An hour of repairs on a building a villager asked you to fix (a repair contract). */
+  repairForContract(id) {
+    if (this.busy) return;
+    const sim = this.sim;
+    const c = sim.state.contracts.active.find((x) => x.id === id);
+    const chk = sim.contracts.canRepair(c);
+    if (!chk.ok) {
+      sim.toast(`reason.${chk.reason}`, chk.params || {}, 'warn');
+      return;
+    }
+    this.busy = true;
+    this.player.cancelAction();
+    this.player.facing = 'up';
+    this.player.working = true;
+    sim.time.fastForward(60, 2000, () => {
+      const pts = sim.contracts.playerRepair(id);
+      this.player.working = false;
+      this.busy = false;
+      if (pts > 0) sim.toast('toast.repaired_for', { n: Math.round(pts), building: c.building }, 'info');
+    });
+  }
+
   /** Throw water on a burning building (a few seconds of hard work). */
   fightFire(buildingId) {
     const sim = this.sim;

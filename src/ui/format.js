@@ -164,6 +164,7 @@ export function resolveParams(sim, params = {}) {
     }
     else if (k === 'interest') out[k] = t(`interest_obj.${v}`);
     else if (k === 'field') out[k] = t(`knowledge.${v}`);
+    else if (k === 'crank') out[k] = t(`contractor_rank.${v}`);
     else if (k === 'edu_level') out[k] = t(`edu_level.${v}`);
     else if (k === 'works') out[k] = worksLabel(sim, params.building, v);
     else if (k === 'slevel') {

@@ -44,8 +44,10 @@ export class PlayerActionSystem {
     }
     if (kind === 'harvest') {
       const job = this.sim.jobs.active;
-      if (!job || job.type !== 'harvest') return { ok: false, reason: 'crops_not_yours' };
-      if (job.harvested >= job.qty) return { ok: false, reason: 'harvested_enough' };
+      // Your harvest job at the farm — or a farmer's harvest you've taken on (ContractSystem).
+      if (job?.type === 'harvest') {
+        if (job.harvested >= job.qty) return { ok: false, reason: 'harvested_enough' };
+      } else if (!this.sim.contracts.harvestAt(obj)) return { ok: false, reason: 'crops_not_yours' };
     }
     if (p.energy < A[kind].energy) return { ok: false, reason: 'too_tired' };
     const item = kind === 'chop' ? 'wood' : kind === 'forage' ? 'berries' : kind === 'harvest' ? 'wheat' : 'stone';

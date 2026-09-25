@@ -17,6 +17,7 @@ import { Simulation } from '../core/Simulation.js';
 import { installDebugPanel } from './DebugPanel.js';
 import { eduTools } from './eduTools.js';
 import { buildTools } from './buildTools.js';
+import { contractTools } from './contractTools.js';
 
 const KEYS = {
   w: ['w', 'KeyW', 87], a: ['a', 'KeyA', 65], s: ['s', 'KeyS', 83], d: ['d', 'KeyD', 68],
@@ -100,5 +101,6 @@ const dev = {
 
 dev.edu = eduTools(dev);
 dev.bt = buildTools(dev);
+dev.ct = contractTools(dev);
 window.dev = dev;
 installDebugPanel(dev);
