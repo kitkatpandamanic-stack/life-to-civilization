@@ -291,6 +291,8 @@ function buildingActions(scene, id, add) {
   // Your own business.
   if (bizId && sim.holdings.isMine(bizId)) {
     add('action.manage_enterprise', {}, () => ui.openEnterprise(bizId));
+    // Your hired workers: send them to work here (they join the staff).
+    if (econ.def(bizId)?.workerOccupation && sim.workers.list().length) add('action.send_workers_here', {}, () => ui.openEnterprise(bizId, 'workers'));
     add('action.work_own_shift', {}, () => scene.workOwnShift(bizId), p.energy >= 15 ? OK : { ok: false, reason: 'too_tired' });
   } else if (bizId && econ.owner(bizId)) add('action.business_dealings', {}, () => ui.openProperty(id));
   else if (!bizId && sim.holdings.canOpenIn(id).ok) add('action.open_business_here', {}, () => ui.openProperty(id));

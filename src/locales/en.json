@@ -712,7 +712,8 @@
     "put_sign_up": "Put up a \"to let\" sign",
     "take_sign_down": "Take the \"to let\" sign down",
     "contract_repair": "Repair it for the owner (1 hour) — {n}% sound",
-    "contract_handover": "Hand over the harvest: {item} ×{qty}"
+    "contract_handover": "Hand over the harvest: {item} ×{qty}",
+    "send_workers_here": "Send your workers here"
   },
   "reason": {
     "nothing_here": "Nothing to do here.",
@@ -918,7 +919,9 @@
     "have_company": "You have a company already.",
     "not_your_worker": "They don't work for you.",
     "need_workers": "You need at least {n} workers for a manager to be worth it.",
-    "is_workforce_manager": "They're your manager already."
+    "is_workforce_manager": "They're your manager already.",
+    "no_staff_here": "This business has no staff to join.",
+    "staff_full": "There's no room for more staff there ({n} at most)."
   },
   "toast": {
     "hungry": "You're getting hungry. Press Q to eat.",
@@ -1106,7 +1109,9 @@
     "haggle_no": "They won't budge.",
     "haggle_walked": "They'll find someone else.",
     "company_founded": "Your contracting company is registered!",
-    "manager_appointed": "{npc} is your manager now ({money} a day)."
+    "manager_appointed": "{npc} is your manager now ({money} a day).",
+    "posted_to_business": "{npc} now works at {building}.",
+    "back_to_crew": "{npc} is back with your crew."
   },
   "objective": {
     "harvest": "Harvest ripe wheat in the farm fields ({have}/{qty})",
@@ -2582,7 +2587,9 @@
       "job_accept_player": "I'll bring the materials myself — pay me {money} for them at the end.",
       "job_ask_pay": "Make it {money} and I'll do it.",
       "job_ask_time": "I'd need more time than that.",
-      "ask_manage": "Would you manage my workers?"
+      "ask_manage": "Would you manage my workers?",
+      "go_work_at": "Go and work at {building} for me.",
+      "come_back": "Come back and work with the rest of the crew."
     },
     "no_gifts": "You have nothing suitable to give.",
     "chat_again": [
@@ -2855,6 +2862,14 @@
     "manage_yes": [
       "Me, in charge? I'd be glad to. I'll see everyone's where they should be.",
       "Gladly. I'll keep them all busy — and {money} a day suits me fine."
+    ],
+    "go_work_yes": [
+      "Right — I'll get over to {building}.",
+      "{building}? I'll head there now."
+    ],
+    "come_back_yes": [
+      "Back with the crew — suits me.",
+      "I'll come back. Good to be with the others again."
     ]
   },
   "rank": {
@@ -5675,7 +5690,13 @@
     "route_sell": "Take",
     "route_buy": "Bring back",
     "route_nothing": "nothing",
-    "route_hint": "Once a week a caravan sets out (if there's something worth taking). Better carts from a carters' yard carry more."
+    "route_hint": "Once a week a caravan sets out (if there's something worth taking). Better carts from a carters' yard carry more.",
+    "your_worker": "your worker",
+    "call_back": "Call back",
+    "post_worker": "Send here",
+    "post_manager": "Send here to run it",
+    "send_workers": "Your workers",
+    "send_hint": "Send one of your hired workers to work here: they join the staff and do the work, on this business's wages. You can call them back any time."
   },
   "site": {
     "cave": {
@@ -7043,7 +7064,11 @@
     "duty_roles_on": "Sets roles ✓",
     "duty_roles_off": "Sets roles ✗",
     "dismiss_manager": "Dismiss as manager",
-    "manager_notes": "Manager's notes"
+    "manager_notes": "Manager's notes",
+    "post_to": "Send to {building}",
+    "post_tip": "They join the staff there and do its work, paid from its till. You can call them back any time.",
+    "posted_title": "Working at your businesses",
+    "posted_at": "at {building} · {money} a day from the till"
   },
   "land_name": {
     "lot": "{building} lot",

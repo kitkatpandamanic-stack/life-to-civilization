@@ -226,6 +226,9 @@ export class EnterpriseSystem {
 
   layOff(npc, id, why) {
     const b = this.econ.biz(id);
+    // One of your own workers posted here: back to your crew, not out of work.
+    if (npc.crew && b?.owner === 'player' && this.sim.holdings.recall(npc.id).ok) return;
+    delete npc.crew;
     if (b.manager === npc.id) b.manager = null;
     npc.prevOccupation = npc.occupation;
     npc.employer = null;

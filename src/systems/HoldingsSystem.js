@@ -15,6 +15,11 @@
  * Business orders: once you own a business, other businesses place bulk orders
  * with it (see ContractSystem kind 'order'), filled from its stock.
  *
+ * Your own workers can be posted to a business of yours: they join its staff and do its
+ * work (the baker's, the farmhand's, the woodcutter's — like anyone employed there), on its
+ * wages, from its till. Your terms with them are kept (npc.crew), so you can call them back
+ * to your crew — and if the business ever lets them go, they come back to you.
+ *
  *   business.owner === 'player'    business.stakes = [{ who: 'player', share, paid }]
  *   business.loan = { lender: 'player', amount, left, rate }
  */
@@ -228,6 +233,92 @@ export class HoldingsSystem {
     b.manager = n.id;
     this.sim.memory.remember(n, 'became_manager', { who: 'player', params: { building: b.building } });
     this.sim.bus.emit('business:changed', id);
+  }
+
+  // ------------------------------------------------------------------ your workers at your business
+
+  /** Can this worker of yours be posted to this business of yours? */
+  canPost(id, npcId) {
+    const sim = this.sim;
+    if (!this.isMine(id)) return { ok: false, reason: 'not_yours' };
+    const def = this.E.def(id);
+    if (!def.workerOccupation) return { ok: false, reason: 'no_staff_here' };
+    if (!sim.workers.contract(npcId)) return { ok: false, reason: 'not_your_worker' };
+    const room = (def.maxWorkers || 0) + 3;
+    if (sim.npcs.staffOf(id).length >= room) return { ok: false, reason: 'staff_full', params: { n: room } };
+    return { ok: true };
+  }
+
+  /**
+   * Post a worker of yours to a business of yours: off whatever they were doing (a contract, your
+   * manager's job), onto its staff — its work, its wages. manager: and put them in charge there.
+   */
+  post(id, npcId, { manager = false } = {}) {
+    const chk = this.canPost(id, npcId);
+    if (!chk.ok) return chk;
+    const sim = this.sim;
+    const W = sim.workers;
+    const K = sim.contracts;
+    const npc = sim.npcs.byId(npcId);
+    const wc = W.contract(npcId);
+    const job = K.jobOf(npcId);
+    if (job) K.assign(job.id, job.workers.filter((x) => x !== npcId), 'manager');
+    if (W.isManager(npcId)) W.dismissManager();
+    W.release(wc);
+    sim.npcs.clearReservation(npc);
+    // Your terms with them, kept for when they come back.
+    npc.crew = { ...wc, task: null, job: undefined, since: sim.time.day };
+    delete W.contracts[npcId];
+    const def = this.E.def(id);
+    const b = this.E.biz(id);
+    npc.employer = id;
+    npc.occupation = def.workerOccupation;
+    npc.hiredDay = sim.time.day;
+    npc.unpaidDays = 0;
+    npc.carry = null;
+    npc.task = null;
+    npc.nextThink = sim.time.total;
+    b.maxWorkers = Math.max(b.maxWorkers ?? def.maxWorkers ?? 0, sim.npcs.staffOf(id).length);
+    if (manager) this.appointManager(id, npcId);
+    sim.toast('toast.posted_to_business', { npc: npcId, building: b.building }, 'good');
+    sim.bus.emit('workers:changed');
+    sim.bus.emit('business:changed', id);
+    return { ok: true };
+  }
+
+  /** Your workers working at your businesses now. */
+  posted(id = null) {
+    return this.sim.state.npcs.filter((n) => n.crew && this.isMine(n.employer) && (!id || n.employer === id));
+  }
+
+  /** Call a posted worker back to your crew (on the terms you had). */
+  canRecall(npcId) {
+    const npc = this.sim.npcs.byId(npcId);
+    // (They're still yours — they count among your workers while they're away — so there's always room.)
+    if (!npc?.crew || !this.isMine(npc.employer)) return { ok: false, reason: 'not_your_worker' };
+    return { ok: true };
+  }
+
+  recall(npcId) {
+    const chk = this.canRecall(npcId);
+    if (!chk.ok) return chk;
+    const sim = this.sim;
+    const npc = sim.npcs.byId(npcId);
+    const b = this.E.biz(npc.employer);
+    if (b?.manager === npcId) b.manager = null;
+    const from = b?.building;
+    const back = { ...npc.crew, task: null, state: 'idle', stateSince: sim.time.total };
+    delete back.since;
+    delete npc.crew;
+    sim.workers.contracts[npcId] = back;
+    npc.employer = 'player';
+    npc.occupation = 'hired_hand';
+    npc.task = null;
+    npc.nextThink = sim.time.total;
+    sim.toast('toast.back_to_crew', { npc: npcId, building: from }, 'info');
+    sim.bus.emit('workers:changed');
+    if (b) sim.bus.emit('business:changed', npc.employer);
+    return { ok: true };
   }
 
   withdraw(id, amount) {

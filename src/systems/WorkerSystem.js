@@ -77,6 +77,11 @@ export class WorkerSystem {
     return Mod.maxWorkers(p, extra);
   }
 
+  /** Everyone you employ: your crew, and your workers posted to your businesses (still yours). */
+  headcount() {
+    return this.list().length + (this.sim.holdings?.posted().length || 0);
+  }
+
   /** What this villager would want to be paid per day. */
   expectedSalary(npc, rank = 'worker') {
     const p = this.sim.state.player;
@@ -99,7 +104,7 @@ export class WorkerSystem {
     if (npc.age < 16 || npc.occupation === 'child' || npc.occupation === 'elder') return { ok: false, reason: 'cant_hire_person' };
     if (npc.owns) return { ok: false, reason: 'owns_business' };
     if (this.contract(npc.id)) return { ok: false, reason: 'already_yours' };
-    if (this.list().length >= this.maxWorkers()) return { ok: false, reason: 'too_many_workers', params: { n: this.maxWorkers() } };
+    if (this.headcount() >= this.maxWorkers()) return { ok: false, reason: 'too_many_workers', params: { n: this.maxWorkers() } };
     if (!npc.met) return { ok: false, reason: 'dont_know_you' };
     return { ok: true };
   }

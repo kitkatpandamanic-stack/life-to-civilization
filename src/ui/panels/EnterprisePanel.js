@@ -10,9 +10,10 @@ import { button, icon, portrait } from '../widgets.js';
 import { contractCard, contractAction } from '../contracts.js';
 
 export class EnterprisePanel extends Panel {
-  constructor(ui, bizId) {
+  constructor(ui, bizId, focus = null) {
     super(ui);
     this.bizId = bizId;
+    this.focus = focus; // 'workers': your workers to send here, shown first
   }
   get id() {
     return 'enterprise';
@@ -39,7 +40,9 @@ export class EnterprisePanel extends Panel {
     const people = staff
       .map((n) => {
         const mgr = b.manager === n.id;
-        return `<div class="person clickable" data-action="inspect_npc" data-id="${n.id}">${portrait(`npc_${sim.state.seed}_${n.id}`, n.look, 32)}<div><b>${escapeHtml(npcName(n))}</b>${mgr ? ` <span class="chip">${escapeHtml(t('biz.manager'))}</span>` : ''}<div class="muted small">${escapeHtml(npcRole(sim, n))} · ${escapeHtml(t('ui.level_n', { level: n.level }))} · ${fmtMoney(sim.npcs.wageFor(this.bizId, n))}</div></div>${mgr ? '' : button(t('biz.make_manager'), 'manager', { id: n.id })}</div>`;
+        const yours = n.crew ? ` <span class="chip">👷 ${escapeHtml(t('biz.your_worker'))}</span>` : '';
+        const back = n.crew ? button(t('biz.call_back'), 'recall', { id: n.id }, { cls: 'sm ghost', disabled: !sim.holdings.canRecall(n.id).ok, title: sim.holdings.canRecall(n.id).ok ? '' : tr(sim, `reason.${sim.holdings.canRecall(n.id).reason}`, sim.holdings.canRecall(n.id).params || {}) }) : '';
+        return `<div class="person clickable" data-action="inspect_npc" data-id="${n.id}">${portrait(`npc_${sim.state.seed}_${n.id}`, n.look, 32)}<div><b>${escapeHtml(npcName(n))}</b>${mgr ? ` <span class="chip">${escapeHtml(t('biz.manager'))}</span>` : ''}${yours}<div class="muted small">${escapeHtml(npcRole(sim, n))} · ${escapeHtml(t('ui.level_n', { level: n.level }))} · ${fmtMoney(sim.npcs.wageFor(this.bizId, n))}</div>${back ? `<div>${back}</div>` : ''}</div>${mgr ? '' : button(t('biz.make_manager'), 'manager', { id: n.id })}</div>`;
       })
       .join('');
     const orders = sim.state.contracts.active.filter((c) => c.kind === 'order' && c.supplierBiz === this.bizId).map((c) => contractCard(sim, c, 'active')).join('');
@@ -67,15 +70,32 @@ export class EnterprisePanel extends Panel {
           <div class="muted small">${escapeHtml(t('biz.hint'))}</div>
         </div>
         <div class="col">
+          ${this.focus === 'workers' ? this.postHtml(def) : ''}
           <h3>${escapeHtml(t('biz.stock'))}</h3>
           ${stock || `<div class="muted small">${escapeHtml(t('biz.no_stock'))}</div>`}
           <h3>${escapeHtml(t('biz.staff'))} <span class="muted small">${staff.length} / ${b.maxWorkers ?? def.maxWorkers ?? 0}</span></h3>
           ${people ? `<div class="people">${people}</div>` : `<div class="muted small">${escapeHtml(t('biz.no_staff'))}</div>`}
+          ${this.focus === 'workers' ? '' : this.postHtml(def)}
           <h3>${escapeHtml(t('biz.orders'))}</h3>
           ${orders + offers || `<div class="muted small">${escapeHtml(t('biz.no_orders'))}</div>`}
           ${def.kind === 'depot' ? this.routeHtml(b, def) : ''}
         </div>
       </div>`;
+  }
+
+  /** Your own workers, to send here: onto the staff (or to run it). */
+  postHtml(def) {
+    const sim = this.sim;
+    if (!def.workerOccupation) return '';
+    const list = sim.workers.list().map((c) => sim.npcs.byId(c.npcId)).filter(Boolean);
+    if (!list.length) return '';
+    const rows = list.map((n) => {
+      const chk = sim.holdings.canPost(this.bizId, n.id);
+      const why = chk.ok ? '' : tr(sim, `reason.${chk.reason}`, chk.params || {});
+      return `<div class="setting-row"><div><b>${escapeHtml(npcName(n))}</b> <span class="muted small">${escapeHtml(t('ui.level_n', { level: n.level }))}</span></div>
+        <div class="btn-row">${button(t('biz.post_worker'), 'post', { id: n.id }, { cls: 'sm', disabled: !chk.ok, title: why })}${button(t('biz.post_manager'), 'post', { id: n.id, mgr: 1 }, { cls: 'sm ghost', disabled: !chk.ok, title: why })}</div></div>`;
+    }).join('');
+    return `<h3>${escapeHtml(t('biz.send_workers'))}</h3><div class="muted small">${escapeHtml(t('biz.send_hint'))}</div>${rows}`;
   }
 
   /** A warehouse or trading post sends caravans to other settlements: where, with what, and what to bring back. */
@@ -133,6 +153,16 @@ export class EnterprisePanel extends Panel {
       case 'manager':
         H.appointManager(this.bizId, data.id);
         break;
+      case 'post': {
+        const r = H.post(this.bizId, data.id, { manager: !!data.mgr });
+        if (!r.ok) this.sim.toast(`reason.${r.reason}`, r.params || {}, 'warn');
+        break;
+      }
+      case 'recall': {
+        const r = H.recall(data.id);
+        if (!r.ok) this.sim.toast(`reason.${r.reason}`, r.params || {}, 'warn');
+        break;
+      }
       case 'route_to': {
         // Cycle: automatic → each settlement you trade with → automatic.
         const S = this.sim.settlements;

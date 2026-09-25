@@ -753,8 +753,8 @@ export class UIManager {
   openBusiness(id) {
     this.openPanel(new BusinessPanel(this, id));
   }
-  openEnterprise(id) {
-    this.openPanel(new EnterprisePanel(this, id));
+  openEnterprise(id, focus = null) {
+    this.openPanel(new EnterprisePanel(this, id, focus));
   }
 
   /** Translate with id-params resolved (used by world-space text like build hints). */

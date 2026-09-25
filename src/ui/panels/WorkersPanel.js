@@ -49,6 +49,27 @@ export class WorkersPanel extends Panel {
     }
   }
 
+  /** Send a worker to a business of yours (one button for each that has room). */
+  postButtons(c) {
+    const sim = this.sim;
+    return sim.holdings.mine().filter((id) => sim.economy.def(id).workerOccupation).map((id) => {
+      const chk = sim.holdings.canPost(id, c.npcId);
+      return button(tr(sim, 'workers.post_to', { building: sim.economy.biz(id).building }), 'post', { npc: c.npcId, biz: id }, { cls: 'sm ghost', disabled: !chk.ok, title: chk.ok ? t('workers.post_tip') : tr(sim, `reason.${chk.reason}`, chk.params || {}) });
+    }).join('');
+  }
+
+  /** Your workers posted to your businesses: where, and a way back. */
+  postedHtml() {
+    const sim = this.sim;
+    const list = sim.holdings.posted();
+    if (!list.length) return '';
+    return `<h3>${escapeHtml(t('workers.posted_title'))}</h3>` + list.map((n) => {
+      const chk = sim.holdings.canRecall(n.id);
+      return `<div class="setting-row"><div><b>${escapeHtml(npcName(n))}</b> <span class="muted small">${escapeHtml(tr(sim, 'workers.posted_at', { building: sim.economy.biz(n.employer)?.building, money: sim.npcs.wageFor(n.employer, n) }))}${sim.economy.biz(n.employer)?.manager === n.id ? ` · ${escapeHtml(t('biz.manager'))}` : ''}</span></div>
+        ${button(t('biz.call_back'), 'recall', { npc: n.id }, { cls: 'sm ghost', disabled: !chk.ok, title: chk.ok ? '' : tr(sim, `reason.${chk.reason}`, chk.params || {}) })}</div>`;
+    }).join('');
+  }
+
   /** Your manager: who, their duties (on/off), their notes — or how to get one. */
   managerHtml() {
     const sim = this.sim;
@@ -94,7 +115,7 @@ export class WorkersPanel extends Panel {
     const S = W.state;
     const working = list.filter((c) => c.state === 'working' || c.state === 'moving').length;
     let html = statGrid([
-      stat(t('ui.team'), `${list.length} / ${W.maxWorkers()}`),
+      stat(t('ui.team'), `${W.headcount()} / ${W.maxWorkers()}`),
       stat(t('workers.at_work'), String(working)),
       stat(t('ui.payroll'), `${fmtMoney(payroll)}<span class="muted small"> ${escapeHtml(t('ui.per_day'))}</span>`),
       stat(t('ui.team_bonus'), `+${Math.round((W.teamBonus() - 1) * 100)}%`),
@@ -164,12 +185,14 @@ export class WorkersPanel extends Panel {
         ${queue ? `<div class="hint">📋 ${escapeHtml(t('workers.queue', { list: queue }))}</div>` : ''}
         ${prios}
         <div class="btn-row">
+          ${this.postButtons(c)}
           ${W.isManager(c.npcId) ? `<span class="chip">🧑‍💼 ${escapeHtml(t('workers.is_manager'))}</span>` : list.length >= 2 ? button(t('workers.make_manager'), 'appoint', { npc: c.npcId }, { cls: 'sm ghost', disabled: !W.canAppoint(c.npcId).ok, title: W.canAppoint(c.npcId).ok ? t('workers.manager_tip') : tr(sim, `reason.${W.canAppoint(c.npcId).reason}`, W.canAppoint(c.npcId).params || {}) }) : ''}
           ${button(promo.ok ? t('ui.promote_to', { rank: t(`worker_rank.${promo.next}`, { gender: npc.gender }) }) : t('ui.promote'), 'promote', { npc: c.npcId }, { cls: 'sm', disabled: !promo.ok, title: promo.ok ? '' : tr(sim, `reason.${promo.reason || 'max_rank'}`, promo.params || {}) })}
           ${this.confirmFire === c.npcId ? `${escapeHtml(t('ui.fire_confirm'))} ${button(t('ui.yes'), 'fire_yes', { npc: c.npcId }, { cls: 'danger sm' })} ${button(t('ui.no'), 'fire_no', {}, { cls: 'sm ghost' })}` : button(t('ui.fire'), 'fire', { npc: c.npcId }, { cls: 'sm ghost' })}
         </div>
       </div>`;
     }
+    html += this.postedHtml();
     html += `<div class="hint">${escapeHtml(t('ui.workers_hint'))}</div>`;
     return html;
   }
@@ -197,6 +220,10 @@ export class WorkersPanel extends Panel {
       const r = W.appoint(data.npc);
       if (!r.ok) this.sim.toast(`reason.${r.reason}`, r.params || {}, 'warn');
     } else if (action === 'dismiss_manager') W.dismissManager();
+    else if (action === 'post' || action === 'recall') {
+      const r = action === 'post' ? this.sim.holdings.post(data.biz, data.npc) : this.sim.holdings.recall(data.npc);
+      if (!r.ok) this.sim.toast(`reason.${r.reason}`, r.params || {}, 'warn');
+    }
     else if (action === 'duty') W.setDuty(data.d, !W.mgr()?.[data.d]);
     else if (action === 'budget') W.state.budget = Math.max(0, (W.state.budget ?? WORKFORCE.buyBudgetPerDay) + Number(data.d));
     else if (action === 'promote') W.promote(data.npc);

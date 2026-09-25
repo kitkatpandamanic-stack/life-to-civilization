@@ -163,11 +163,19 @@ export class DialoguePanel extends Panel {
       if (sim.workers.contract(npc.id)) {
         opt(t('dialog.opt.how_is_work'), 'how_work');
         opt(t('dialog.opt.manage_workers'), 'manage');
+        // Send them to work at a business of yours (they join its staff).
+        for (const id of sim.holdings.mine().filter((b) => sim.economy.def(b).workerOccupation)) {
+          const c = sim.holdings.canPost(id, npc.id);
+          opt(tr(sim, 'dialog.opt.go_work_at', { building: sim.economy.biz(id).building }), 'go_work_at', { biz: id }, !c.ok, c.ok ? '' : tr(sim, `reason.${c.reason}`, c.params || {}));
+        }
         // One of your workers could run the rest for you (WorkforceManager).
         if (!sim.workers.isManager(npc.id) && sim.workers.list().length >= 2) {
           const c = sim.workers.canAppoint(npc.id);
           opt(t('dialog.opt.ask_manage'), 'ask_manage', {}, !c.ok, c.ok ? '' : tr(sim, `reason.${c.reason}`, c.params || {}));
         }
+      } else if (npc.crew && sim.holdings.isMine(npc.employer)) {
+        // One of yours, working at your business: bring them back to your crew.
+        opt(t('dialog.opt.come_back'), 'come_back');
       } else if (npc.age >= 16 && !['child', 'elder'].includes(npc.occupation) && !npc.owns) {
         const chk = sim.workers.canHire(npc);
         opt(t('dialog.opt.hire'), 'hire_view', {}, !chk.ok, chk.ok ? '' : tr(sim, `reason.${chk.reason}`, chk.params || {}));
@@ -534,6 +542,16 @@ export class DialoguePanel extends Panel {
           this.line = r.reason === 'offer_refused' ? this.say('dialog.hire_no') : tr(sim, `reason.${r.reason}`, r.params || {});
           this.view = 'main';
         }
+        break;
+      }
+      case 'go_work_at': {
+        const r = sim.holdings.post(data.biz, npc.id);
+        this.line = r.ok ? this.say('dialog.go_work_yes', { building: sim.economy.biz(data.biz).building }) : tr(sim, `reason.${r.reason}`, r.params || {});
+        break;
+      }
+      case 'come_back': {
+        const r = sim.holdings.recall(npc.id);
+        this.line = r.ok ? this.say('dialog.come_back_yes') : tr(sim, `reason.${r.reason}`, r.params || {});
         break;
       }
       case 'ask_manage': {
