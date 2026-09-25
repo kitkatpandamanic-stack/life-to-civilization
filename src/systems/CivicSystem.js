@@ -42,6 +42,7 @@ export class CivicSystem {
     const V = S.civic;
     V.council ??= [];
     V.policies ??= { tax: 'normal', relief: 'normal' };
+    V.policies.schooling ??= 'normal';
     V.institutions ??= {};
     V.fund ??= 0;
     V.project ??= null;
@@ -183,6 +184,10 @@ export class CivicSystem {
     let s = 0;
     if (poor) s += { low: -1.5, normal: 0, high: 1.5 }[policies.relief] ?? 0;
     if (owner) s += { low: 1.2, normal: 0, high: -1.2 }[policies.tax] ?? 0;
+    // Parents want a good school; those who read value one more.
+    const kids = this.sim.family.children(voter).filter((k) => k.age >= 5 && k.age <= 16).length;
+    const reads = this.sim.education?.know(voter, 'reading') || 0;
+    if (kids || reads >= 50) s += ({ low: -1, normal: 0, high: 1 }[policies.schooling] ?? 0) * (kids ? 1 : 0.5);
     return s;
   }
 
@@ -192,6 +197,7 @@ export class CivicSystem {
     return {
       tax: T('greedy') || T('ambitious') ? 'high' : T('careful') ? 'low' : 'normal',
       relief: T('generous') ? 'high' : T('greedy') ? 'low' : 'normal',
+      schooling: T('scholar') || (npc && (this.sim.education?.know(npc, 'reading') || 0) >= 55) ? 'high' : T('greedy') ? 'low' : 'normal',
     };
   }
 
@@ -378,6 +384,7 @@ export class CivicSystem {
     const n = Object.keys(this.V.institutions).length;
     if (n < step.institutions) out.push({ k: 'institutions', v: step.institutions });
     for (const id of step.needs || []) if (!this.has(id)) out.push({ k: 'institution', v: id });
+    out.push(...(this.sim.eduworld?.statusNeeds(step) || [])); // learning: a school, literacy, graduates
     return out;
   }
 

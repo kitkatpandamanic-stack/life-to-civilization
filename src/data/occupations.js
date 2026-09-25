@@ -47,6 +47,12 @@ export const OCCUPATIONS = {
   master_builder: { workplace: 'business', restDay: 6, start: 7, end: 17, lunch: true, activity: 'build', wake: 6, sleep: 22 },
   builder: { workplace: 'business', restDay: 6, start: 7, end: 17, lunch: true, activity: 'build', wake: 6, sleep: 22, wage: 14 },
   smith_hand: { workplace: 'business', restDay: 6, start: 8, end: 18, lunch: true, activity: 'inside', wake: 7, sleep: 22, wage: 13 },
+  // A post at a school (SchoolSystem): lessons are their work; paid weekly by whoever runs the school.
+  teacher: { workplace: null, wake: 6, sleep: 22 },
+  // Posts for the learned (AcademiaSystem), paid from the village fund: the clinic, the village's works, the institute.
+  doctor: { workplace: null, wake: 6, sleep: 22 },
+  engineer: { workplace: null, wake: 6, sleep: 22 },
+  researcher: { workplace: null, wake: 7, sleep: 23 },
   // Hired by the player: what they do comes from their assignment (see WorkerSystem).
   hired_hand: { workplace: 'player', start: 7, end: 17, lunch: true, activity: 'assigned', wake: 6, sleep: 22 },
 };

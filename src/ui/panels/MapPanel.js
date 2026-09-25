@@ -82,6 +82,13 @@ export class MapPanel extends Panel {
       const s = S.get(id);
       const info = t('map.settlement_line', { size: t(`settlement_size.${s.size}`), n: s.pop, days: S.days(id) });
       rows.push(row(t(`settlement_name.${id}`), info, s.contact ? ' 🤝' : ''));
+      // What the place is known for — its know-how, and its university (Phase: knowledge between settlements).
+      const known = sim.knowhow?.knownFor(id) || [];
+      const U = sim.academia?.uniDef(id);
+      const uni = U ? Object.keys(U.fields).sort((a, b) => U.fields[b] - U.fields[a])[0] : null;
+      const es = sim.eduworld?.settlementStats(id);
+      if (es) known.unshift(null);
+      if (known.length || uni) rows.push(`<div class="muted small map-known">${escapeHtml([es ? t('map.literacy', { n: Math.round(es.literacy * 100) }) : '', known.filter(Boolean).length ? t('map.known_for', { list: known.filter(Boolean).map((x) => t(`tech.${x}.name`)).join(', ') }) : '', uni ? t('map.university', { field: t(`knowledge.${uni}`) }) : ''].filter(Boolean).join(' · '))}</div>`);
     }
     return `<h3>${escapeHtml(t('map.settlements'))}</h3><div class="map-settlements">${rows.join('')}</div><div class="muted small">${escapeHtml(t('map.settlements_hint'))}</div>`;
   }

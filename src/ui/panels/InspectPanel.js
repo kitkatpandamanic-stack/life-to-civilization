@@ -5,7 +5,8 @@
 import { Panel } from '../Panel.js';
 import { t, npcName, npcFullName, fmtMoney, cap } from '../../i18n/i18n.js';
 import { tr, escapeHtml, buildingLabel, npcRole, workLabel, agoText, goalWhyText } from '../format.js';
-import { bar, portrait, hearts, button } from '../widgets.js';
+import { bar, portrait, hearts, button, tabs } from '../widgets.js';
+import { learningHtml } from '../education.js';
 import { BALANCE } from '../../config/balance.js';
 import { GOAL_AGAINST } from '../../data/goals.js';
 
@@ -18,9 +19,10 @@ export function lifeStage(npc) {
 }
 
 export class InspectPanel extends Panel {
-  constructor(ui, npcId) {
+  constructor(ui, npcId, tab = 'life') {
     super(ui);
     this.npc = this.sim.npcs.byId(npcId);
+    this.tab = tab;
   }
   get id() {
     return 'inspect';
@@ -82,19 +84,15 @@ export class InspectPanel extends Panel {
     const goal = sim.dialogue.goal(npc);
     const pb = sim.social.playerBond(npc);
 
+    const tabBar = tabs([['life', t('inspect.tab_life')], ['learning', t('inspect.tab_learning')]], this.tab);
+    if (this.tab === 'learning') return `${this.headHtml(act, nextLevel)}${tabBar}<div class="learn-page">${learningHtml(sim, npc)}</div>`;
+
     const traits = npc.traits.map((tr_) => `<div class="trait-row"><b>${escapeHtml(t(`trait.${tr_}.name`))}</b> <span class="muted small">${escapeHtml(t(`trait.${tr_}.desc`))}</span></div>`).join('');
     const prod = Math.round(npcs.productivity(npc) * 100);
 
     return `
-      <div class="dlg-head">
-        ${portrait(`npc_${sim.state.seed}_${npc.id}`, npc.look, 80)}
-        <div>
-          <div class="dlg-name">${escapeHtml(npcFullName(npc))}</div>
-          <div class="muted">${escapeHtml(npcRole(sim, npc))} · ${escapeHtml(t('ui.level_n', { level: npc.level }))} · ${escapeHtml(t('ui.age_n', { age: npc.age }))} · ${escapeHtml(t(`life_stage.${lifeStage(npc)}`))}</div>
-          ${bar((npc.xp / nextLevel) * 100, 'xp', t('ui.xp_progress', { xp: Math.floor(npc.xp), need: nextLevel }))}
-          <div class="activity">▶ ${escapeHtml(tr(sim, `activity.${act.key}`, { gender: npc.gender, ...act.params }))}</div>
-        </div>
-      </div>
+      ${this.headHtml(act, nextLevel)}
+      ${tabBar}
       <div class="char-cols">
         <div class="col">
           <h3>${escapeHtml(t('ui.needs'))}</h3>
@@ -110,9 +108,10 @@ export class InspectPanel extends Panel {
           ${kv(t('ui.work'), escapeHtml(work))}
           ${this.careerKey() ? kv(t('ui.career'), escapeHtml(t(`career.${this.careerKey()}`))) : ''}
           ${npc.employer && npc.employer !== 'player' && npc.jobSat !== undefined ? kv(t('ui.job_satisfaction'), npc.jobSat) : ''}
-          ${npc.education ? kv(t('ui.education'), escapeHtml(t(`education.${npc.education >= 30 ? 'high' : npc.education >= 12 ? 'good' : 'some'}`))) : ''}
+          ${npc.edu && npc.edu.level !== 'none' ? kv(t('ui.education'), escapeHtml(t(`edu_level.${npc.edu.level}`))) : ''}
           ${npc.mentor && sim.family.person(npc.mentor) ? kv(t('ui.mentor'), escapeHtml(npcName(sim.family.person(npc.mentor)))) : ''}
-          ${sim.state.tech?.teacher === npc.id ? kv(t('ui.role'), escapeHtml(t('ui.village_teacher', { gender: npc.gender }))) : ''}
+          ${npc.teach ? kv(t('ui.role'), escapeHtml(tr(sim, 'learn.status.teaching_at', { gender: npc.gender, building: npc.teach.school, trank: sim.schools.rankOf(npc) }))) : ''}
+          ${this.statusLine(kv)}
           ${kv(t('ui.wealth'), `${escapeHtml(t(`wealth.${wealth}`))} · ${fmtMoney(npc.money)}`)}
           ${npc.unpaidDays > 0 ? kv(t('ui.unpaid_days'), npc.unpaidDays) : ''}
           ${kv(t('ui.family_tree'), this.familyHtml())}
@@ -141,6 +140,29 @@ export class InspectPanel extends Panel {
       </div>
       <div class="btn-row">${button(t('dialog.opt.talk_instead'), 'talk', {}, { cls: 'primary' })}</div>
       <div class="muted small">${escapeHtml(t('ui.inspect_hint', { r: BALANCE.npc.ranks.skilled }))}</div>`;
+  }
+
+  /** At school, on a course, studying in a town, holding a post. */
+  statusLine(kv) {
+    const sim = this.sim;
+    const npc = this.npc;
+    const st = (npc.edu?.enrol && sim.schools?.statusOf(npc)) || sim.academia?.statusOf(npc);
+    return st ? kv(t('learn.now'), escapeHtml(tr(sim, `learn.status.${st.key}`, { gender: npc.gender, ...st.params }))) : '';
+  }
+
+  headHtml(act, nextLevel) {
+    const sim = this.sim;
+    const npc = this.npc;
+    return `
+      <div class="dlg-head">
+        ${portrait(`npc_${sim.state.seed}_${npc.id}`, npc.look, 80)}
+        <div>
+          <div class="dlg-name">${escapeHtml(npcFullName(npc))}</div>
+          <div class="muted">${escapeHtml(npcRole(sim, npc))} · ${escapeHtml(t('ui.level_n', { level: npc.level }))} · ${escapeHtml(t('ui.age_n', { age: npc.age }))} · ${escapeHtml(t(`life_stage.${lifeStage(npc)}`))}</div>
+          ${bar((npc.xp / nextLevel) * 100, 'xp', t('ui.xp_progress', { xp: Math.floor(npc.xp), need: nextLevel }))}
+          <div class="activity">▶ ${escapeHtml(tr(sim, `activity.${act.key}`, { gender: npc.gender, ...act.params }))}</div>
+        </div>
+      </div>`;
   }
 
   /** What they're after, why (the reasons the GoalSystem weighed), and how close they are. */
@@ -191,6 +213,7 @@ export class InspectPanel extends Panel {
 
   onAction(action, data) {
     if (action === 'talk') this.ui.openDialogue(this.npc.id);
+    if (action === 'tab') this.tab = data.tab;
     if (action === 'inspect_npc' && data?.id) this.ui.openInspect(data.id);
   }
 }

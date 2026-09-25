@@ -55,6 +55,12 @@ while (p.level < 10) sim.progression.addXp(sim.progression.xpForNext() - p.xp + 
 p.money = 2000;
 const nikita = sim.npcs.byId('nikita');
 nikita.met = true;
+// (He may have found an apprenticeship by now: this is about hiring him yourself.)
+if (nikita.apprentice) sim.careers.end(nikita, 'left');
+if (nikita.employer) {
+  nikita.employer = null;
+  nikita.occupation = 'unemployed';
+}
 const wasUnemployed = nikita.occupation === 'unemployed';
 const offer = sim.workers.offer(nikita, sim.workers.expectedSalary(nikita) + 5);
 check('hire Nikita', offer.accepted, offer.reason || '');

@@ -502,7 +502,9 @@ export class PropertySystem {
   /** What can this person afford per week? (Roughly a third of what they earn, or their savings.) */
   rentBudget(npc) {
     const occ = this.sim.npcs.occ(npc);
-    const weekly = (occ.wage || (npc.owns ? 20 : npc.employer === 'player' ? this.sim.workers.contract(npc.id)?.salary || 10 : 0)) * 6;
+    // A teacher's or a doctor's pay comes by the week (SchoolSystem, AcademiaSystem).
+    const salaried = npc.teach ? this.sim.schools?.salary(npc) || 0 : npc.post ? this.sim.academia?.salary(npc.post.kind) || 0 : 0;
+    const weekly = salaried || (occ.wage || (npc.owns ? 20 : npc.employer === 'player' ? this.sim.workers.contract(npc.id)?.salary || 10 : 0)) * 6;
     return Math.max(weekly * 0.35, npc.money / 6);
   }
 
@@ -549,7 +551,7 @@ export class PropertySystem {
     // 2. Grown-up children move out of their parents' home.
     for (const n of npcs) {
       if (n.age < H.moveOutAge || n.kin?.spouse || n.money < H.moveOutMoney || !n.homeId) continue;
-      if (!(n.employer || n.owns)) continue;
+      if (!(n.employer || n.owns || n.teach || n.post)) continue;
       const withParents = n.kin?.parents.some((pid) => sim.npcs.byId(pid)?.homeId === n.homeId);
       if (!withParents || !rand.chance(H.moveOutChance)) continue;
       const opt = this.options(1, this.rentBudget(n), n.money / H.buyReserve)[0];

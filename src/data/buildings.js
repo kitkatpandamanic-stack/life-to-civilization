@@ -35,6 +35,9 @@ export const BUILDING_TYPES = {
   forge: { w: 3, h: 2, wall: 'stone', wallColor: '#8f877a', roof: 'slate', roofColor: '#4a4f5a', sign: '🔥', chimney: true },
   school: { w: 5, h: 3, wall: 'wood', wallColor: '#c8a070', roof: 'tile', roofColor: '#a0463a', sign: '📚', chimney: true, bell: true },
   library: { w: 4, h: 3, wall: 'stone', wallColor: '#a8a295', roof: 'slate', roofColor: '#4d5a70', sign: '📖' },
+  institute: { w: 5, h: 4, wall: 'stone', wallColor: '#c9c1ae', roof: 'slate', roofColor: '#3f4a5e', sign: '🔬', chimney: true, flag: true },
+  trade_school: { w: 5, h: 3, wall: 'wood', wallColor: '#9a7a52', roof: 'plank', roofColor: '#6a4a32', sign: '🛠️', chimney: true, wideDoor: true },
+  grammar_school: { w: 6, h: 3, wall: 'stone', wallColor: '#b8a98c', roof: 'tile', roofColor: '#8a3a32', sign: '🎓', chimney: true, bell: true },
   mill: { w: 5, h: 4, wall: 'stone', wallColor: '#b9ae98', roof: 'thatch', roofColor: '#b8964e', sign: '⚙️', chimney: false },
   warehouse_bld: { w: 6, h: 4, wall: 'wood', wallColor: '#9c7a52', roof: 'plank', roofColor: '#5a4a3a', chimney: false, wideDoor: true },
 

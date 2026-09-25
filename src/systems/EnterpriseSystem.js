@@ -214,7 +214,10 @@ export class EnterpriseSystem {
       this.layOff(leaver, id, 'laid_off');
     }
     if (staff.length >= EN.managerAtWorkers && !staff.some((n) => n.id === b.manager)) {
-      const best = staff.slice().sort((a, c) => c.level - a.level)[0];
+      // The one who knows the work best — and how to run things.
+      const Ed = this.sim.education;
+      const score = (n) => n.level + (Ed ? Ed.competenceFor(n, def.workerOccupation) / 6 + Ed.know(n, 'management') / 8 : 0);
+      const best = staff.slice().sort((a, c) => score(c) - score(a))[0];
       b.manager = best.id;
       this.sim.memory.remember(best, 'became_manager', { who: owner.id, params: { building: b.building } });
       this.sim.chronicle('chronicle.npc_manager', { npc: best.id, gender: best.gender, building: b.building });
@@ -381,6 +384,8 @@ export class EnterpriseSystem {
         score = -1;
     }
     if (T.needsTech && !this.sim.tech?.has(T.needsTech)) return -9;
+    // Can trained hands be found here? (A skilled workforce draws trades; its lack holds them back.)
+    score += ((this.sim.eduworld?.laborFactor(type) ?? 1) - 1) * 3;
     return T.openable ? score : -9;
   }
 
@@ -423,7 +428,9 @@ export class EnterpriseSystem {
       for (const type of types) {
         const T = BUSINESS_TYPES[type];
         if (funds < this.startCost(type, homeBased)) continue;
-        const exp = EXPERIENCE[type]?.includes(n.occupation) || EXPERIENCE[type]?.includes(n.prevOccupation) ? 1.2 : 0;
+        let exp = EXPERIENCE[type]?.includes(n.occupation) || EXPERIENCE[type]?.includes(n.prevOccupation) ? 1.2 : 0;
+        // Knowing the trade (from school, a master, or years at it) — and wanting to do it.
+        if (this.sim.education) exp = Math.max(exp, this.sim.education.founderFit(n, T.ownerOccupation)) + this.sim.education.interestFit(n, T.ownerOccupation);
         const planned = n.goal?.type === 'business' && n.goal.biz === type ? 0.5 : 0; // the trade they've been planning for
         const s = this.opportunity(type) + exp + planned + rand.float() * 0.5;
         if (s > bestScore) {
@@ -675,7 +682,7 @@ export class EnterpriseSystem {
   villageMill(building) {
     const cands = this.sim.state.npcs.filter((n) => !n.owns && n.age >= 21 && n.age <= 58 && n.occupation !== 'child');
     const exp = EXPERIENCE.mill;
-    const score = (n) => (exp.includes(n.occupation) ? 5 : 0) + n.level + n.money / 100 + (n.traits.includes('entrepreneur') ? 3 : 0);
+    const score = (n) => (exp.includes(n.occupation) ? 5 : 0) + n.level + n.money / 100 + (n.traits.includes('entrepreneur') ? 3 : 0) + (this.sim.education?.competenceFor(n, 'miller') || 0) / 12;
     const miller = cands.sort((a, b) => score(b) - score(a))[0];
     const r = this.sim.property.rec(building);
     if (r) r.formerBusiness = 'mill';

@@ -367,6 +367,23 @@ function buildingActions(scene, id, add) {
     add('action.talk_to', { npc: n.id }, () => ui.openDialogue(n.id), asleep ? { ok: false, reason: 'asleep' } : OK);
   }
   if (!inside.length && id.startsWith('house_')) add('action.knock', {}, () => sim.toast('toast.nobody_home', {}, 'info'));
+  // A school: go in and see the classes, the pupils and the teachers — sit in on a class, or teach one (StudySystem).
+  if (sim.schools?.rec(id)) {
+    add('action.visit_school', {}, () => ui.openSchool(id));
+    const S = sim.study;
+    const cls = S.classNow(id);
+    if (cls) add(cls.field ? 'action.attend_course' : 'action.attend_class', { field: cls.field || undefined }, () => scene.study('class', id));
+    const lesson = S.lessonToGive(id);
+    if (lesson) add('action.give_lesson', {}, () => scene.study('teach', id), S.canGiveLesson(id));
+  }
+  // The library: an hour with the books (if you can read).
+  if (sim.world.buildings[id]?.type === 'library' && sim.property.rec(id)) add('action.read_library', {}, () => scene.study('read', id), sim.study.canRead(id));
+  // Your master's workplace: half a day beside them.
+  if (sim.study?.e.apprentice && sim.economy.biz(sim.study.e.apprentice.biz)?.building === id) {
+    const c = sim.study.canWorkBeside(id);
+    add('action.work_beside', { npc: sim.study.e.apprentice.master }, () => scene.study('beside', id), c);
+  }
+  if (sim.world.buildings[id]?.type === 'institute' && sim.property.rec(id)) add('action.visit_institute', {}, () => ui.openInstitute(id));
   if (id === 'hall') {
     add('action.village_affairs', {}, () => ui.openHall());
     add('action.read_board', {}, () => ui.openJobBoard());

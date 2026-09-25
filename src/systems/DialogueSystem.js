@@ -20,6 +20,7 @@ const PLAYER_MEMORY_LINES = new Set([
   'heard_player_good', 'heard_player_bad', 'saw_friend_fired', 'player_failed_job', 'left_player_for_business',
   'player_helped_build', 'player_fought_fire', 'explored_with_player', 'sold_business_to_player',
   'player_backed_dream', 'player_asked_stay', 'player_let_down_backer', 'rented_from_player',
+  'sponsored_by_player', 'took_player_apprentice', 'taught_player', 'player_journeyman',
 ]);
 const SELF_MEMORY_LINES = new Set([
   'got_job', 'quit_job', 'unpaid_wages', 'promoted_rank', 'grew_up', 'took_up_hobby', 'was_sick', 'went_hungry', 'slept_rough',
@@ -29,7 +30,7 @@ const SELF_MEMORY_LINES = new Set([
   'opened_business', 'family_business', 'business_struggling', 'business_failed', 'became_manager', 'laid_off',
   'changed_jobs', 'employee_left', 'backed_business', 'got_backing',
   'started_building', 'helped_build', 'built_home', 'gave_up_building', 'arrived_village', 'friend_left',
-  'home_flood', 'home_storm', 'home_fire', 'home_burnt', 'mine_accident', 'took_in', 'fire_helped', 'went_exploring', 'laid_off_season', 'invented', 'became_teacher', 'mentored_by', 'took_apprentice',
+  'home_flood', 'home_storm', 'home_fire', 'home_burnt', 'mine_accident', 'took_in', 'fire_helped', 'went_exploring', 'laid_off_season', 'invented', 'became_teacher', 'mentored_by', 'took_apprentice', 'new_interest', 'finished_school', 'left_school', 'failed_exam', 'finished_course', 'finished_apprenticeship', 'apprenticeship_ended', 'wants_retrain', 'rose_in_trade', 'went_to_university', 'child_to_university', 'graduated', 'failed_degree', 'cant_afford_study', 'took_post', 'made_discovery',
   'goal_achieved', 'goal_given_up', 'moved_near_work', 'decided_to_leave', 'stayed_for_family', 'became_headman', 'bank_loan',
 ]);
 
@@ -309,6 +310,11 @@ export class DialogueSystem {
     }
     for (const r of sim.rumors?.known(npc) || []) add('talk.news.rumor', { rumor: r }, asked ? 12 : 6);
     for (const [bizId, def] of sim.npcs.vacancies()) add('talk.news.hiring', { building: def.building, occ: def.workerOccupation }, asked ? 7 : 3);
+    // The places the valley is proud of, and what it's known for (EducationWorldSystem).
+    for (const [id, l] of Object.entries(sim.state.education?.landmarks || {})) if (sim.world.buildings[id]) add(`talk.landmark.${l.kind}`, { building: id }, 1.2);
+    const sp = sim.state.education?.specialty;
+    if (sp) add('talk.specialty', { field: sp.field }, 1);
+    for (const n of sim.academia?.students() || []) if (n.family.includes(npc.id) || sim.social.npcRel(npc, n) >= 30) add('talk.news.student_away', { npc: n.id, settlement: n.away.study }, 3);
     for (const plot of sim.land.forSale?.() || []) {
       add('talk.news.land', { plot: plot.id }, asked ? 3 : 1);
       break;

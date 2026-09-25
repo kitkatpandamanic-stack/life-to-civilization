@@ -85,6 +85,25 @@ export function installDebugPanel(dev) {
       if (C.V.project) C.V.fund = C.costOf(C.V.project);
     },
     renown: (sim) => (sim.state.legacy.renown += 20),
+    // Education (see eduTools.js — also dev.edu.* in the console).
+    edu_school: () => dev.edu.school('school'),
+    edu_trade: () => dev.edu.school('trade_school'),
+    edu_institute: () => (dev.edu.school('library'), dev.edu.school('institute')),
+    edu_teacher: (sim) => {
+      const n = sim.state.npcs.find((x) => x.age >= 20 && !x.owns && !x.teach);
+      if (n) dev.edu.teacher(n.id);
+    },
+    edu_enrol: (sim) => sim.schools.enrolments(),
+    edu_year: () => dev.edu.year(),
+    edu_research: () => dev.edu.research(20),
+    edu_spread: (sim) => sim.knowhow.weekly(),
+    edu_week: (sim) => (sim.education.weekly(), sim.schools.weekly(), sim.careers.weekly(), sim.academia.weekly(), sim.eduworld.weekly()),
+    edu_talent: () => dev.edu.event('talent'),
+    edu_scholar: () => dev.edu.event('scholar'),
+    edu_inspect: (sim) => {
+      const n = sim.state.npcs[Math.floor(Math.random() * sim.state.npcs.length)];
+      dev.scene.ui.openInspect(n.id, 'learning');
+    },
     inspect: (sim) => {
       const n = sim.state.npcs[Math.floor(Math.random() * sim.state.npcs.length)];
       dev.scene.ui.openInspect(n.id);
@@ -113,6 +132,11 @@ export function installDebugPanel(dev) {
       ['Caravans / journey', `${sim.state.region.caravans.length} out · ${sim.state.region.journey ? `${sim.state.region.journey.stage} ${sim.state.region.journey.to}` : '—'}`],
       ['Civic', `${sim.civic.V.status} · headman ${sim.civic.V.headman} · ${sim.civic.V.policies.tax}/${sim.civic.V.policies.relief} · saving ${sim.civic.V.project || '—'} ${sim.civic.V.fund} · ${Object.keys(sim.civic.V.institutions).join(',') || 'no institutions'}`],
       ['Renown', `${sim.legacy.renown()} (${sim.legacy.tier()}) · ${sim.legacy.deeds().length} deeds`],
+      ...((e) => (e ? [
+        ['Education', `literacy ${Math.round(e.literacy * 100)}% · pupils ${e.pupils} · teachers ${e.teachers} · apprentices ${e.apprentices} · away ${e.students} · grads ${Math.round(e.university * 100)}%`],
+        ['Learned', `doctors ${e.doctors} · engineers ${e.engineers} · researchers ${e.researchers} · masters ${e.masters} · innovation ${e.innovation} · known for ${e.specialty || '—'}`],
+        ['Skilled by trade', Object.entries(e.skilledIn).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([f, n]) => `${f} ${n}`).join(' · ') || '—'],
+      ] : []))(sim.eduworld?.stats()),
       ['Chronicle / history', `${sim.state.chronicle.length} / ${sim.state.history.entries.length}`],
       ['Objects', Object.keys(sim.state.objects).length],
       ['FPS', perf.fps],
@@ -140,6 +164,8 @@ export function installDebugPanel(dev) {
         ${btn('rethink', 'Everyone rethinks goals')}${btn('leaver', 'Someone decides to leave')}
         ${btn('contact', 'Contact all settlements')}${btn('week', 'Settlements: a week')}${btn('caravans', 'Send caravans')}${btn('horse', 'Get a horse cart')}
         ${btn('election', 'Election now')}${btn('headman', 'Make me headman')}${btn('fund', 'Fill civic fund')}${btn('renown', '+20 renown')}
+        ${btn('edu_school', 'Build school')}${btn('edu_trade', 'Build trade school')}${btn('edu_institute', 'Build institute')}${btn('edu_teacher', 'Make a teacher')}${btn('edu_enrol', 'Enrol now')}
+        ${btn('edu_week', 'Education: a week')}${btn('edu_year', 'School year ends')}${btn('edu_research', '+20 research')}${btn('edu_spread', 'Know-how spreads')}${btn('edu_talent', 'Talented pupil')}${btn('edu_scholar', 'Scholar arrives')}${btn('edu_inspect', 'Inspect learning')}
       </div>
       <div class="dbg-sel">
         <select data-sel="event"><option value="">Event…</option>${Object.keys(EVENT_DEFS).map((k) => `<option>${k}</option>`).join('')}</select>

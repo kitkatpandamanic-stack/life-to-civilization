@@ -6,17 +6,15 @@
  * each one changes how the world runs (handcarts on the roads, richer
  * harvests, faster building, fewer sick, news that stays truer).
  *
- * Education: once the village has built a school and found a teacher,
- * children spend weekday mornings there; what they learn gives them a head
- * start when they grow up. A library keeps what people know from dying with
- * them. At work, masters teach apprentices; a skilled villager who dies
+ * What people know and how they learn is EducationSystem's; schools are
+ * SchoolSystem's. Here: a library keeps what people know from dying with
+ * them; at work, masters teach apprentices; a skilled villager who dies
  * without passing their craft on takes some of the village's know-how with them.
  *
- *   state.tech = { known: { id: day }, progress: { id: n }, teacher: npcId|null, apprentices: { npcId: mentorId } }
+ *   state.tech = { known: { id: day }, progress: { id: n }, apprentices: { npcId: mentorId } }
  *   state.knowledge = { points, sources }   (shared with ExplorationSystem)
- *   npc.education, npc.mentor
+ *   npc.mentor
  */
-import { rand } from '../core/rng.js';
 import { TECHS, TECH_TUNING as TT, CIVIC, EDUCATION as ED } from '../data/tech.js';
 
 export class TechSystem {
@@ -32,7 +30,6 @@ export class TechSystem {
     this.mods = null;
     sim.bus.on('time:day', () => this.onDay());
     sim.bus.on('time:hour', (h) => {
-      if (h === 12) this.schoolDay();
       if (h === 20) this.workDone(); // after the working day (before 'worked today' resets at midnight)
     });
     sim.bus.on('chronicle', (e) => e.key === 'chronicle.npc_died' && this.onDeath(e.params.npc));
@@ -53,13 +50,16 @@ export class TechSystem {
   mod(key) {
     if (!this.mods) {
       this.mods = {};
-      const apply = (effects) => {
-        for (const [k, v] of Object.entries(effects || {})) this.mods[k] = (this.mods[k] ?? 1) * v;
+      const apply = (effects, share = 1) => {
+        for (const [k, v] of Object.entries(effects || {})) this.mods[k] = (this.mods[k] ?? 1) * (1 + (v - 1) * share);
       };
-      for (const id of Object.keys(this.T.known)) apply(TECHS[id]?.effects);
+      // A technique does its good as far as it has spread among those whose work it is (KnowHowSystem).
+      for (const id of Object.keys(this.T.known)) apply(TECHS[id]?.effects, this.sim.knowhow?.share(id) ?? 1);
       for (const [type, def] of Object.entries(CIVIC)) if (this.civic(type)) apply(def.effects);
       // The village's institutions (market, watch, clinic, guild…) — see CivicSystem.
       for (const effects of this.sim.civic?.effects() || []) apply(effects);
+      // The valley's doctor and engineer (AcademiaSystem), as good as they are at it.
+      for (const effects of this.sim.academia?.effects() || []) apply(effects);
     }
     return this.mods[key] ?? 1;
   }
@@ -103,16 +103,18 @@ export class TechSystem {
   dailyProgress(id) {
     const def = TECHS[id];
     const sim = this.sim;
+    if (def.research) return 0; // only research at an institute gets there (AcademiaSystem)
     let p = 0;
     for (const n of sim.state.npcs) {
-      if (def.from.includes(n.occupation) && n.workedToday) p += TT.perWorker * (1 + (n.level || 1) / 6);
+      if (def.from.includes(n.occupation) && n.workedToday) p += TT.perWorker * (1 + (n.level || 1) / 6) * (sim.education?.inventiveness(n) ?? 1);
       else if (def.hobby && n.habits?.hobby === def.hobby && n.age >= 16) p += TT.hobbyist * 0.2;
     }
     p += Math.min(TT.knowledgeCap, this.K.points * TT.perKnowledge);
-    if (def.school && this.civic('school') && this.T.teacher) p += TT.school;
+    if (def.school && sim.schools?.list().some((s) => sim.schools.teachersOf(s).length)) p += TT.school;
     const skill = def.skill && sim.state.player.skills[def.skill]?.level;
     if (skill >= 3) p += skill * TT.perPlayerSkill;
-    return p * this.mod('learning');
+    // Knowing it's been done elsewhere (a trading partner uses it; someone's heard of it) helps.
+    return p * this.mod('learning') * (this.sim.knowhow?.imitation(id) ?? 1);
   }
 
   discover(id, by = null) {
@@ -152,66 +154,22 @@ export class TechSystem {
 
   // ------------------------------------------------------------------ school
 
-  /** The school a child should be at right now (or null). */
+  /** The school someone should be at right now (or null) — see SchoolSystem. */
   schoolFor(npc) {
-    const h = this.sim.time.hourFloat;
-    if (npc.age < 6 || npc.age > 15 || npc.occupation !== 'child') return null;
-    if (h < ED.schoolHours[0] || h >= ED.schoolHours[1]) return null;
-    if (this.sim.time.weekday === 6 || !this.T.teacher) return null;
-    return this.civic('school')?.id || null;
+    const c = this.sim.schools?.schoolFor(npc);
+    return c && c.role !== 'teacher' ? c.where : null;
   }
 
-  /** The teacher heads to school in school hours too. */
   teaching(npc) {
-    if (npc.id !== this.T.teacher) return null;
-    const h = this.sim.time.hourFloat;
-    if (h < ED.schoolHours[0] || h >= ED.schoolHours[1] || this.sim.time.weekday === 6) return null;
-    return this.civic('school')?.id || null;
-  }
-
-  /** End of the school day: whoever was in class learned something. */
-  schoolDay() {
-    const school = this.civic('school');
-    if (!school || !this.T.teacher) return;
-    const teacher = this.sim.npcs.byId(this.T.teacher);
-    const quality = teacher ? 0.6 + Math.min(1, ((teacher.knowledge || 0) + teacher.level) / 20) : 0;
-    let pupils = 0;
-    for (const n of this.sim.state.npcs) {
-      if (n.occupation !== 'child' || n.age < 6) continue;
-      if (n.inside !== school.id && n.task?.type !== 'school') continue;
-      n.education = Math.round(((n.education || 0) + ED.perDay * quality * this.mod('learning')) * 10) / 10;
-      pupils++;
-    }
-    if (pupils) this.addKnowledge(0.05 * pupils);
-  }
-
-  /** Find a teacher: someone who reads and knows things, ideally not busy running a business. */
-  findTeacher() {
-    const cands = this.sim.state.npcs.filter((n) => n.age >= 20 && !n.owns && !n.away && n.health > 40);
-    const score = (n) => (n.knowledge || 0) * 2 + n.level + (n.habits?.hobby === 'reading' ? 8 : 0) + (n.occupation === 'elder' ? 6 : 0) + (n.education || 0) * 0.5 - (n.employer ? 4 : 0);
-    const best = cands.sort((a, b) => score(b) - score(a))[0];
-    if (!best) return null;
-    this.T.teacher = best.id;
-    this.sim.memory.remember(best, 'became_teacher');
-    this.sim.chronicle('chronicle.new_teacher', { npc: best.id, gender: best.gender });
-    return best;
+    const c = this.sim.schools?.schoolFor(npc);
+    return c && c.role === 'teacher' ? c.where : null;
   }
 
   // ------------------------------------------------------------------ weekly: teachers, mentors, the library
 
   weekly() {
     const sim = this.sim;
-    const V = sim.state.village;
-    // The school needs a teacher (paid by the village).
-    if (this.civic('school')) {
-      const teacher = this.T.teacher && sim.npcs.byId(this.T.teacher);
-      if (!teacher) this.findTeacher();
-      else {
-        const pay = Math.min(ED.teacherStipend, Math.max(0, V.treasury));
-        V.treasury -= pay;
-        teacher.money += pay;
-      }
-    }
+    // (The school — teachers, pupils, pay — is SchoolSystem's.)
     // The library: readers there add to what the village knows.
     if (this.civic('library')) {
       const readers = sim.state.npcs.filter((n) => n.habits?.hobby === 'reading').length;
@@ -220,7 +178,10 @@ export class TechSystem {
     this.mentoring();
   }
 
-  /** At every workplace, the most experienced hand teaches the greenest one. */
+  /**
+   * At every workplace, the most experienced hand keeps an eye on the greenest one
+   * (informally — proper apprenticeships are CareerSystem's).
+   */
   mentoring() {
     const sim = this.sim;
     const E = sim.economy;
@@ -230,8 +191,10 @@ export class TechSystem {
       team.sort((a, b) => b.level - a.level);
       const master = team[0];
       const pupil = team[team.length - 1];
-      if (master.level - pupil.level < ED.mentorGap) continue;
+      if (master.level - pupil.level < ED.mentorGap || pupil.apprentice) continue;
       pupil.xp += ED.mentorXp * this.mod('learning');
+      const field = sim.education?.fieldOf(pupil);
+      if (field) sim.education.learn(pupil, field, 0.6 * Math.min(1.2, sim.education.competence(master, field) / 60), { cap: 55 });
       if (pupil.mentor !== master.id) {
         pupil.mentor = master.id;
         this.T.apprentices[pupil.id] = master.id;
@@ -239,7 +202,6 @@ export class TechSystem {
         sim.memory.remember(master, 'took_apprentice', { who: pupil.id, params: { npc: pupil.id } });
         sim.social.adjust(pupil, master, { f: 6, t: 8, r: 10 });
         sim.social.adjust(master, pupil, { f: 4, t: 4 });
-        if (rand.chance(0.5)) sim.chronicle('chronicle.npc_apprentice', { npc: pupil.id, gender: pupil.gender, npc2: master.id });
       }
     }
   }
@@ -248,6 +210,7 @@ export class TechSystem {
 
   /** A child grows up: school and a parent's trade give them a head start. */
   grewUp(npc) {
+    if (this.sim.education) return this.sim.education.grewUp(npc);
     const sim = this.sim;
     const parents = (npc.kin?.parents || []).map((id) => sim.family.person(id)).filter(Boolean);
     const parentLevel = Math.max(0, ...parents.map((p) => p.level || 0));
@@ -279,6 +242,11 @@ export class TechSystem {
   /** Civic buildings the village should build next (see GrowthSystem). */
   civicWanted() {
     const sim = this.sim;
+    // Schools first: a crowded school wants a second one, youngsters an upper school (SchoolSystem).
+    const school = sim.schools?.wanted();
+    if (school) return school;
+    const institute = sim.academia?.wantedBuilding();
+    if (institute) return institute;
     const pop = sim.state.npcs.length + 1;
     const children = sim.state.npcs.filter((n) => n.age >= 5 && n.age <= 15).length;
     for (const [type, def] of Object.entries(CIVIC)) {

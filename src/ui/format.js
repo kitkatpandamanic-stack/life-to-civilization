@@ -112,6 +112,13 @@ export function resolveParams(sim, params = {}) {
     else if (k === 'renown') out[k] = t(`renown.${v}`);
     else if (k === 'deed') out[k] = deedText(sim, v);
     else if (k === 'letting') out[k] = t(`reason.letting_${v}`);
+    else if (k === 'interest') out[k] = t(`interest_obj.${v}`);
+    else if (k === 'field') out[k] = t(`knowledge.${v}`);
+    else if (k === 'edu_level') out[k] = t(`edu_level.${v}`);
+    else if (k === 'stage') out[k] = t(`stage.${v}`);
+    else if (k === 'post') out[k] = t(`post_name.${v}`);
+    else if (k === 'tier') out[k] = t(`career_title.${v}`, { occ: t(`knowledge.${params.field}`), gender: params.gender });
+    else if (k === 'trank') out[k] = t(`teacher_rank.${v}`, { gender: params.gender });
   }
   return out;
 }

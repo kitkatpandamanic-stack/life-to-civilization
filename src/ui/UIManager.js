@@ -35,6 +35,8 @@ import { PropertyPanel } from './panels/PropertyPanel.js';
 import { ExpeditionPanel } from './panels/ExpeditionPanel.js';
 import { JourneyPanel } from './panels/JourneyPanel.js';
 import { HallPanel } from './panels/HallPanel.js';
+import { SchoolPanel } from './panels/SchoolPanel.js';
+import { InstitutePanel } from './panels/InstitutePanel.js';
 import { AffairsPanel } from './panels/AffairsPanel.js';
 
 const REFRESH_EVENTS = ['inventory:changed', 'storage:changed', 'construction:changed', 'land:changed', 'workers:changed', 'business:changed', 'player:changed', 'jobs:changed', 'economy:changed', 'social:changed', 'player:levelup', 'player:skillup', 'chronicle'];
@@ -270,7 +272,7 @@ export class UIManager {
 
   updateStatus() {
     const s = this.status;
-    const icons = { sleep: '🌙', work: '🛠️', passout: '💫', collapse: '🩹', travel: '🧭', own_shift: '🏪', exploring: '🔦', journey: '🐎' };
+    const icons = { sleep: '🌙', work: '🛠️', passout: '💫', collapse: '🩹', travel: '🧭', own_shift: '🏪', exploring: '🔦', journey: '🐎', study_class: '📚', study_tutor: '📖', study_beside: '⚒️', study_teach: '🧑‍🏫', study_read: '📖', study_university: '🎓' };
     let pct = '';
     if (s.kind === 'work') {
       const done = Math.min(1, (this.sim.time.total - s.startTotal) / s.data.minutes);
@@ -291,7 +293,7 @@ export class UIManager {
       this.statusEl.innerHTML = `<div class="st-card"><div class="st-icon">${icons.journey}</div><div class="st-title">${escapeHtml(tr(this.sim, j?.stage === 'back' ? 'status.journey_home' : 'status.journey', { settlement: s.data.settlement }))}</div><div class="st-clock">${this.sim.time.clockString()}</div>${pct}</div>`;
       return;
     }
-    const title = s.kind === 'exploring' ? tr(this.sim, 'status.exploring', { site: s.data.site }) : s.kind === 'own_shift' ? tr(this.sim, 'status.own_shift', { building: s.data.building }) : s.kind === 'work' ? tr(this.sim, 'status.work', { job: s.data.job }) : s.kind === 'travel' ? tr(this.sim, 'status.travel', { region_name: s.data.region }) : t(`status.${s.kind}`);
+    const title = s.kind === 'exploring' ? tr(this.sim, 'status.exploring', { site: s.data.site }) : s.kind === 'own_shift' ? tr(this.sim, 'status.own_shift', { building: s.data.building }) : s.kind === 'work' ? tr(this.sim, 'status.work', { job: s.data.job }) : s.kind === 'travel' ? tr(this.sim, 'status.travel', { region_name: s.data.region }) : s.kind.startsWith('study_') ? tr(this.sim, `status.${s.kind}`, s.data) : t(`status.${s.kind}`);
     this.statusEl.innerHTML = `<div class="st-card"><div class="st-icon">${icons[s.kind] || ''}</div><div class="st-title">${escapeHtml(title)}</div><div class="st-clock">${this.sim.time.clockString()}</div>${pct}</div>`;
   }
 
@@ -425,8 +427,14 @@ export class UIManager {
   openDialogue(npcId) {
     this.openPanel(new DialoguePanel(this, npcId));
   }
-  openInspect(npcId) {
-    this.openPanel(new InspectPanel(this, npcId));
+  openInspect(npcId, tab = 'life') {
+    this.openPanel(new InspectPanel(this, npcId, tab));
+  }
+  openSchool(buildingId, tab = 'overview') {
+    this.openPanel(new SchoolPanel(this, buildingId, tab));
+  }
+  openInstitute(buildingId) {
+    this.openPanel(new InstitutePanel(this, buildingId));
   }
   openStorage() {
     this.openPanel(new StoragePanel(this));

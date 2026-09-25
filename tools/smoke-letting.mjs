@@ -51,19 +51,29 @@ check('someone without a proper home would take it', why.ok, JSON.stringify(why)
 check('…and counts among the interested', Lt.interest(house).yes.some((x) => x.n === seeker));
 
 // 2. A viewing: booked in the morning, walked over in the evening, decided.
+// (A viewer can still change their mind — so keep the sign up until someone takes it.)
+// (Villagers can also rent a vacant house straight off the ordinary housing market — keep that
+// out of this check, which is about viewings.)
+const market = sim.property.market;
+sim.property.market = () => {};
 let booked = null;
-for (let d = 0; d < 6 && !booked; d++) {
-  toHour(sim, run, 10);
-  booked = sim.state.npcs.find((n) => n.viewing?.building === house);
-}
-check('someone asks to see the house', !!booked, booked?.id);
+let asked = null;
 let walked = false;
-if (booked) {
-  for (let i = 0; i < 14 * 6 && booked.viewing; i++) {
+for (let d = 0; d < 24 && P.occupants(house) === 0; d++) {
+  toHour(sim, run, 10);
+  const viewer = sim.state.npcs.find((n) => n.viewing?.building === house);
+  if (!viewer) continue;
+  asked ??= viewer;
+  for (let i = 0; i < 14 * 6 && viewer.viewing; i++) {
     run(10);
-    if (booked.task?.type === 'viewing') walked = true;
+    if (viewer.task?.type === 'viewing') walked = true;
   }
+  if (viewer.homeId === house) booked = viewer;
+  else if (!Lt.listed(house) && P.occupants(house) === 0) Lt.list(house, true);
 }
+booked ??= sim.state.npcs.find((n) => n.homeId === house) || null; // (they may have decided that evening)
+sim.property.market = market;
+check('someone asks to see the house', !!asked, asked?.id);
 check('…walks over in the evening to look at it', walked);
 check('…and moves in', booked && booked.homeId === house && P.occupants(house) > 0, booked?.homeId);
 check('…so the sign comes down', !Lt.listed(house));
@@ -101,7 +111,7 @@ if (house2) {
 
 // 6. Advertising in the village reaches people who weren't looking.
 const house3 = P.homes().find((id) => ![house, house2].includes(id) && id !== p.homeId && P.occupants(id) === 0 && !sim.economy.businessAtBuilding(id) && P.rec(id)) || (() => {
-  const id = P.homes().find((h) => h.startsWith('house_') && ![house, house2].includes(h) && h !== p.homeId);
+  const id = P.homes().find((h) => h.startsWith('house_') && ![house, house2].includes(h) && h !== p.homeId && !sim.economy.businessAtBuilding(h));
   for (const n of sim.npcs.residentsOf(id)) n.homeId = 'hall';
   sim.npcs.invalidateHouseholds();
   return id;

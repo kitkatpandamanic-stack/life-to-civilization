@@ -37,6 +37,25 @@ export class JournalPanel extends Panel {
   }
 
   /** Your ambitions: the ones you track, then (on request) all the others. */
+  /** The valley's learning, counted from its people (EducationWorldSystem). */
+  learningHtml(kv) {
+    const sim = this.sim;
+    const st = sim.eduworld?.stats();
+    if (!st) return '';
+    const pct = (v) => `${Math.round(v * 100)}%`;
+    const skilled = Object.entries(st.skilledIn).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([f, n]) => `${t(`knowledge.${f}`)} ${n}`).join(' · ');
+    return `<h3>${escapeHtml(t('edu_stats.title'))}</h3>
+      ${kv(t('edu_stats.literacy'), pct(st.literacy))}
+      ${kv(t('edu_stats.schooling'), `${pct(st.basic)} · ${pct(st.secondary)} · ${pct(st.vocational)} · ${pct(st.university)}`)}
+      ${kv(t('edu_stats.at_school'), `${st.pupils} · ${t('edu_stats.away', { n: st.students })}`)}
+      ${kv(t('edu_stats.people'), t('edu_stats.people_line', { teachers: st.teachers, doctors: st.doctors, engineers: st.engineers, researchers: st.researchers }))}
+      ${kv(t('edu_stats.trades'), t('edu_stats.trades_line', { masters: st.masters, apprentices: st.apprentices }))}
+      ${skilled ? kv(t('edu_stats.skilled'), skilled) : ''}
+      ${st.specialty ? kv(t('edu_stats.known_for'), t(`knowledge.${st.specialty}`)) : ''}
+      ${kv(t('edu_stats.innovation'), `${st.innovation} · ${t('edu_stats.discoveries', { n: st.discoveries })}`)}
+      <div class="muted small">${escapeHtml(t('edu_stats.hint'))}</div>`;
+  }
+
   renderAmbitions() {
     const sim = this.sim;
     const A = sim.ambitions;
@@ -165,8 +184,9 @@ export class JournalPanel extends Panel {
       ${sim.exploration.known().map((id) => kv(t(`region_name.${id}`), `${sim.exploration.region(id).explored}%${sim.exploration.region(id).partner ? ' · 🤝' : ''}`)).join('')}
       ${sim.state.knowledge.points ? kv(t('expedition.knowledge'), sim.state.knowledge.points) : ''}
       <h3>${escapeHtml(t('tech.know_how'))}</h3>
-      ${sim.tech.overview().filter((x) => x.known || x.ready).map((x) => `<div class="kv" title="${escapeHtml(t(`tech.${x.id}.desc`))}"><span>${x.icon} ${escapeHtml(t(`tech.${x.id}.name`))}</span><b>${x.known ? '✓' : escapeHtml(t('tech.working_on', { n: Math.round(x.progress * 100) }))}</b></div>`).join('') || `<div class="muted small">${escapeHtml(t('tech.none_yet'))}</div>`}
+      ${sim.tech.overview().filter((x) => x.known || x.ready).map((x) => `<div class="kv" title="${escapeHtml(t(`tech.${x.id}.desc`))}"><span>${x.icon} ${escapeHtml(t(`tech.${x.id}.name`))}</span><b>${x.known ? `✓ ${escapeHtml(t('tech.adoption', { n: Math.round((sim.knowhow?.adoption(x.id) ?? 1) * 100) }))}` : escapeHtml(t('tech.working_on', { n: Math.round(x.progress * 100) }))}</b></div>`).join('') || `<div class="muted small">${escapeHtml(t('tech.none_yet'))}</div>`}
       <div class="muted small">${escapeHtml(t('tech.hint'))}</div>
+      ${this.learningHtml(kv)}
       <h3>${escapeHtml(t('ui.events'))}</h3>
       ${events.length ? events.map((e) => `<div class="rumor">⚡ <b>${escapeHtml(t(`event.${e.id}.name`))}</b> — ${escapeHtml(t(`event.${e.id}.desc`))}</div>`).join('') : `<div class="muted">${escapeHtml(t('ui.no_events'))}</div>`}
     </div><div class="col">

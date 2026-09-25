@@ -4,8 +4,9 @@
 import { PERKS } from '../../data/perks.js';
 import { Panel } from '../Panel.js';
 import { t, tn, fmtMoney, npcName } from '../../i18n/i18n.js';
-import { escapeHtml } from '../format.js';
-import { bar, button, portrait } from '../widgets.js';
+import { escapeHtml, tr } from '../format.js';
+import { bar, button, portrait, tabs } from '../widgets.js';
+import { learningHtml } from '../education.js';
 import { SKILLS, SKILL_CATEGORIES } from '../../data/skills.js';
 import { BALANCE } from '../../config/balance.js';
 import { Mod } from '../../systems/Modifiers.js';
@@ -24,6 +25,8 @@ export class CharacterPanel extends Panel {
   render() {
     const sim = this.sim;
     const p = sim.state.player;
+    const tabBar = tabs([['main', t('ui.character')], ['learning', t('inspect.tab_learning')]], this.tab || 'main');
+    if (this.tab === 'learning') return tabBar + this.learningPage();
     const prog = sim.progression;
     const need = prog.xpForNext();
     const kv = (k, v) => `<div class="kv"><span>${escapeHtml(k)}</span><b>${escapeHtml(String(v))}</b></div>`;
@@ -63,7 +66,7 @@ export class CharacterPanel extends Panel {
         .join('')}</div>`;
     }).join('');
 
-    return `
+    return `${tabBar}
       <div class="char-top">
         ${portrait(`player_g${p.generation || 1}`, p.look, 84)}
         <div class="char-id">
@@ -139,7 +142,18 @@ export class CharacterPanel extends Panel {
     }).join('');
   }
 
+  /** Your schooling, what you're studying now, what you're qualified in, and what you know. */
+  learningPage() {
+    const sim = this.sim;
+    const St = sim.study;
+    const kv = (k, v) => `<div class="kv"><span>${escapeHtml(k)}</span><b>${escapeHtml(String(v))}</b></div>`;
+    const now = St.status().map((s) => kv(t('learn.now'), tr(sim, `learn.player.${s.key}`, s.params))).join('');
+    const quals = (St.e.quals || []).map((q) => t(`learn.qual.${q.how}`, { field: t(`knowledge.${q.field}`) })).join(', ');
+    return `<div class="learn-page">${now}${quals ? kv(t('learn.quals'), quals) : ''}${learningHtml(sim, sim.state.player, { isPlayer: true })}<div class="muted small">${escapeHtml(t('learn.player_hint'))}</div></div>`;
+  }
+
   onAction(action, data) {
+    if (action === 'tab') this.tab = data.tab;
     if (action === 'attr') this.sim.progression.spendAttributePoint(data.attr);
     if (action === 'skill') this.sim.progression.spendSkillPoint(data.skill);
     if (action === 'perk') this.sim.progression.choosePerk(data.perk);

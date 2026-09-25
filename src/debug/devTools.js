@@ -15,6 +15,7 @@
 import { setLanguage } from '../i18n/i18n.js';
 import { Simulation } from '../core/Simulation.js';
 import { installDebugPanel } from './DebugPanel.js';
+import { eduTools } from './eduTools.js';
 
 const KEYS = {
   w: ['w', 'KeyW', 87], a: ['a', 'KeyA', 65], s: ['s', 'KeyS', 83], d: ['d', 'KeyD', 68],
@@ -95,5 +96,6 @@ const dev = {
   },
 };
 
+dev.edu = eduTools(dev);
 window.dev = dev;
 installDebugPanel(dev);

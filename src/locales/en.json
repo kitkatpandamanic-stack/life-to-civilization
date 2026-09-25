@@ -240,7 +240,11 @@
     "hunter": {
       "m": "Hunter",
       "f": "Huntress"
-    }
+    },
+    "teacher": "Teacher",
+    "doctor": "Doctor",
+    "engineer": "Engineer",
+    "researcher": "Researcher"
   },
   "building": {
     "hall": "Village Hall",
@@ -691,7 +695,14 @@
     "pickup_haul": "Load up: {item} ×{qty}",
     "pickup_letters": "Collect the letters ({n})",
     "deliver_letter": "Deliver a letter",
-    "deliver_haul": "Deliver the materials: {item} ×{qty}"
+    "deliver_haul": "Deliver the materials: {item} ×{qty}",
+    "visit_school": "Visit the school",
+    "visit_institute": "Visit the institute",
+    "attend_class": "Sit in on the evening class (2 h)",
+    "attend_course": "Attend your {field} lesson (2 h)",
+    "give_lesson": "Give a lesson (2 h)",
+    "read_library": "Read at the library (1 h)",
+    "work_beside": "Work beside {npc} (half a day)"
   },
   "reason": {
     "nothing_here": "Nothing to do here.",
@@ -817,7 +828,38 @@
     "letting_near_work": "closer to work",
     "letting_better_deal": "a better deal",
     "not_lettable": "You can't let it as it is.",
-    "ad_out": "There's already a notice out for it."
+    "ad_out": "There's already a notice out for it.",
+    "no_school": "There's no school here.",
+    "no_class_now": "There's no class you could join right now.",
+    "no_course": "That course isn't taught here.",
+    "on_a_course": "You're already on a course.",
+    "already_qualified": "You're already qualified in that.",
+    "busy": "They're busy.",
+    "asked_already": "You've already asked today.",
+    "nothing_to_teach": "They don't know anything you don't.",
+    "already_apprentice": "You're already someone's apprentice.",
+    "not_a_master": "They're not master enough to take an apprentice.",
+    "master_refuses": "They don't know you well enough to take you on.",
+    "not_apprentice": "You're nobody's apprentice.",
+    "master_gone": "Your master is gone.",
+    "wrong_place": "Your master doesn't work here.",
+    "master_not_working": "{npc} isn't at work right now.",
+    "taught_today": "You've taught today already.",
+    "no_lesson_for_you": "No class you know enough to teach right now.",
+    "not_master_enough": "You need a trade skill of {n} to take an apprentice.",
+    "not_looking_for_trade": "They're not looking to learn a trade.",
+    "wants_other_trade": "Their heart is set on another trade.",
+    "no_need": "They don't need anyone to pay for them.",
+    "no_institute": "There's no institute here.",
+    "cant_choose": "You can't choose that now.",
+    "cant_found": "That can't be founded.",
+    "needs_civic": "The village needs a {vbuilding} first.",
+    "underway": "One is being built already.",
+    "have_one": "The village has one already.",
+    "no_lot": "There's nowhere to build it.",
+    "no_library": "There's no library here.",
+    "cant_read": "You can't read well enough yet.",
+    "cant_study_here": "You can't study that here (yet)."
   },
   "toast": {
     "hungry": "You're getting hungry. Press Q to eat.",
@@ -964,7 +1006,17 @@
     "viewing_declined": "{npc} looked at your house and said no: {letting}.",
     "new_tenant": "{npc} is renting your house ({building}) for {money} a week.",
     "ad_no_takers": "Nobody in {settlement} answered your notice about {building}.",
-    "newcomers_rented": "{npc} came from {settlement} to rent your house ({building})."
+    "newcomers_rented": "{npc} came from {settlement} to rent your house ({building}).",
+    "study_done_class": "Class is over — you've come out a little wiser.",
+    "study_finished_class": "You've finished the {field} course: you're qualified!",
+    "study_done_tutor": "A good lesson in {field}.",
+    "study_done_beside": "Half a day beside your master: {field} makes more sense every time.",
+    "study_finished_beside": "Your master says you're a journeyman now ({field})!",
+    "study_done_teach": "You taught {n} pupils today.",
+    "study_done_read": "An hour with the books ({field}).",
+    "study_done_university": "Another week of lectures ({n} so far).",
+    "study_finished_university": "You've taken your degree in {field}!",
+    "course_signed": "You've signed up for the {field} course at {building}."
   },
   "objective": {
     "harvest": "Harvest ripe wheat in the farm fields ({have}/{qty})",
@@ -1206,11 +1258,8 @@
     "npc_expedition_empty": "{npc} came back from {region_name} with nothing to show for it.",
     "tech_discovered": "The village has learned something new: {tech}.",
     "tech_discovered_by": "{npc} worked it out — the village now has {tech}!",
-    "new_teacher": {
-      "m": "{npc} is the village's new schoolteacher.",
-      "f": "{npc} is the village's new schoolteacher."
-    },
-    "npc_apprentice": "{npc} is learning the trade from {npc2}.",
+    "new_teacher": "{npc} has started teaching at {building}.",
+    "npc_apprentice": "{npc} has become an apprentice to {npc2}.",
     "craft_passed_on": "{npc} is gone, but the craft lives on: {npc2} learned it.",
     "craft_recorded": "{npc} is gone, but what they knew is kept in the library.",
     "craft_lost": "{npc} took a lifetime of know-how to the grave — nobody had learned it.",
@@ -1265,7 +1314,73 @@
     "policy_relief_normal": "The headman set poor relief back to normal.",
     "policy_relief_high": "The headman made poor relief more generous.",
     "npc_rented_player": "{npc} moved into {building}, rented from you.",
-    "newcomers_rented": "{npc} came from {settlement} to rent {building} from you ({n} in all)."
+    "newcomers_rented": "{npc} came from {settlement} to rent {building} from you ({n} in all).",
+    "teacher_quit_unpaid": "{npc} stopped teaching at {building}: the village couldn't pay.",
+    "teacher_shortage": "{building} needs a teacher for the {stage}, and there's nobody in the valley who can take it.",
+    "first_pupils": "The first pupils sat down in {building}: {npc} among them.",
+    "first_graduate_primary": "{npc} is the first in the valley to finish primary school.",
+    "first_graduate_secondary": "{npc} is the first in the valley to finish the upper school.",
+    "talented_pupil": "At {building}, the teacher has noticed that {npc} has a real gift for learning.",
+    "school_overcrowded": "{building} is overcrowded: {n} pupils for {n2} seats.",
+    "village_grammar_school": "The village has built an upper school — youngsters can go on learning after primary school.",
+    "policy_schooling_low": "The headman cut the school budget; families now pay a small fee.",
+    "policy_schooling_normal": "The headman set the school budget back to normal.",
+    "policy_schooling_high": "The headman gave the schools more money: better pay for teachers, more books.",
+    "teacher_recruited": "{npc} came from {settlement} to teach at {building} — the village had sent word it needed a teacher.",
+    "teacher_recruited_far": "{npc} came from far away to teach at {building} — the village had sent word it needed a teacher.",
+    "journeyman": "{npc} has finished an apprenticeship with {npc2} and is a journeyman in {field} now.",
+    "journeyman_player": "{npc} has finished an apprenticeship with you and is a journeyman in {field} now.",
+    "first_course": "The first trade course has begun at {building}: {npc} is learning {field}.",
+    "first_graduate_vocational": "{npc} is the first in the valley to finish a trade course.",
+    "village_trade_school": "The village has built a trade school — a year's course in a trade, by day or in the evenings.",
+    "business_training": "At {building}, {npc} has started training the staff properly in {field}.",
+    "business_academy": "{npc} has set up a training academy at {building}: newcomers learn {field} there from the ground up.",
+    "skill_shortage": "{building} can't find a trained {occ} anywhere in the valley.",
+    "skilled_recruited": "{npc}, a trained {occ}, has come to work at {building} — sent for from outside.",
+    "npc_became_master": "{npc} has become a true master of the trade ({occ}).",
+    "went_to_university": "{npc} has gone to {settlement} to study {field}.",
+    "went_to_university_scholarship": "{npc} has won a free place at the university in {settlement}, to study {field}.",
+    "first_student": "{npc} is the first from the valley to go to university — to study {field} in {settlement}.",
+    "first_university_graduate": "{npc} is the valley's first university graduate: a degree in {field} from {settlement}.",
+    "graduate_returned": "{npc} has come home from {settlement} with a degree in {field}.",
+    "student_returned": "{npc} has come home from {settlement} without a degree.",
+    "graduate_stayed": "{npc} graduated in {field} and has stayed in {settlement} for good.",
+    "graduate_came_home": "{npc} has come back from {settlement}: the valley needed someone like them.",
+    "post_doctor": "{npc} is the valley's doctor now, at {building}.",
+    "post_engineer": "{npc} is the village engineer now: roads and buildings will be done properly.",
+    "post_researcher": "{npc} has started work as a researcher at {building}.",
+    "post_quit_unpaid": "{npc} has given up being the {post}: the village couldn't pay.",
+    "research_started": "{building} has begun work on {tech}.",
+    "research_success": "A breakthrough at {building}: {tech}!",
+    "research_partial": "{building}'s work on {tech} half worked: something learned, not yet the whole thing.",
+    "research_failed": "{building}'s work on {tech} failed. They'll have to go back over it.",
+    "first_breakthrough": "The valley's first research breakthrough: {tech}.",
+    "famous_researcher": "{npc} is famous now, the one who worked out {tech} — people come from far away to meet them.",
+    "village_institute": "The village has built a research institute.",
+    "tech_introduced": "{npc}, who came from {settlement}, has brought {tech} to the valley.",
+    "tech_introduced_by": "{npc} has brought {tech} to the valley.",
+    "player_course_done": "You finished the {field} course at {building}.",
+    "player_apprenticed": "{npc} has taken you on as an apprentice ({field}).",
+    "player_journeyman": "{npc} says you're a journeyman in {field} now.",
+    "player_taught": "You gave a lesson at {building}.",
+    "player_took_apprentice": "{npc} is learning {field} from you.",
+    "player_sponsored": "You're paying for {npc} to study {field} in {settlement}.",
+    "player_school_gift": "You gave a gift to {building}.",
+    "player_research_gift": "You funded the research at {building}.",
+    "player_founded_school": "You've paid for a new {vbuilding} for the village.",
+    "player_degree": "You took a degree in {field} in {settlement}.",
+    "valley_known_for": "The valley is making a name for its {field}: {n} people here are skilled at it.",
+    "literacy_milestone": "{n}% of the valley can read and write now.",
+    "education_centre": "A school, a trade school, an institute: the valley has become a place of learning.",
+    "landmark_old_school": "{building} is the valley's old school now: generations have learned their letters there.",
+    "landmark_famous_institute": "{building} is famous far and wide: {n} discoveries so far.",
+    "landmark_historic_workshop": "{building} is a name in its trade: {n} journeymen have trained there.",
+    "school_closed": "{building} has shut its doors: no teacher for weeks.",
+    "school_reopened": "{building} is open again — there's a teacher at last.",
+    "scholarship_offered": "The village will pay for {npc}'s studies at a university. A chance like that doesn't come twice.",
+    "scholar_arrives": "{npc}, a scholar from {settlement}, has come to work at the valley's institute.",
+    "scholar_arrives_far": "{npc}, a scholar from far away, has come to work at the valley's institute.",
+    "new_university": "{settlement} has founded a university of its own — best at {field}."
   },
   "event": {
     "good_harvest": {
@@ -1418,7 +1533,13 @@
     "own_shift": "Working at {building}",
     "exploring": "Exploring: {site}",
     "journey": "On the road to {settlement}",
-    "journey_home": "On the road home from {settlement}"
+    "journey_home": "On the road home from {settlement}",
+    "study_class": "At class: {building}",
+    "study_tutor": "A lesson with {npc}",
+    "study_beside": "Working beside {npc}",
+    "study_teach": "Teaching at {building}",
+    "study_read": "Reading at the library",
+    "study_university": "Studying {field} in {settlement}"
   },
   "tips": {
     "tip1": "The notice board on the plaza lists all work. Talking to employers works too.",
@@ -2066,6 +2187,23 @@
       "carter": [
         "From the lumberyard to the store, the quarry to the smithy — I know every road.",
         "The cart creaks, but it carries."
+      ],
+      "teacher": [
+        "Some days they hang on every word. Other days I might as well talk to the wall.",
+        "When a child finally reads a whole page on their own — that's worth the whole year's pay.",
+        "We need more books. Three children to a primer is no way to learn."
+      ],
+      "doctor": [
+        "Wash your hands before you eat. I say it to everyone, and I'll keep saying it.",
+        "Half of what I learned in town doesn't work here. The other half saves lives."
+      ],
+      "engineer": [
+        "That bridge will stand a hundred years if they let me do it properly.",
+        "Everything's a sum, in the end. The trick is knowing which one."
+      ],
+      "researcher": [
+        "We're close. I can feel it. Another month — if the money holds.",
+        "Most days nothing works. Then one day, something does."
       ]
     },
     "weather": {
@@ -2231,7 +2369,11 @@
       "ask_stay": "Please — stay in the valley.",
       "asked_already": "you asked recently",
       "offer_job": "I could give you work.",
-      "offer_house": "I have a house to let…"
+      "offer_house": "I have a house to let…",
+      "ask_lessons": "Could you teach me {field}? ({money})",
+      "ask_apprentice": "Would you take me on as your apprentice ({field})?",
+      "offer_apprentice": "Would you like to learn {field} from me?",
+      "offer_sponsor": "I'll pay for your studies in {settlement} ({money})"
     },
     "no_gifts": "You have nothing suitable to give.",
     "chat_again": [
@@ -2368,7 +2510,30 @@
       "no_house": [
         "You don't have a house free, do you?"
       ]
-    }
+    },
+    "apprentice_yes": [
+      "All right — come to work when I'm there, and watch what I do. {field} isn't learned in a day.",
+      "You want to learn {field}? Then you'll start at the bottom, same as I did."
+    ],
+    "apprentice_no": [
+      "I don't know you well enough for that.",
+      "Take on an apprentice? Not now, not you."
+    ],
+    "become_apprentice_yes": [
+      "Learn {field} from you? Yes! I'll work hard — and {money} a day is fine while I'm learning.",
+      "I've been hoping someone would ask. When do I start?"
+    ],
+    "become_apprentice_no": [
+      "Thank you, but it's not for me.",
+      "I'd rather not, thanks."
+    ],
+    "sponsor_yes": [
+      "You'd... pay for it? I'll go to {settlement} — and I won't forget this. Ever.",
+      "I don't know what to say. Thank you. I'll make it count."
+    ],
+    "sponsor_no": [
+      "That's kind, but it's not needed."
+    ]
   },
   "rank": {
     "apprentice": "apprentice {occ}",
@@ -2436,7 +2601,13 @@
     "at_school": "At school",
     "teaching": "Teaching at the school",
     "going_to_view": "Going to look at a house to rent",
-    "viewing_house": "Looking over a house to rent"
+    "viewing_house": "Looking over a house to rent",
+    "going_to_evening_class": "Off to evening class",
+    "at_evening_class": "At evening class",
+    "going_to_post": "Off to work",
+    "at_post_doctor": "Seeing patients",
+    "at_post_engineer": "Working on the village's plans",
+    "at_post_researcher": "At work in the institute"
   },
   "schedule": {
     "wake": "Wake up",
@@ -2865,7 +3036,7 @@
     "went_exploring": "Went exploring ({region_name}).",
     "explored_with_player": "Went on an expedition with you ({region_name}).",
     "invented": "Came up with something new: {tech}.",
-    "became_teacher": "Became the village schoolteacher.",
+    "became_teacher": "Became a schoolteacher.",
     "mentored_by": "Learning the trade from {npc}.",
     "took_apprentice": "Took {npc} on as an apprentice.",
     "sold_business_to_player": "Sold {building} to you.",
@@ -2880,7 +3051,27 @@
     "player_let_down_backer": "Couldn't pay back all the money you put up.",
     "became_headman": "Was elected headman.",
     "bank_loan": "Borrowed {money} from the village bank.",
-    "rented_from_player": "Rented a house from you: {building}."
+    "rented_from_player": "Rented a house from you: {building}.",
+    "new_interest": "Took an interest in {interest}.",
+    "finished_school": "Finished school ({edu_level}).",
+    "left_school": "Left school.",
+    "failed_exam": "Failed the end-of-year exam.",
+    "finished_course": "Finished a trade course in {field}.",
+    "finished_apprenticeship": "Finished an apprenticeship in {field}.",
+    "apprenticeship_ended": "An apprenticeship in {field} was cut short.",
+    "wants_retrain": "Wants to learn {field} and start over.",
+    "rose_in_trade": "Became {tier}.",
+    "went_to_university": "Went to study {field} at {settlement}.",
+    "child_to_university": "{npc} went off to university in {settlement}.",
+    "graduated": "Graduated in {field} at {settlement}.",
+    "failed_degree": "Failed their degree at {settlement}.",
+    "cant_afford_study": "Wanted to study at {settlement}, but couldn't afford it.",
+    "took_post": "Became the {post}.",
+    "made_discovery": "Made a discovery: {tech}.",
+    "sponsored_by_player": "You paid for their studies in {settlement}.",
+    "took_player_apprentice": "Took you on as an apprentice ({field}).",
+    "taught_player": "Gave you a lesson in {field}.",
+    "player_journeyman": "Saw you through your apprenticeship ({field})."
   },
   "talk": {
     "deflect": [
@@ -3241,6 +3432,85 @@
       "rented_from_player": [
         "Thank you for the house. It's good to have a proper home.",
         "The house you let us suits us fine. Mind the roof in spring, though."
+      ],
+      "new_interest": [
+        "I've been getting into {interest} lately. Can't stop thinking about it.",
+        "Funny — I never cared for {interest}, and now it's all I want to learn about."
+      ],
+      "finished_school": [
+        "I finished school! I can read anything now — well, nearly anything.",
+        "They gave me my certificate. Mum cried."
+      ],
+      "left_school": [
+        "I stopped going to school. There's work to be done at home.",
+        "School wasn't for me. Maybe one day I'll go back."
+      ],
+      "failed_exam": [
+        "I failed the exam. I'll have to do the whole year again.",
+        "The sums beat me this year. Next year I'll be ready."
+      ],
+      "finished_course": [
+        "I finished my course at the trade school! I know what I'm doing now — properly.",
+        "A whole year of lessons, and now I've got the papers to show for it."
+      ],
+      "finished_apprenticeship": [
+        "My apprenticeship's done. I owe my master everything I know.",
+        "They say I'm a journeyman now. Doesn't feel real yet."
+      ],
+      "apprenticeship_ended": [
+        "My apprenticeship ended before I'd learned half of it.",
+        "No master, no apprenticeship. I'll have to find another way."
+      ],
+      "wants_retrain": [
+        "I've been thinking of learning a different trade. This one isn't for me.",
+        "Is it too late to start again? I'd like to learn something new."
+      ],
+      "rose_in_trade": [
+        "Folk bring their hardest jobs to me now. That's how you know.",
+        "Years at the work, and it finally shows."
+      ],
+      "went_to_university": [
+        "University! I can hardly believe it."
+      ],
+      "child_to_university": [
+        "My child's at the university in town. Imagine that — from our little valley.",
+        "The house is quiet without them. But they'll come back a scholar."
+      ],
+      "graduated": [
+        "Two years of books and lectures, and now I'm home with a degree.",
+        "The town was something. But this is where I'm needed."
+      ],
+      "failed_degree": [
+        "I didn't make it through. Maybe it wasn't meant for me.",
+        "The exams beat me. I'm not ashamed — I tried."
+      ],
+      "cant_afford_study": [
+        "I could have gone to university, if we'd had the money.",
+        "They'd have taken me, you know. We just couldn't pay."
+      ],
+      "took_post": [
+        "It's a great responsibility. I mean to deserve it.",
+        "The whole valley relies on me now. No pressure."
+      ],
+      "made_discovery": [
+        "People keep asking me how I thought of it. Honestly, it was years of getting it wrong.",
+        "It worked! It actually worked!"
+      ],
+      "sponsored_by_player": [
+        "I'd never have got to university without you. Never.",
+        "Every lecture I sit through, I think: someone believed in me."
+      ],
+      "took_player_apprentice": [
+        "You're coming along. Keep your eyes open and your hands busy.",
+        "Most apprentices talk too much. You listen. Good."
+      ],
+      "taught_player": [
+        "How's what I taught you coming along?",
+        "Come back any time you want another lesson."
+      ],
+      "player_journeyman": [
+        "Proud of you. You were a good apprentice.",
+        "You learned it properly. That's rare."
       ]
     },
     "work": {
@@ -3638,7 +3908,11 @@
           "There's a merchant paying top price for {item}! Sell while you can.",
           "Got any {item}? The fair merchant is buying."
         ]
-      }
+      },
+      "student_away": [
+        "{npc} is away studying in {settlement}. We get a letter now and then.",
+        "Did you hear? {npc}'s doing well at the university in {settlement}."
+      ]
     },
     "econ": {
       "shortage": [
@@ -3876,7 +4150,25 @@
         "The council's putting money by for a {institution}. About time.",
         "They say we'll have a {institution} before long."
       ]
-    }
+    },
+    "landmark": {
+      "old_school": [
+        "My grandmother learned her letters at {building}, same as me.",
+        "{building}'s been teaching children longer than I've been alive."
+      ],
+      "famous_institute": [
+        "People come from the towns to see {building}. Imagine!",
+        "They say {building} has worked out things even the towns didn't know."
+      ],
+      "historic_workshop": [
+        "Half the good craftsmen in the valley learned at {building}.",
+        "If you want to learn a trade properly, {building}'s the place."
+      ]
+    },
+    "specialty": [
+      "The valley's making a name for its {field}, you know.",
+      "Folk in the towns say if you want {field} done right, you come here."
+    ]
   },
   "owner": {
     "player": "You",
@@ -4082,7 +4374,10 @@
     "watch_house": "watch house",
     "clinic": "healer's house",
     "guild_hall": "guild hall",
-    "bank": "bank"
+    "bank": "bank",
+    "grammar_school": "upper school",
+    "trade_school": "trade school",
+    "institute": "research institute"
   },
   "purpose": {
     "home": "a home for the family",
@@ -4414,7 +4709,36 @@
     "bookkeeping": {
       "name": "Bookkeeping",
       "desc": "Proper accounts. Traders pay a little more, and a bank becomes possible."
-    }
+    },
+    "improved_plough": {
+      "name": "Improved plough",
+      "desc": "An iron-shod plough worked out at the institute: it turns the soil deeper with less effort. Bigger harvests."
+    },
+    "seed_selection": {
+      "name": "Seed selection",
+      "desc": "Keeping the seed of the best plants, year after year. The fields yield more."
+    },
+    "lime_mortar": {
+      "name": "Lime mortar",
+      "desc": "A stronger mortar, properly mixed and burnt. Walls go up faster and stand longer."
+    },
+    "field_medicine": {
+      "name": "Field medicine",
+      "desc": "Cleaning wounds, treating fevers, knowing what to do. Fewer fall sick, and fewer die of it."
+    },
+    "surveying": {
+      "name": "Surveying",
+      "desc": "Measuring the land properly. Roads cost less to lay, and building goes a little faster."
+    },
+    "water_wheel": {
+      "name": "Water wheel",
+      "desc": "Harnessing the river to turn machinery. The mill and the yards get more done."
+    },
+    "blast_furnace": {
+      "name": "Blast furnace",
+      "desc": "A hotter furnace, driven by bellows: better iron, and more of it."
+    },
+    "adoption": "· {n}% use it"
   },
   "education": {
     "some": "some",
@@ -4966,14 +5290,22 @@
     "brought_home": "Brought home",
     "balance": "Balance",
     "stored_hint": "What you brought back is in your storage chest.",
-    "distance": "Distance"
+    "distance": "Distance",
+    "university": "The university",
+    "study_line": "{field}: {n}/{n2} weeks",
+    "study_week": "Study a week ({money})",
+    "university_closed": "Nothing you could study here yet — you need more schooling first.",
+    "university_hint": "A week of lectures. After enough weeks — and knowing enough — you take a degree."
   },
   "map": {
     "settlements": "Settlements",
     "village_line": "{n} people · {b} businesses",
     "hamlet_line": "hamlet · {n} people",
     "settlement_line": "{size} · {n} people · {days} d away",
-    "settlements_hint": "Trade journeys and caravans leave from the waymark on the west road. 🤝 = trading with the valley."
+    "settlements_hint": "Trade journeys and caravans leave from the waymark on the west road. 🤝 = trading with the valley.",
+    "known_for": "known for {list}",
+    "university": "university: best at {field}",
+    "literacy": "literacy {n}%"
   },
   "institution": {
     "market": {
@@ -5063,7 +5395,33 @@
     "legacy": "Your family's legacy",
     "renown": "Renown",
     "no_deeds": "Nothing yet. Build, found, lead — the valley remembers.",
-    "legacy_hint": "Renown outlives you: your heir starts out trusted, and people bring up what the family did."
+    "legacy_hint": "Renown outlives you: your heir starts out trusted, and people bring up what the family did.",
+    "policy_schooling": "Schools",
+    "learned": "The learned",
+    "post": {
+      "doctor": "Doctor",
+      "engineer": "Village engineer",
+      "researcher": "Researchers"
+    },
+    "post_no_place": {
+      "doctor": "no clinic yet",
+      "engineer": "—",
+      "researcher": "no institute yet"
+    },
+    "post_vacant": "vacant — needs {field} {n}+",
+    "student_line": "{npc} ({field}, {settlement})",
+    "students": "Studying in the towns",
+    "no_students": "nobody",
+    "alumni": "Graduates who stayed away",
+    "learned_hint": "The valley's brightest can study at the universities in the towns. Graduates may come home to serve as doctor, engineer or researcher, paid from the village fund — or make their lives in the town.",
+    "found": "Found a {vbuilding} ({money})",
+    "could_study": "{npc} could study {field} in {settlement}",
+    "sponsor": "Pay ({money})",
+    "could_study_hint": "Young people who'd go to university if someone paid:",
+    "need_literacy": "{n}% who can read",
+    "need_school": "a working school",
+    "need_graduates": "{n} university graduates",
+    "saving_building": "Put aside for"
   },
   "deed": {
     "player_built": "{name} built a {building_type}.",
@@ -5080,7 +5438,15 @@
     "player_opened_business": "{name} opened {building}.",
     "player_bought_business": "{name} took over {building}.",
     "player_benefactor": "{name} gave a building back to the village.",
-    "player_upgraded": "{name} made the family home into {tier}."
+    "player_upgraded": "{name} made the family home into {tier}.",
+    "player_founded_school": "{name} founded a {vbuilding}.",
+    "player_sponsored": "{name} paid for {npc} to study in {settlement}.",
+    "player_taught": "{name} taught at the school.",
+    "player_school_gift": "{name} gave to {building}.",
+    "player_research_gift": "{name} funded research at {building}.",
+    "player_took_apprentice": "{name} took on {npc} as an apprentice.",
+    "journeyman_player": "{name} trained {npc} in {field}.",
+    "player_degree": "{name} took a degree in {field}."
   },
   "affairs": {
     "title": "Your affairs",
@@ -5209,7 +5575,10 @@
     "family": "Family and inheritance",
     "other": "Other",
     "health": "Healer",
-    "advertising": "Advertising your houses"
+    "advertising": "Advertising your houses",
+    "education": "Your education",
+    "scholarships": "Paying for others' studies",
+    "wages_apprentice": "An apprentice's pay"
   },
   "letting": {
     "title": "Tenants",
@@ -5240,5 +5609,337 @@
     "near_work": "closer to work",
     "better_deal": "a better deal than now",
     "curious": "saw your notice"
+  },
+  "knowledge": {
+    "reading": "reading",
+    "writing": "writing",
+    "maths": "arithmetic",
+    "lore": "general knowledge",
+    "farming": "farming",
+    "forestry": "forestry",
+    "mining": "mining",
+    "fishing": "fishing",
+    "hunting": "hunting",
+    "cooking": "cooking",
+    "carpentry": "carpentry",
+    "smithing": "smithing",
+    "building": "building",
+    "mechanics": "mechanics",
+    "engineering": "engineering",
+    "science": "natural science",
+    "medicine": "medicine",
+    "architecture": "architecture",
+    "economics": "economics",
+    "management": "management",
+    "leadership": "leadership",
+    "speech": "speaking",
+    "trade": "trade",
+    "negotiation": "negotiation"
+  },
+  "knowledge_cat": {
+    "basic": "Basics",
+    "practical": "Practical",
+    "advanced": "Advanced",
+    "social": "People & trade"
+  },
+  "know_level": {
+    "unknown": "unknown",
+    "heard": "heard of it",
+    "basic": "basics",
+    "practical": "working knowledge",
+    "advanced": "advanced",
+    "expert": "expert",
+    "master": "master"
+  },
+  "apt": {
+    "analytic": "Analytical mind",
+    "practical": "Good with hands",
+    "social": "Way with people",
+    "creative": "Creativity",
+    "memory": "Memory",
+    "curiosity": "Curiosity",
+    "discipline": "Discipline"
+  },
+  "apt_word": {
+    "excellent": "excellent",
+    "good": "good",
+    "average": "average",
+    "weak": "weak"
+  },
+  "edu_level": {
+    "none": "No schooling",
+    "primary": "Primary school",
+    "secondary": "Secondary school",
+    "vocational": "Trade training",
+    "university": "University"
+  },
+  "interest": {
+    "land": "Land & nature",
+    "crafts": "Crafts",
+    "building": "Building",
+    "machines": "Machines",
+    "trade": "Trade & business",
+    "science": "Science",
+    "people": "People"
+  },
+  "interest_obj": {
+    "land": "the land and nature",
+    "crafts": "crafts",
+    "building": "building",
+    "machines": "machines",
+    "trade": "trade and business",
+    "science": "science",
+    "people": "working with people"
+  },
+  "interest_str": {
+    "curious": "curious about {interest}",
+    "keen": "keen on {interest}",
+    "devoted": "devoted to {interest}"
+  },
+  "learn": {
+    "schooling": "Schooling",
+    "level": "Finished",
+    "now": "Now",
+    "letters": "Letters",
+    "literate": "Reads and writes",
+    "some_letters": "Knows a few letters",
+    "illiterate": "Can't read",
+    "motivation": "Wants to learn",
+    "mot": {
+      "keen": "keen",
+      "willing": "willing",
+      "so_so": "so-so",
+      "reluctant": "reluctant"
+    },
+    "interest": "Drawn to",
+    "no_interest": "Hasn't found their thing yet",
+    "at_work": "At work",
+    "competence": "{field}: {n}/100",
+    "gifts": "Gifts",
+    "knowledge": "Knowledge & experience",
+    "knows": "knows",
+    "has_done": "has done",
+    "knows_little": "Knows little yet",
+    "know_tip": "Knowledge {k} · experience {x}",
+    "status": {
+      "teaching_at": "Teaches at {building} ({trank})",
+      "pupil_at": "{stage}, year {n}, at {building}",
+      "at_evening_class": "Evening classes at {building}",
+      "on_course": "{field} course at {building}, year {n}",
+      "studying_at": "Studying {field} at {settlement} (year {n})",
+      "post_doctor": "The doctor at {building}",
+      "post_engineer": "The village engineer",
+      "post_researcher": "Researcher at {building}"
+    },
+    "to_pass": "Ready to pass",
+    "left": "Left school",
+    "left_why": {
+      "dropped": "gave up the {stage}",
+      "failed": "didn't pass the {stage}",
+      "work": "left the {stage} to work",
+      "finished": "finished the {stage}"
+    },
+    "talented": "The teacher thinks this one has a real gift.",
+    "standing": "In the trade",
+    "apprentice_of": "Apprenticed to",
+    "apprentice_line": "{npc} — {field} ({n} days so far)",
+    "wants_trade": "Wants to learn",
+    "quals": "Trained in",
+    "qual": {
+      "apprentice": "{field} (apprenticeship)",
+      "course": "{field} (trade school)",
+      "university": "{field} (university)"
+    },
+    "degree": "University degree",
+    "fame": "Name",
+    "famous": "famous for a discovery",
+    "known_for": "known for a discovery",
+    "knowhow": "Know-how",
+    "player": {
+      "on_course": "The {field} course at {building}: {n}/{n2} lessons",
+      "apprenticed": "Apprenticed to {npc} ({field}): {n}/{n2} days",
+      "uni_weeks": "{field} at university: {n}/{n2} weeks"
+    },
+    "player_hint": "Learn at the school's evening class or on a trade-school course, from a tutor (ask someone learned), beside a master (ask to be their apprentice), at the library, or at a university on your travels. What you study makes the matching skill come faster."
+  },
+  "inspect": {
+    "tab_life": "Life",
+    "tab_learning": "Learning"
+  },
+  "stage": {
+    "primary": "Primary class",
+    "upper": "Upper class",
+    "evening": "Evening class",
+    "vocational": "Trade course",
+    "trade_evening": "Evening trade course"
+  },
+  "teacher_rank": {
+    "junior": "junior teacher",
+    "teacher": "teacher",
+    "senior": "senior teacher",
+    "master": "master teacher"
+  },
+  "school": {
+    "not_open": "This school isn't open yet.",
+    "tab_overview": "Overview",
+    "tab_classes": "Classes",
+    "tab_teachers": "Teachers",
+    "kind_desc": {
+      "school": "The village school: the little ones learn their letters and sums here, and — with a learned enough teacher — older pupils go further.",
+      "grammar": "An upper school: mathematics, natural science, history and geography, a little economics and building — for youngsters who have finished primary school.",
+      "trade": "A trade school: a year's course in a trade — building, carpentry, smithing, mechanics, farming, cooking, trade or mining — taught by someone who's mastered it. Youngsters come by day; grown-ups starting over, in the evenings."
+    },
+    "founded": "Opened",
+    "run_by": "Run by",
+    "run_by_you": "you",
+    "run_by_village": "the village (from the village fund)",
+    "head": "Head teacher",
+    "head_short": "head",
+    "no_teacher": "nobody — no lessons",
+    "pupils": "Pupils",
+    "pupils_of_seats": "{n} / {seats} seats",
+    "room": "Room",
+    "crowd": {
+      "room": "room to spare",
+      "full": "nearly full",
+      "overcrowded": "overcrowded — everyone learns less"
+    },
+    "teachers": "Teachers",
+    "n_teachers": {
+      "one": "{n} teacher",
+      "other": "{n} teachers"
+    },
+    "per_teacher": "{n} pupils each",
+    "evening": "Evening classes",
+    "n_grownups": {
+      "one": "{n} grown-up",
+      "other": "{n} grown-ups"
+    },
+    "classes": "Classes",
+    "class_runs": "running",
+    "class_no_teacher": "no teacher who knows enough ({need})",
+    "class_closed": "Not running — no teacher here knows enough to teach it.",
+    "quality_of": "{stage}: how good the lessons are",
+    "q": {
+      "teacher": "Teacher",
+      "building": "Building",
+      "crowd": "Room",
+      "ratio": "Teachers",
+      "books": "Books"
+    },
+    "q_tip": {
+      "teacher": "What the teacher knows of the subjects, and how well they get it across (years of teaching help).",
+      "building": "The school's repair: {n}%. A leaking roof and a cold room make for poor lessons.",
+      "crowd": "Pupils per seat. A crowded room teaches everyone less.",
+      "ratio": "Pupils per teacher. One teacher can only teach so many.",
+      "books": "Books and slates: {n} for everyone. The village buys more each week (more if the schooling policy is generous; half price once printing is known)."
+    },
+    "q_mentor": "An experienced teacher here helps the others along.",
+    "q_library": "The library next door helps.",
+    "record": "Its story",
+    "pupils_ever": "Pupils ever",
+    "graduates": "Finished school",
+    "turned_away": "Turned away (no room)",
+    "fees": "Fees",
+    "fee_week": "{money} a week per child",
+    "free": "free (the village pays)",
+    "hint": "Lessons are only as good as the room they're given in: a teacher who knows their subjects and how to teach, a building in repair, seats and books enough. The village pays the teachers and buys books from its fund; the headman's schooling policy decides how generously.",
+    "mornings": "weekday mornings {hours}",
+    "evenings": "evenings ({days}) {hours}",
+    "subjects": "Lessons",
+    "to_pass": "To pass",
+    "no_pupils": "No pupils.",
+    "year_n": "year {n}",
+    "repeating": "repeating",
+    "ready_pct": "{n}% ready",
+    "no_teacher_long": "The school has no teacher: no lessons until someone takes the post.",
+    "teaching": "Teaching",
+    "ability": {
+      "gifted": "a born teacher",
+      "good": "good",
+      "fair": "fair",
+      "poor": "struggling"
+    },
+    "taught_days": "{n} days of teaching",
+    "salary": "{money} a week",
+    "unpaid": "unpaid {n} wk",
+    "teachers_hint": "Teachers grow better with the years: junior, teacher, senior, master. The best teacher heads the school, and experienced teachers help the others along. Unpaid teachers leave.",
+    "need_instructor": "an instructor competent at a trade ({n}+)",
+    "courses_list": "courses: {list}",
+    "course_subjects": "Mostly the trade itself, with the arithmetic and reading it needs. Courses: {list}.",
+    "course_pass": "To pass: {n} in the trade",
+    "you": "You",
+    "founded_by_you": "You founded this school.",
+    "your_course": "Your course",
+    "course_progress": "{field}: {n}/{n2} lessons",
+    "sign_up": "Sign up: {field} ({money})",
+    "course_hint": "Trade courses are held on Tuesday and Thursday evenings: come to the trade school then. Enough lessons, knowing enough of the trade, and you're qualified.",
+    "give_books": "Give books ({money} → {n} books)",
+    "endow": "Pay the teachers for a month ({money})",
+    "endowment_left": "Your gift still covers {money} of the teachers' pay."
+  },
+  "career_title": {
+    "trainee": "a beginner at {occ}",
+    "junior": "a junior hand at {occ}",
+    "worker": "a capable hand at {occ}",
+    "experienced": "experienced at {occ}",
+    "senior": "a senior hand at {occ}",
+    "master": "a master of {occ}"
+  },
+  "post_name": {
+    "doctor": "doctor",
+    "engineer": "village engineer",
+    "researcher": "researcher"
+  },
+  "institute": {
+    "not_open": "The institute isn't open yet.",
+    "desc": "A place where the learned work on new know-how. One project at a time; it needs researchers who know enough, instruments, and money every week. Whether it works depends on how good all of that really is.",
+    "project": "The work in hand",
+    "working_on": "Working on",
+    "progress": "Progress",
+    "needs": "It needs",
+    "team_of": "a team of {n}",
+    "chances": "How well it's going",
+    "q": {
+      "knowledge": "What they know",
+      "team": "Hands enough",
+      "equipment": "Instruments",
+      "funding": "Money"
+    },
+    "running_cost": "Running costs",
+    "per_week": "{money} a week",
+    "unfunded": "The village hasn't paid for {n} week(s): the work is stalling.",
+    "choosing": "Deciding what to work on next: {list}.",
+    "nothing_to_do": "Nothing the valley could work on yet — more know-how has to come first.",
+    "no_researchers": "No researchers: nobody to do the work.",
+    "researchers": "Researchers",
+    "none": "Nobody yet. A researcher needs to know natural science ({n}+) — a university graduate, usually.",
+    "days": "{n} days at the institute",
+    "record": "What it has found",
+    "result": {
+      "success": "discovered",
+      "partial": "partly worked",
+      "failed": "failed"
+    },
+    "hint": "A success becomes the valley's know-how for good, and makes a name for whoever led it. A partial result keeps some of the work; a failure, less. Better-trained researchers, full instruments and steady money make success likelier.",
+    "fund": "Fund the research ({money})",
+    "endowment_left": "Your gift still covers {money} of the work.",
+    "you_choose": "You've given to the institute: you may choose what it works on next."
+  },
+  "edu_stats": {
+    "title": "Learning in the valley",
+    "literacy": "Can read and write",
+    "schooling": "Primary · upper · trade · university",
+    "at_school": "At school",
+    "away": "{n} at university",
+    "people": "The learned",
+    "people_line": "{teachers} teachers · {doctors} doctors · {engineers} engineers · {researchers} researchers",
+    "trades": "Trades",
+    "trades_line": "{masters} masters · {apprentices} apprentices",
+    "skilled": "Skilled (by trade)",
+    "known_for": "Known for",
+    "innovation": "Ability to innovate",
+    "discoveries": "{n} discoveries",
+    "hint": "Counted from the people themselves: schooling among grown-ups, reading among everyone from eight."
   }
 }

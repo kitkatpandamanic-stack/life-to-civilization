@@ -110,6 +110,7 @@ export class WorkerSystem {
       const current = OCCUPATIONS[npc.occupation]?.wage || 12;
       if (salary < current * 1.2) chance *= 0.2;
       chance *= npc.traits.includes('loyal') ? 0.4 : npc.traits.includes('ambitious') ? 1.2 : 0.8;
+      if (npc.apprentice) chance *= 0.5; // an apprentice doesn't lightly leave their master
     }
     if (npc.lastOfferDay === this.sim.time.day && salary < expected) chance *= 0.3; // already haggled today
     // What they remember about you matters: trust helps, a past firing or unpaid wages hurt.

@@ -14,6 +14,7 @@ import { escapeHtml, tr, agoText } from '../format.js';
 import { button, icon } from '../widgets.js';
 import { SETTLEMENTS, PLAYER_TRANSPORT, TRADE } from '../../data/settlements.js';
 import { REGIONS } from '../../data/regions.js';
+import { STUDY_PLAYER } from '../../data/study.js';
 
 export class JourneyPanel extends Panel {
   constructor(ui, { mode = 'plan', report = null, to = null } = {}) {
@@ -180,7 +181,22 @@ export class JourneyPanel extends Panel {
       <div class="kv"><span>${escapeHtml(t('journey.so_far'))}</span><b>${fmtMoney(j.earned - j.spent)}</b></div>
       ${this.priceTable(j.to, { market: true })}
       <div class="muted small">${escapeHtml(t('journey.market_hint'))}</div>
+      ${this.universityHtml(j.to)}
       <div class="row">${button(t('journey.head_home', { n: j.days }), 'head_home', {}, { cls: 'primary' })}</div>`;
+  }
+
+  /** A university town: you can stay a week and study (StudySystem). */
+  universityHtml(town) {
+    const sim = this.sim;
+    if (!sim.academia.uniDef(town)) return '';
+    const St = sim.study;
+    const degrees = St.degreesAt(town);
+    const rows = degrees.map((d) => {
+      const c = St.canStudyWeek(town, d);
+      const weeks = St.e.uniWeeks?.[d] || 0;
+      return `<div class="kv"><span>${escapeHtml(t('journey.study_line', { field: t(`knowledge.${d}`), n: weeks, n2: STUDY_PLAYER.uniWeeks }))}</span>${button(t('journey.study_week', { money: fmtMoney(STUDY_PLAYER.uniWeekFee) }), 'study_week', { degree: d }, { disabled: !c.ok, title: c.ok ? '' : tr(sim, `reason.${c.reason}`, c.params || {}) })}</div>`;
+    }).join('');
+    return `<h3>🎓 ${escapeHtml(t('journey.university'))}</h3>${rows || `<div class="muted small">${escapeHtml(t('journey.university_closed'))}</div>`}<div class="muted small">${escapeHtml(t('journey.university_hint'))}</div>`;
   }
 
   // ------------------------------------------------------------------ report
@@ -244,6 +260,12 @@ export class JourneyPanel extends Panel {
         break;
       case 'buy':
         S.buy(data.item, n);
+        break;
+      case 'study_week':
+        // A week of lectures: the panel closes (without heading home) while the days pass.
+        this.mode = 'studying';
+        this.ui.closePanel();
+        this.ui.scene.study('university', S.R.journey.to, data.degree);
         break;
       case 'head_home':
         // Close first (a panel pauses the world), then the days on the road pass.

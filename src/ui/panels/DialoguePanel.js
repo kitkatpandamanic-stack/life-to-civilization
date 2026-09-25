@@ -117,6 +117,26 @@ export class DialoguePanel extends Panel {
       opt(t('dialog.opt.gift'), 'gift_menu', {}, !sim.social.canGift(npc), sim.social.canGift(npc) ? '' : t('dialog.opt.gift_done'));
       // A house of yours standing empty: ask if they'd like to rent it (LettingSystem).
       if (npc.age >= 18 && npc.homeId !== sim.state.player.homeId && Object.keys(sim.property.all).some((id) => sim.letting.lettable(id))) opt(t('dialog.opt.offer_house'), 'offer_house', {}, npc.houseAskedDay === sim.time.day, npc.houseAskedDay === sim.time.day ? t('dialog.opt.asked_already') : '');
+      // Learning from them, teaching them, paying for their studies (StudySystem).
+      const St = sim.study;
+      const tut = St.tutoring(npc);
+      if (tut && npc.age >= 18) {
+        const c = St.canTutor(npc);
+        opt(tr(sim, 'dialog.opt.ask_lessons', { field: tut.field, money: tut.fee }), 'ask_lessons', {}, !c.ok, c.ok ? '' : tr(sim, `reason.${c.reason}`, c.params || {}));
+      }
+      if (St.masterTrade(npc) && !St.e.apprentice) {
+        const c = St.canAskApprentice(npc);
+        opt(tr(sim, 'dialog.opt.ask_apprentice', { field: St.masterTrade(npc).field }), 'ask_apprentice', {}, !c.ok, c.ok ? '' : tr(sim, `reason.${c.reason}`, c.params || {}));
+      }
+      if (St.yourTrade() && sim.careers.seekers().includes(npc) && !npc.apprentice) {
+        const c = St.canTakeApprentice(npc);
+        opt(tr(sim, 'dialog.opt.offer_apprentice', { field: St.yourTrade().field }), 'offer_apprentice', {}, !c.ok, c.ok ? '' : tr(sim, `reason.${c.reason}`, c.params || {}));
+      }
+      const spon = St.sponsorable(npc);
+      if (spon) {
+        const c = St.canSponsor(npc);
+        opt(tr(sim, 'dialog.opt.offer_sponsor', { money: spon.cost, settlement: spon.uni }), 'offer_sponsor', {}, !c.ok, c.ok ? '' : tr(sim, `reason.${c.reason}`, c.params || {}));
+      }
       const L = sim.lineage;
       if (sim.state.player.partner === npc.id) {
         const c = L.canPropose(npc);
@@ -293,6 +313,28 @@ export class DialoguePanel extends Panel {
       case 'gift_menu':
         this.view = 'gift';
         break;
+      case 'ask_lessons': {
+        const c = sim.study.canTutor(npc);
+        if (!c.ok) break;
+        this.ui.closePanel();
+        this.ui.scene.study('tutor', npc.id);
+        return;
+      }
+      case 'ask_apprentice': {
+        const r = sim.study.askApprentice(npc);
+        this.line = r.ok ? this.say('dialog.apprentice_yes', { field: r.field }) : this.say('dialog.apprentice_no');
+        break;
+      }
+      case 'offer_apprentice': {
+        const r = sim.study.takeApprentice(npc);
+        this.line = r.ok ? this.say('dialog.become_apprentice_yes', { field: r.field, money: r.salary }) : this.say('dialog.become_apprentice_no');
+        break;
+      }
+      case 'offer_sponsor': {
+        const r = sim.study.sponsor(npc);
+        this.line = r.ok ? this.say('dialog.sponsor_yes', { settlement: r.uni, field: r.degree }) : this.say('dialog.sponsor_no');
+        break;
+      }
       case 'offer_house': {
         npc.houseAskedDay = sim.time.day;
         const r = sim.letting.ask(npc);

@@ -165,6 +165,7 @@ export class GrowthSystem {
         E.biz(s.id).money += cost;
         E.ledger(s.id, 'rev', cost);
         c.delivered[item] = (c.delivered[item] || 0) + qty;
+        c.lastProgressDay = this.sim.time.day; // materials arriving is progress too
         left -= qty;
       }
       // No planks anywhere? The builders saw their own from timber (two logs a plank).
@@ -241,7 +242,7 @@ export class GrowthSystem {
       if (!needsHome || vacant > 1) continue;
       const funds = n.money + (sim.family.spouse(n)?.money || 0) * 0.5;
       // With a wage coming in you can build as you go; without one you need the money up front.
-      const earning = (n.employer || n.owns) && n.occupation !== 'unemployed';
+      const earning = ((n.employer || n.owns) && n.occupation !== 'unemployed') || n.teach || n.post;
       if (funds < homeCost * (earning ? 0.7 : 1)) continue;
       const fam = (n.kin?.children || []).filter((id) => sim.npcs.byId(id)?.homeId === n.homeId).length + (n.kin?.spouse ? 2 : 1);
       const type = funds >= this.estimate('house') * 0.7 && fam >= 3 ? 'house' : 'small_house';
@@ -259,17 +260,40 @@ export class GrowthSystem {
       if (investor && this.start(investor, 'house', 'rental', PLAZA_C)) started++;
     }
     // 3. The village builds with its rent income: homes when people sleep in the hall, wells for new streets.
+    // (While it's saving for a school or the like, only real need for homes comes first.)
     const V = sim.state.village;
-    if (pressure >= 2 && vacant === 0 && V.treasury >= this.estimate('small_house') * 0.6 && !this.projects().some((c) => c.owner === 'village' && c.type !== 'well')) {
+    const civic = sim.tech?.civicWanted();
+    if (pressure >= (civic ? 3 : 2) && vacant === 0 && V.treasury >= this.estimate('small_house') * 0.6 && !this.projects().some((c) => c.owner === 'village' && c.type !== 'well')) {
       this.start('village', 'small_house', 'rental', PLAZA_C);
     }
     const street = this.streetWithoutWell();
     if (street && V.treasury >= this.estimate('well') + 30 && !this.projects().some((c) => c.type === 'well')) this.start('village', 'well', 'public', street);
     // 4. Civic buildings as the village grows: a school, a library, a mill (see TechSystem.civicWanted).
-    const civic = sim.tech?.civicWanted();
-    if (civic && V.treasury >= this.estimate(civic) * 0.5 && !this.projects().some((c) => c.owner === 'village' && c.purpose === 'public' && c.type !== 'well')) {
+    // (Part of each week's taxes is put aside for the one it wants next — see putAside.)
+    const saved = V.civicSaving?.amount || 0;
+    if (civic && V.treasury + saved >= this.estimate(civic) * 0.5 && !this.projects().some((c) => c.owner === 'village' && c.purpose === 'public' && c.type !== 'well')) {
+      V.treasury += saved;
+      V.civicSaving = null;
       this.start('village', civic, 'public', PLAZA_C);
     }
+  }
+
+  /** Taxes have come in (FinanceSystem): part goes aside for the civic building the village wants next. */
+  putAside(taxes) {
+    const sim = this.sim;
+    const V = sim.state.village;
+    // A civic building already going up comes first: the savings go on paying for it until it's done.
+    const site = this.projects().find((c) => c.owner === 'village' && c.purpose === 'public' && c.type !== 'well' && this.cons.materialsFraction(c) < 1);
+    const civic = sim.tech?.civicWanted();
+    if ((!civic && !site) || taxes <= 0) return 0;
+    const put = Math.min(Math.max(0, V.treasury), Math.round(taxes * G.civicSaveShare));
+    V.treasury -= put;
+    if (site) site.budget = (site.budget || 0) + put;
+    else {
+      if (V.civicSaving?.type !== civic) V.civicSaving = { type: civic, amount: V.civicSaving?.amount || 0 };
+      V.civicSaving.amount += put;
+    }
+    return put;
   }
 
   /** A cluster of homes built during the game that has no well nearby. */
@@ -481,7 +505,8 @@ export class GrowthSystem {
     const food = bread.length ? bread.reduce((s, id) => s + sim.economy.priceFactor(id, 'bread'), 0) / bread.length : 1.5;
     const economy = (sim.events.modifier('migration') - 1) * 2; // a boom draws people in, a slump drives them off
     const status = sim.civic?.attractiveness() || 0; // a town draws more people than a village
-    return jobs * 1.0 + Math.min(homes, 3) * 0.7 - unemployed * 0.8 - homeless * 1.5 - (food > 1.5 ? 1 : 0) + (this.projects().length ? 0.3 : 0) + economy + status;
+    const learning = sim.eduworld?.attraction() || 0; // a school for the children, a doctor, a name for some trade
+    return jobs * 1.0 + Math.min(homes, 3) * 0.7 - unemployed * 0.8 - homeless * 1.5 - (food > 1.5 ? 1 : 0) + (this.projects().length ? 0.3 : 0) + economy + status + learning;
   }
 
   migration() {
@@ -617,7 +642,7 @@ export class GrowthSystem {
       const biz = E.businessAtBuilding(b.id);
       const d = biz && E.def(biz);
       let kind;
-      if (['school', 'library', 'guild_hall'].includes(b.type)) kind = 'school';
+      if (['school', 'grammar_school', 'trade_school', 'institute', 'library', 'guild_hall'].includes(b.type)) kind = 'school';
       else if (['market_hall', 'bank'].includes(b.type)) kind = 'shop';
       else if (['watch_house', 'clinic'].includes(b.type)) kind = 'public';
       else if (b.id === 'hall' || ['well', 'mill'].includes(b.type)) kind = 'public';
@@ -709,7 +734,9 @@ export class GrowthSystem {
     for (const c of this.projects()) {
       this.buyMaterials(c);
       // A project nobody works on (and nobody can pay for) is eventually given up.
-      if (sim.time.day - (c.lastProgressDay ?? c.createdDay) > G.stallDaysToAbandon && this.cons.materialsFraction(c) < 1) this.abandonProject(c);
+      // (The village's own civic buildings get more patience: it keeps putting money aside for them.)
+      const patience = c.owner === 'village' && c.purpose === 'public' ? 3 : 1;
+      if (sim.time.day - (c.lastProgressDay ?? c.createdDay) > G.stallDaysToAbandon * patience && this.cons.materialsFraction(c) < 1) this.abandonProject(c);
     }
     if (sim.time.weekday === 2) {
       this.considerProjects();

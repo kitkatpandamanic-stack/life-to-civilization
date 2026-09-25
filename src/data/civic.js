@@ -31,8 +31,9 @@ export const INSTITUTION_ORDER = ['market', 'watch', 'clinic', 'guild', 'bank'];
 export const VILLAGE_STATUS = [
   { id: 'village', pop: 0, institutions: 0 },
   { id: 'large_village', pop: 26, institutions: 1 },
-  { id: 'town', pop: 34, institutions: 3, needs: ['market'] },
-  { id: 'city', pop: 55, institutions: 5, needs: ['market', 'bank'] },
+  // A town needs a working school and people who can read; a city, more of them — and some with degrees.
+  { id: 'town', pop: 34, institutions: 3, needs: ['market'], school: true, literacy: 0.3 },
+  { id: 'city', pop: 55, institutions: 5, needs: ['market', 'bank'], school: true, literacy: 0.45, graduates: 2 },
 ];
 
 export const CIVIC_TUNING = {
@@ -58,6 +59,8 @@ export const CIVIC_TUNING = {
 export const POLICIES = {
   tax: { low: 0.6, normal: 1, high: 1.4 },
   relief: { low: 0.5, normal: 1, high: 1.6 },
+  // Schools: teachers' pay and books (tight: families pay a small fee too).
+  schooling: { low: 0.6, normal: 1, high: 1.5 },
 };
 
 /** Deeds your family is remembered for, and what each is worth to its renown. */
@@ -77,6 +80,15 @@ export const DEEDS = {
   'chronicle.player_bought_business': 3,
   'chronicle.player_benefactor': 4,
   'chronicle.player_upgraded': 2,
+  // Education (StudySystem)
+  'chronicle.player_founded_school': 10,
+  'chronicle.player_sponsored': 5,
+  'chronicle.player_taught': 2,
+  'chronicle.player_school_gift': 3,
+  'chronicle.player_research_gift': 3,
+  'chronicle.player_took_apprentice': 3,
+  'chronicle.journeyman_player': 4,
+  'chronicle.player_degree': 5,
 };
 
 export const LEGACY = {

@@ -33,6 +33,7 @@ import { AnimalViews } from '../game/AnimalViews.js';
 import { CartViews } from '../game/CartViews.js';
 import { FireViews } from '../game/FireViews.js';
 import { UIManager } from '../ui/UIManager.js';
+import { STUDY_PLAYER } from '../data/study.js';
 
 const TS = BALANCE.tileSize;
 
@@ -348,6 +349,41 @@ export class GameScene extends Phaser.Scene {
       this.player.setHidden(false);
       this.busy = false;
       this.ui.hideStatus();
+    });
+  }
+
+  /**
+   * Learning (or teaching) takes time: a class, a private lesson, a shift beside your master,
+   * a lesson you give, an hour at the library, a week at a university (StudySystem).
+   */
+  study(kind, arg = null, extra = null) {
+    if (this.busy) return;
+    const sim = this.sim;
+    const S = sim.study;
+    const SP = STUDY_PLAYER;
+    const plan = {
+      class: [SP.classMinutes, () => S.finishClass(arg), 'study_class'],
+      tutor: [SP.tutorMinutes, () => S.finishTutoring(arg), 'study_tutor'],
+      beside: [SP.apprenticeMinutes, () => S.finishWorkBeside(), 'study_beside'],
+      teach: [SP.teachMinutes, () => S.finishLesson(arg), 'study_teach'],
+      read: [SP.readMinutes, () => S.finishReading(), 'study_read'],
+      university: [7 * 1440, () => S.finishStudyWeek(arg, extra), 'study_university'],
+    }[kind];
+    if (!plan) return;
+    const [minutes, finish, status] = plan;
+    this.busy = true;
+    this.player.cancelAction();
+    this.player.setHidden(true);
+    const params = kind === 'tutor' ? { npc: arg } : kind === 'university' ? { settlement: arg, field: extra } : kind === 'beside' ? { npc: sim.state.player.edu?.apprentice?.master } : arg ? { building: arg } : {};
+    this.ui.showStatus(status, params);
+    sim.time.fastForward(minutes, kind === 'university' ? 4000 : BALANCE.jobs.shiftRealMs, () => {
+      const out = finish();
+      this.player.setHidden(false);
+      this.busy = false;
+      this.ui.hideStatus();
+      if (out) sim.toast(out.finished ? `toast.study_finished_${kind}` : `toast.study_done_${kind}`, { field: out.field || undefined, n: out.pupils ?? out.weeks ?? undefined }, out.finished ? 'good' : 'info');
+      // Back to the town's market after a week at the university.
+      if (kind === 'university' && sim.state.region.journey?.stage === 'there') this.ui.openPanel(new JourneyPanel(this.ui, { mode: 'market' }));
     });
   }
 

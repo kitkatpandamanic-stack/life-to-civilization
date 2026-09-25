@@ -107,7 +107,8 @@ export class ProgressionSystem {
   addSkillXp(skillId, amount) {
     const s = this.p.skills[skillId];
     if (!s || s.level >= PR.maxSkillLevel) return;
-    s.xp += Math.max(1, Math.round(amount * Mod.skillXpMult(this.p)));
+    // What you've studied makes the skill come faster (StudySystem).
+    s.xp += Math.max(1, Math.round(amount * Mod.skillXpMult(this.p) * (this.sim.study?.xpBonus(skillId) ?? 1)));
     while (s.level < PR.maxSkillLevel && s.xp >= this.skillXpForNext(s.level)) {
       s.xp -= this.skillXpForNext(s.level);
       s.level++;

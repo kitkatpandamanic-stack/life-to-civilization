@@ -167,7 +167,8 @@ export class SettlementSystem {
     s.shocks = s.shocks.filter((x) => x.until > week);
     const mult = (item) => s.shocks.filter((x) => x.item === item).reduce((m, x) => m * x.mult, 1);
     for (const [item, n] of Object.entries(d.produces)) {
-      s.stock[item] = Math.min(Math.round(this.target(id, item) * 2.5), (s.stock[item] || 0) + Math.round(n * k * mult(item)));
+      // What they know how to do (KnowHowSystem) makes them more productive.
+      s.stock[item] = Math.min(Math.round(this.target(id, item) * 2.5), (s.stock[item] || 0) + Math.round(n * k * mult(item) * (sim.knowhow?.settlementOutput(id, item) ?? 1)));
     }
     let need = 0;
     let got = 0;

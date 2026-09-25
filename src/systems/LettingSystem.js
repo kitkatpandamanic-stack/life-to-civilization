@@ -129,7 +129,7 @@ export class LettingSystem {
     const home = npc.homeId;
     if (P.occupants(home) > P.capacity(home)) return { n: 2, why: 'crowded' };
     const withParents = npc.kin?.parents.some((pid) => sim.npcs.byId(pid)?.homeId === home);
-    if (withParents && npc.age >= 20 && !npc.kin?.spouse && (npc.employer || npc.owns)) return { n: 1.5, why: 'own_place' };
+    if (withParents && npc.age >= 20 && !npc.kin?.spouse && (npc.employer || npc.owns || npc.teach || npc.post)) return { n: 1.5, why: 'own_place' };
     // A long walk to work — and this house is near it.
     const work = sim.npcs.workBuilding(npc);
     const b = sim.world.buildings[id];

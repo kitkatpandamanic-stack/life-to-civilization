@@ -22,6 +22,7 @@ import { FOOD } from './EconomySystem.js';
 import { AREAS } from '../data/villageLayout.js';
 import { traitValue } from '../data/traits.js';
 import { GOALS } from '../data/goals.js';
+import { SKILLED } from '../data/careers.js';
 import { rand } from '../core/rng.js';
 import { findPath } from '../world/Pathfinder.js';
 
@@ -130,6 +131,13 @@ export class NPCSystem {
       this.sim.bus.emit('workers:changed');
     }
     S.jobs.requests = S.jobs.requests.filter((r) => r.npcId !== npc.id);
+    // A business they once ran (closed now) no longer points at someone who isn't here.
+    for (const b of Object.values(S.businesses || {})) {
+      if (b.owner === npc.id && b.closed) {
+        b.formerOwner = npc.id;
+        b.owner = null;
+      }
+    }
     for (const o of S.npcs) {
       delete o.relations[npc.id];
       if (o.shopTarget === npc.id) o.shopTarget = null;
@@ -338,9 +346,12 @@ export class NPCSystem {
     if (npc.energy < NB.exhaustedBelow * traitValue(npc.traits, 'tireMult')) return { type: 'rest' };
     // 3. Breakfast at home right after waking up.
     if (h < wake + 1 && npc.hunger < 85 && npc.homeId && this.householdPantry(npc) > 0) return { type: 'eat', where: 'home' };
-    // School: children on weekday mornings (and the teacher), once the village has a school.
-    const school = this.sim.tech?.schoolFor(npc) || this.sim.tech?.teaching(npc);
-    if (school) return { type: 'school', where: school };
+    // School: pupils on weekday mornings, grown-ups at evening classes, and their teachers (SchoolSystem).
+    const lesson = this.sim.schools?.schoolFor(npc);
+    if (lesson) return { type: 'school', ...lesson };
+    // A post (doctor, engineer, researcher — AcademiaSystem): their hours at the clinic, the hall, the institute.
+    const post = this.sim.academia?.postFor(npc);
+    if (post) return { type: 'school', ...post };
     // 4. Work hours (seasonal jobs have no work in the off-season).
     const inSeason = !occ.seasons || occ.seasons.includes(this.time.season);
     const working = occ.workplace && this.workBusiness(npc) && inSeason && !habits.isRestDay(npc, occ) && h >= occ.start && h < occ.end;
@@ -762,7 +773,8 @@ export class NPCSystem {
     const rank = npc ? this.rank(npc) : 'apprentice';
     const rankMult = { apprentice: 0.9, regular: 1, skilled: 1.15, master: 1.3 }[rank] || 1;
     const manager = npc && E.biz(bizId)?.manager === npc.id ? 1.35 : 1;
-    return Math.round(base * (E.biz(bizId)?.wageLevel ?? 1) * rankMult * manager);
+    const apprentice = npc ? this.sim.careers?.wageMult(npc) ?? 1 : 1;
+    return Math.round(base * (E.biz(bizId)?.wageLevel ?? 1) * rankMult * manager * apprentice);
   }
 
   /** How attractive a job at this business looks to this villager (pay, reputation, the boss). */
@@ -777,6 +789,9 @@ export class NPCSystem {
     if (this.sim.memory.has(npc, 'quit_job', owner?.id)) s -= 8;
     // Heard they're hiring? Worth a try.
     s += (this.sim.rumors?.bias(npc, 'hiring', bizId) || 0) * 3;
+    // The trade they know — and the one they'd love to do.
+    const Ed = this.sim.education;
+    if (Ed && E.def(bizId)?.workerOccupation) s += Ed.competenceFor(npc, E.def(bizId).workerOccupation) / 30 + Ed.interestFit(npc, E.def(bizId).workerOccupation) * 2.5;
     return s;
   }
 
@@ -784,6 +799,12 @@ export class NPCSystem {
     const E = this.sim.economy;
     const def = E.def(bizId);
     if (!this.vacancies().some(([id]) => id === bizId)) return false;
+    // Still at school? A keen pupil stays on; one who's lost heart starts work instead.
+    if (npc.edu?.enrol && npc.edu.enrol.stage !== 'evening') {
+      if (npc.edu.mot >= 40) return false;
+      this.sim.schools?.leave(npc, 'work');
+    }
+    if (npc.teach) return false;
     // Employers prefer hard workers, people they like, family, and people with experience;
     // lazy or short-tempered applicants — or someone they've fallen out with — may be turned away.
     const owner = E.owner(bizId);
@@ -794,6 +815,9 @@ export class NPCSystem {
       if (owner.family.includes(npc.id)) chance *= 1.5;
     }
     if (npc.occupation === def.workerOccupation || npc.prevOccupation === def.workerOccupation) chance *= 1.3;
+    chance *= this.sim.education?.hireMult(npc, def.workerOccupation) ?? 1; // do they know the trade?
+    // Skilled work isn't given to just anyone.
+    if (SKILLED.occupations.includes(def.workerOccupation) && (this.sim.education?.competenceFor(npc, def.workerOccupation) ?? 99) < SKILLED.minCompetence) chance *= 0.25;
     if (!rand.chance(Math.min(0.97, chance))) return false;
     if (npc.occupation !== 'unemployed' && npc.occupation !== def.workerOccupation) npc.prevOccupation = npc.occupation;
     npc.occupation = def.workerOccupation;
@@ -1242,6 +1266,7 @@ export class NPCSystem {
       npc.xp += 3; // self-education
       npc.knowledge = (npc.knowledge || 0) + 1;
     }
+    if (task.stage === 'idle') this.sim.education?.practisedHobby(npc, task.hobby);
     npc.lastHobbyDay = this.time.day;
   }
 
@@ -1308,7 +1333,7 @@ export class NPCSystem {
     m += npc.health > 70 ? 5 : npc.health < 40 ? -15 : 0;
     m += npc.money > 100 ? 10 : npc.money < 10 ? -10 : 0;
     m += npc.homeId ? 5 : -20;
-    const hasJob = npc.employer || npc.owns || ['child', 'elder'].includes(npc.occupation);
+    const hasJob = npc.employer || npc.owns || npc.teach || npc.post || ['child', 'elder'].includes(npc.occupation);
     m += hasJob ? 8 : -12;
     m -= npc.unpaidDays * 6;
     m += Math.min(15, this.sim.social.friendCount(npc) * 4);
@@ -1330,6 +1355,7 @@ export class NPCSystem {
     if (npc.hunger < 20) p *= 0.8;
     p *= 0.85 + (npc.mood ?? 60) / 400;
     p *= traitValue(npc.traits, 'workSpeed');
+    p *= this.sim.education?.productivityMult(npc) ?? 1; // knowing the trade, and years at it
     return Math.max(0.3, Math.min(1.8, p));
   }
 
@@ -1373,7 +1399,8 @@ export class NPCSystem {
       if (npc.workedToday) {
         const mentor = npc.employer === 'player' ? 1 + Mod.perk(this.sim.state.player, 'worker_xp') : 1; // you teach your own people
         const practice = npc.goal?.type === 'master' ? GOALS.masterXpMult : 1; // set on mastering the trade
-        npc.xp += NB.xpPerWorkDay * traitValue(npc.traits, 'workXp') * (this.sim.tech?.mod('learning') ?? 1) * mentor * practice;
+        npc.xp += NB.xpPerWorkDay * traitValue(npc.traits, 'workXp') * (this.sim.tech?.mod('learning') ?? 1) * mentor * practice * (this.sim.education?.xpMult(npc) ?? 1);
+        this.sim.education?.worked(npc, mentor);
         const rankBefore = this.rank(npc);
         while (npc.xp >= this.xpForNext(npc.level)) {
           npc.xp -= this.xpForNext(npc.level);
@@ -1423,7 +1450,7 @@ export class NPCSystem {
         if (npc.occupation === 'child' && npc.age >= 16) {
           npc.occupation = 'unemployed';
           mem.remember(npc, 'grew_up');
-          this.sim.tech?.grewUp(npc);
+          this.sim.education?.grewUp(npc);
           this.sim.chronicle('chronicle.npc_grew_up', { npc: npc.id, gender: npc.gender });
         }
       }
@@ -1470,7 +1497,8 @@ export class NPCSystem {
       case 'viewing':
         return { key: moving ? 'going_to_view' : 'viewing_house', params: { building: t.target?.building } };
       case 'school':
-        return { key: npc.occupation === 'child' ? (moving ? 'going_to_school' : 'at_school') : 'teaching', params: { building: t.data?.where } };
+        if (['doctor', 'engineer', 'researcher'].includes(t.data?.role)) return { key: moving ? 'going_to_post' : `at_post_${t.data.role}`, params: { building: t.data?.where } };
+        return { key: t.data?.role === 'teacher' ? 'teaching' : t.data?.role === 'evening' ? (moving ? 'going_to_evening_class' : 'at_evening_class') : moving ? 'going_to_school' : 'at_school', params: { building: t.data?.where } };
       case 'leisure':
         if (t.plan === 'friends' || t.plan === 'family') return { key: moving ? 'going_to_visit' : 'visiting', params: { npc: t.visit } };
         if (t.plan === 'build') {
@@ -1516,10 +1544,11 @@ export class NPCSystem {
   rank(npc) {
     if (['child', 'unemployed', 'elder'].includes(npc.occupation)) return null;
     const R = BALANCE.npc.ranks;
-    if (npc.level >= R.master) return 'master';
-    if (npc.level >= R.skilled) return 'skilled';
-    if (npc.level >= R.regular) return 'regular';
-    return 'apprentice';
+    if (npc.apprentice) return 'apprentice';
+    const byLevel = npc.level >= R.master ? 'master' : npc.level >= R.skilled ? 'skilled' : npc.level >= R.regular ? 'regular' : 'apprentice';
+    // What they know and have done in this trade counts (CareerSystem): the better of the two.
+    const byCompetence = this.sim.careers?.competenceRank(npc);
+    return byCompetence ? this.sim.careers.better(byLevel, byCompetence) : byLevel;
   }
 
   /** The villager's routine for today as a list of { hour, key } entries. */

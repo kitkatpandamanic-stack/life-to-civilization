@@ -76,6 +76,16 @@ const SOURCES = [
   ['civic', 'withdraw', 'bank'],
   ['lineage', 'succeed', 'family'],
   ['lineage', 'newcomer', 'family'],
+  // Your education, and what you give to other people's (StudySystem).
+  ['study', 'signUp', 'education'],
+  ['study', 'finishTutoring', 'education'],
+  ['study', 'finishStudyWeek', 'education'],
+  ['study', 'finishWorkBeside', 'wages_apprentice'],
+  ['study', 'sponsor', 'scholarships'],
+  ['study', 'giveBooks', 'donations'],
+  ['study', 'endowTeachers', 'donations'],
+  ['study', 'fundResearch', 'donations'],
+  ['study', 'found', 'donations'],
 ];
 
 export class LedgerSystem {

@@ -14,23 +14,32 @@
  * needs: prerequisites (biz: a business of that type exists; tech: techs known;
  *        pop: villagers; knowledge: village knowledge points; built: buildings
  *        villagers have built; civic: a civic building exists)
- * effects: multipliers used by other systems (see TechSystem.mod)
+ * users: who puts it to use, if not those who work it out (a smith makes better tools; woodcutters use them)
+ * effects: multipliers used by other systems (see TechSystem.mod) — as far as the users have taken it up (KnowHowSystem)
  */
 export const TECHS = {
-  handcart: { cost: 14, needs: { biz: 'carpentry' }, from: ['carpenter', 'carpenter_hand'], skill: 'carpentry', icon: '🛒' },
-  better_tools: { cost: 16, needs: { biz: 'smithy' }, from: ['blacksmith', 'smith_hand'], skill: 'smithing', icon: '⚒️', effects: { gather_output: 1.15 } },
+  handcart: { cost: 14, needs: { biz: 'carpentry' }, from: ['carpenter', 'carpenter_hand'], skill: 'carpentry', users: ['carter', 'carter_master', 'warehouse_hand', 'merchant', 'farmer', 'farmhand'], icon: '🛒' },
+  better_tools: { cost: 16, needs: { biz: 'smithy' }, from: ['blacksmith', 'smith_hand'], skill: 'smithing', users: ['woodcutter', 'lumber_foreman', 'miner', 'quarry_foreman'], icon: '⚒️', effects: { gather_output: 1.15 } },
   crop_rotation: { cost: 22, needs: { biz: 'farm', knowledge: 3 }, from: ['farmer', 'farmhand'], skill: 'farming', icon: '🌾', effects: { farm_output: 1.2 } },
-  masonry: { cost: 24, needs: { biz: 'quarry', built: 2 }, from: ['quarry_foreman', 'miner', 'master_builder', 'builder'], skill: 'construction', icon: '🧱', effects: { build_labor: 0.8 } },
+  masonry: { cost: 24, needs: { biz: 'quarry', built: 2 }, from: ['quarry_foreman', 'miner', 'master_builder', 'builder'], skill: 'construction', users: ['builder', 'master_builder', 'miner', 'quarry_foreman'], icon: '🧱', effects: { build_labor: 0.8 } },
   herbal_medicine: { cost: 18, needs: { knowledge: 6 }, from: [], hobby: 'gardening', icon: '🌿', effects: { sickness: 0.6 } },
-  draft_animals: { cost: 30, needs: { tech: ['handcart'], biz: 'farm', pop: 24 }, from: ['farmer', 'carter_master', 'carter'], icon: '🐴', effects: { farm_output: 1.1 } },
+  draft_animals: { cost: 30, needs: { tech: ['handcart'], biz: 'farm', pop: 24 }, from: ['farmer', 'carter_master', 'carter'], users: ['farmer', 'farmhand', 'carter', 'carter_master'], icon: '🐴', effects: { farm_output: 1.1 } },
   writing: { cost: 20, needs: { civic: 'school', knowledge: 8 }, from: [], school: true, icon: '✒️', effects: { learning: 1.25 } },
-  wagons: { cost: 38, needs: { tech: ['draft_animals', 'better_tools'], biz: 'carpentry' }, from: ['carpenter', 'blacksmith', 'carter_master'], skill: 'carpentry', icon: '🛞' },
-  milling: { cost: 30, needs: { tech: ['masonry'], biz: 'farm', pop: 28 }, from: ['baker', 'farmer', 'master_builder', 'miller'], icon: '⚙️' },
+  wagons: { cost: 38, needs: { tech: ['draft_animals', 'better_tools'], biz: 'carpentry' }, from: ['carpenter', 'blacksmith', 'carter_master'], skill: 'carpentry', users: ['carter', 'carter_master', 'merchant'], icon: '🛞' },
+  milling: { cost: 30, needs: { tech: ['masonry'], biz: 'farm', pop: 28 }, from: ['baker', 'farmer', 'master_builder', 'miller'], users: ['miller', 'mill_hand', 'baker', 'baker_hand'], icon: '⚙️' },
   printing: { cost: 45, needs: { tech: ['writing'], civic: 'library', pop: 32 }, from: [], school: true, icon: '📰', effects: { rumor_distort: 0.4, learning: 1.15 } },
   // Towards civilization: travel by water, watered fields, stone bridges and proper accounts.
-  boats: { cost: 32, needs: { tech: ['handcart'], biz: 'fishery' }, from: ['fisher', 'fisherman', 'carpenter', 'carpenter_hand'], skill: 'carpentry', icon: '⛵' },
+  boats: { cost: 32, needs: { tech: ['handcart'], biz: 'fishery' }, from: ['fisher', 'fisherman', 'carpenter', 'carpenter_hand'], skill: 'carpentry', users: ['fisher', 'fisherman', 'carter', 'merchant'], icon: '⛵' },
   irrigation: { cost: 34, needs: { tech: ['crop_rotation'], biz: 'farm', pop: 30 }, from: ['farmer', 'farmhand'], skill: 'farming', icon: '💧', effects: { farm_output: 1.15 } },
-  stone_bridges: { cost: 36, needs: { tech: ['masonry'], pop: 30 }, from: ['master_builder', 'builder', 'quarry_foreman', 'miner'], skill: 'construction', icon: '🌉', effects: { build_labor: 0.9, road_cost: 0.7 } },
+  stone_bridges: { cost: 36, needs: { tech: ['masonry'], pop: 30 }, from: ['master_builder', 'builder', 'quarry_foreman', 'miner'], skill: 'construction', users: ['builder', 'master_builder'], icon: '🌉', effects: { build_labor: 0.9, road_cost: 0.7 } },
+  // Worked out at a research institute (AcademiaSystem, data/academia.js PROJECTS) — not in the course of ordinary work.
+  improved_plough: { cost: 40, needs: { tech: ['better_tools'], biz: 'farm' }, from: [], research: true, users: ['farmer', 'farmhand'], icon: '🌾', effects: { farm_output: 1.1 } },
+  seed_selection: { cost: 45, needs: { biz: 'farm', knowledge: 6 }, from: [], research: true, users: ['farmer', 'farmhand'], icon: '🌱', effects: { farm_output: 1.08 } },
+  lime_mortar: { cost: 45, needs: { tech: ['masonry'] }, from: [], research: true, users: ['builder', 'master_builder'], icon: '🧱', effects: { build_labor: 0.88 } },
+  field_medicine: { cost: 55, needs: { tech: ['herbal_medicine'] }, from: [], research: true, icon: '⚕️', effects: { sickness: 0.7 } },
+  surveying: { cost: 40, needs: { knowledge: 8 }, from: [], research: true, users: ['builder', 'master_builder', 'engineer'], icon: '📐', effects: { road_cost: 0.8, build_labor: 0.95 } },
+  water_wheel: { cost: 70, needs: { tech: ['milling'] }, from: [], research: true, users: ['miller', 'mill_hand', 'woodcutter', 'lumber_foreman'], icon: '🌊', effects: { farm_output: 1.05, gather_output: 1.08 } },
+  blast_furnace: { cost: 80, needs: { tech: ['better_tools'], biz: 'smithy' }, from: [], research: true, users: ['blacksmith', 'smith_hand', 'miner', 'quarry_foreman'], icon: '🔥', effects: { gather_output: 1.1, export_price: 1.03 } },
   bookkeeping: { cost: 28, needs: { tech: ['writing'], pop: 28 }, from: ['shopkeeper', 'store_clerk', 'merchant', 'innkeeper'], school: true, icon: '📒', effects: { export_price: 1.04 } },
 };
 

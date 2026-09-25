@@ -64,6 +64,27 @@ export const MEMORY_KINDS = {
   became_teacher: { imp: 4, val: 3 },
   mentored_by: { imp: 4, val: 3, bond: { f: 4, t: 6 } },
   took_apprentice: { imp: 3, val: 2 },
+  new_interest: { imp: 3, val: 2 }, // params.interest — took to something new
+  finished_school: { imp: 4, val: 4 }, // params.edu_level
+  left_school: { imp: 3, val: -1 },
+  failed_exam: { imp: 3, val: -3 },
+  finished_course: { imp: 4, val: 4 }, // params.field — a trade-school course
+  finished_apprenticeship: { imp: 5, val: 5, bond: { r: 8, t: 6, f: 4 } }, // params.field; who = the master
+  apprenticeship_ended: { imp: 3, val: -2 },
+  wants_retrain: { imp: 2, val: 1 }, // params.field
+  rose_in_trade: { imp: 4, val: 4 }, // params.tier, params.field
+  went_to_university: { imp: 5, val: 4 }, // params.settlement, params.field
+  child_to_university: { imp: 4, val: 3 }, // params.npc, params.settlement
+  graduated: { imp: 5, val: 5 }, // params.settlement, params.field
+  failed_degree: { imp: 4, val: -4 },
+  cant_afford_study: { imp: 3, val: -3 }, // params.settlement
+  took_post: { imp: 4, val: 3 }, // params.post
+  made_discovery: { imp: 5, val: 5 }, // params.tech
+  // You and their learning (StudySystem)
+  sponsored_by_player: { imp: 6, val: 6, bond: { t: 20, r: 12, f: 10 } }, // you paid for their studies; params.settlement
+  took_player_apprentice: { imp: 4, val: 3, bond: { f: 4, t: 4 } }, // they took you on; params.field
+  taught_player: { imp: 2, val: 1, bond: { f: 2, r: 1 } }, // they gave you a lesson; params.field
+  player_journeyman: { imp: 4, val: 4, bond: { r: 8, f: 5 } }, // you finished your apprenticeship with them
   explored_with_player: { imp: 4, val: 3, bond: { f: 5, t: 6 } },
   moved_home: { imp: 3, val: 1 },
   moved_out: { imp: 4, val: 2 },

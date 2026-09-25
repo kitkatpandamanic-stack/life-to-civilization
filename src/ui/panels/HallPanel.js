@@ -12,6 +12,8 @@ import { t, tn, npcName, fmtMoney } from '../../i18n/i18n.js';
 import { escapeHtml, tr, dateString, deedText, villageName } from '../format.js';
 import { button, portrait } from '../widgets.js';
 import { INSTITUTIONS, INSTITUTION_ORDER, POLICIES } from '../../data/civic.js';
+import { POSTS } from '../../data/academia.js';
+import { FOUNDABLE } from '../../data/study.js';
 
 export class HallPanel extends Panel {
   get id() {
@@ -37,7 +39,7 @@ export class HallPanel extends Panel {
     // What the village is, and what it needs to become more.
     const next = C.nextStatus();
     const missing = C.statusMissing()
-      .map((m) => (m.k === 'pop' ? t('hall.need_pop', { n: m.v }) : m.k === 'institutions' ? tn('hall.need_institutions', m.v) : t('hall.need_institution', { institution: t(`institution.${m.v}.name`) })))
+      .map((m) => (m.k === 'pop' ? t('hall.need_pop', { n: m.v }) : m.k === 'institutions' ? tn('hall.need_institutions', m.v) : ['literacy', 'school', 'graduates'].includes(m.k) ? t(`hall.need_${m.k}`, { n: m.v }) : t('hall.need_institution', { institution: t(`institution.${m.v}.name`) })))
       .join(' · ');
     const status = `
       <h3>${escapeHtml(villageName(sim))} — ${escapeHtml(t(`village_status.${V.status}`))}</h3>
@@ -91,7 +93,9 @@ export class HallPanel extends Panel {
       <h3>${escapeHtml(t('hall.affairs'))}</h3>
       ${policy('tax')}
       ${policy('relief')}
+      ${policy('schooling')}
       ${kv(t('hall.treasury'), fmtMoney(village.treasury))}
+      ${village.civicSaving ? kv(t('hall.saving_building'), `${escapeHtml(t(`vbuilding.${village.civicSaving.type}`))} · ${fmtMoney(village.civicSaving.amount)}`) : ''}
       ${tax ? kv(t('hall.taxes_week'), fmtMoney(tax.business + tax.property)) : ''}
       ${kv(t('hall.saving_for'), projectLine)}
       ${projectPick}
@@ -110,6 +114,25 @@ export class HallPanel extends Panel {
       }
       return `<div class="inst-row${got ? ' got' : ''}"><b>${def.icon} ${escapeHtml(t(`institution.${id}.name`))}</b> <span class="small ${got ? 'good' : 'muted'}">${escapeHtml(state)}</span><div class="muted small">${escapeHtml(t(`institution.${id}.desc`))}</div></div>`;
     }).join('');
+
+    // The learned: the village's posts, and its young people studying in the towns (AcademiaSystem).
+    const A = sim.academia;
+    const postLine = (kind) => {
+      const who = A.holders(kind);
+      const where = A.postBuilding(kind);
+      const val = who.length ? who.map((n) => npcName(n)).join(', ') : !where ? t(`hall.post_no_place.${kind}`) : t('hall.post_vacant', { field: t(`knowledge.${POSTS[kind].field}`), n: POSTS[kind].min });
+      return kv(t(`hall.post.${kind}`), escapeHtml(val));
+    };
+    const students = A.students().map((n) => t('hall.student_line', { npc: npcName(n), field: t(`knowledge.${n.away.degree}`), settlement: t(`settlement_name.${n.away.study}`) }));
+    // You: found a school, a trade school or an institute; pay for a gifted youngster's studies.
+    const St = sim.study;
+    const found = Object.keys(FOUNDABLE).map((type) => {
+      const c = St.canFound(type);
+      return button(t('hall.found', { vbuilding: t(`vbuilding.${type}`), money: fmtMoney(St.foundCost(type)) }), 'found', { type }, { disabled: !c.ok, title: c.ok ? '' : tr(sim, `reason.${c.reason}`, c.params || {}) });
+    }).join('');
+    const could = sim.state.npcs.map((n) => [n, St.sponsorable(n)]).filter(([, s]) => s).map(([n, s]) => `<div class="kv"><span>${escapeHtml(t('hall.could_study', { npc: npcName(n), field: t(`knowledge.${s.degree}`), settlement: t(`settlement_name.${s.uni}`) }))}</span>${button(t('hall.sponsor', { money: fmtMoney(s.cost) }), 'sponsor', { id: n.id }, { disabled: sim.state.player.money < s.cost })}</div>`).join('');
+    const yours = `<div class="btn-row">${found}</div>${could ? `<div class="muted small">${escapeHtml(t('hall.could_study_hint'))}</div>${could}` : ''}`;
+    const learned = `<h3>${escapeHtml(t('hall.learned'))}</h3>${yours}${postLine('doctor')}${postLine('engineer')}${postLine('researcher')}${kv(t('hall.students'), escapeHtml(students.length ? students.join('; ') : t('hall.no_students')))}${this.sim.state.education?.alumni?.length ? kv(t('hall.alumni'), this.sim.state.education.alumni.length) : ''}<div class="muted small">${escapeHtml(t('hall.learned_hint'))}</div>`;
 
     // The bank.
     const p = sim.state.player;
@@ -130,12 +153,20 @@ export class HallPanel extends Panel {
       <div class="chronicle">${deeds || `<div class="muted small">${escapeHtml(t('hall.no_deeds'))}</div>`}</div>
       <div class="muted small">${escapeHtml(t('hall.legacy_hint'))}</div>`;
 
-    return `<div class="char-cols"><div class="col">${status}${government}${affairs}</div><div class="col"><h3>${escapeHtml(t('hall.institutions'))}</h3>${inst}${bank}${legacy}</div></div>`;
+    return `<div class="char-cols"><div class="col">${status}${government}${affairs}</div><div class="col"><h3>${escapeHtml(t('hall.institutions'))}</h3>${inst}${learned}${bank}${legacy}</div></div>`;
   }
 
   onAction(action, data) {
     const C = this.sim.civic;
     switch (action) {
+      case 'found':
+        this.sim.study.found(data.type);
+        break;
+      case 'sponsor': {
+        const n = this.sim.npcs.byId(data.id);
+        if (n) this.sim.study.sponsor(n);
+        break;
+      }
       case 'stand':
         C.stand(data.on === '1');
         break;

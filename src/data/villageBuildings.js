@@ -16,6 +16,9 @@ export const VILLAGE_BUILDINGS = {
   // Civic buildings (see TechSystem / data/tech.js CIVIC)
   school: { visual: 'school', w: 5, h: 3, materials: { wood: 34, stone: 16, planks: 18 }, labor: 22, purposes: ['public'] },
   library: { visual: 'library', w: 4, h: 3, materials: { wood: 24, stone: 26, planks: 16 }, labor: 20, purposes: ['public'] },
+  institute: { visual: 'institute', w: 5, h: 4, materials: { wood: 24, stone: 44, planks: 20 }, labor: 28, purposes: ['public'] },
+  trade_school: { visual: 'trade_school', w: 5, h: 3, materials: { wood: 32, stone: 18, planks: 20 }, labor: 22, purposes: ['public'] },
+  grammar_school: { visual: 'grammar_school', w: 6, h: 3, materials: { wood: 30, stone: 34, planks: 22 }, labor: 26, purposes: ['public'] },
   mill: { visual: 'mill', w: 5, h: 4, materials: { wood: 36, stone: 40, planks: 20 }, labor: 28, purposes: ['public'] },
   // Institutions (CivicSystem): paid for from the civic fund, built like everything else.
   market_hall: { visual: 'market_hall', w: 6, h: 3, materials: { wood: 30, stone: 14, planks: 18 }, labor: 20, purposes: ['public'] },
@@ -26,6 +29,7 @@ export const VILLAGE_BUILDINGS = {
 };
 
 export const GROWTH = {
+  civicSaveShare: 0.4, // of each week's taxes the village puts aside for the school (or library, mill…) it wants next
   lotMargin: 1, // free tiles kept around a new building
   maxLotDistance: 30, // tiles from the plaza a new building may go (grows with the village)
   roadReach: 8, // a new building gets a road to the nearest road within this distance

@@ -27,7 +27,14 @@
  *    ├── lineage      LineageSystem (your marriage, children, old age and heirs)
  *    ├── history      HistorySystem (the village's firsts and milestones, kept for good)
  *    ├── exploration  ExplorationSystem (regions beyond the valley, expeditions, fog of war)
- *    ├── tech         TechSystem (know-how, school, library, mentors, knowledge across generations)
+ *    ├── tech         TechSystem (know-how the village works out, and what it's worth)
+ *    ├── education    EducationSystem (what people know, how they learn, what they're drawn to)
+ *    ├── schools      SchoolSystem (school buildings, classes, pupils, teachers, exams, trade courses)
+ *    ├── careers      CareerSystem (apprenticeships, rank from competence, business training, skill shortages)
+ *    ├── academia     AcademiaSystem (study at the towns' universities, posts for the learned, research institute)
+ *    ├── knowhow      KnowHowSystem (who knows which technique, how it spreads — here and between settlements)
+ *    ├── study        StudySystem (your own education; teaching, apprentices, sponsoring, gifts, founding)
+ *    ├── eduworld     EducationWorldSystem (what learning does to the valley: figures, specialty, landmarks, events)
  *    ├── contracts    ContractSystem (supply, craft, build and haul contracts from real needs)
  *    ├── ambitions    AmbitionSystem (long-term goals you choose)
  *    ├── holdings     HoldingsSystem (village businesses you own, stakes and loans)
@@ -99,6 +106,13 @@ import { LegacySystem } from '../systems/LegacySystem.js';
 import { CivicSystem } from '../systems/CivicSystem.js';
 import { LedgerSystem } from '../systems/LedgerSystem.js';
 import { LettingSystem } from '../systems/LettingSystem.js';
+import { EducationSystem } from '../systems/EducationSystem.js';
+import { SchoolSystem } from '../systems/SchoolSystem.js';
+import { CareerSystem } from '../systems/CareerSystem.js';
+import { AcademiaSystem } from '../systems/AcademiaSystem.js';
+import { KnowHowSystem } from '../systems/KnowHowSystem.js';
+import { StudySystem } from '../systems/StudySystem.js';
+import { EducationWorldSystem } from '../systems/EducationWorldSystem.js';
 import { rand } from './rng.js';
 
 const MAX_CHRONICLE = 200;
@@ -147,12 +161,19 @@ export class Simulation {
     this.history = new HistorySystem(this);
     this.exploration = new ExplorationSystem(this);
     this.tech = new TechSystem(this);
+    this.education = new EducationSystem(this);
+    this.schools = new SchoolSystem(this);
+    this.careers = new CareerSystem(this);
+    this.academia = new AcademiaSystem(this);
     this.contracts = new ContractSystem(this);
     this.ambitions = new AmbitionSystem(this);
     this.holdings = new HoldingsSystem(this);
     this.finance = new FinanceSystem(this);
     this.goals = new GoalSystem(this);
     this.settlements = new SettlementSystem(this);
+    this.knowhow = new KnowHowSystem(this); // after the settlements: they know things too
+    this.study = new StudySystem(this);
+    this.eduworld = new EducationWorldSystem(this);
     this.legacy = new LegacySystem(this);
     this.civic = new CivicSystem(this); // it weighs up everyone and everything
     this.letting = new LettingSystem(this);

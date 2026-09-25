@@ -40,12 +40,22 @@ node tools/smoke-civic.mjs          # headman & elections, policies, institution
 node tools/smoke-jobs.mjs           # early work: many jobs, letter rounds, hauling to building sites, new employers
 node tools/smoke-ledger.mjs         # the money ledger behind "Your affairs": categories, transfers, net worth
 node tools/smoke-letting.mjs        # finding tenants: to-let sign, viewings, asking, adverts at home and in other towns
+node tools/smoke-education.mjs      # knowledge profiles: knowledge vs experience, aptitudes, motivation, interests, work
+node tools/smoke-schools.mjs        # schools: teachers, pupils, lessons, seats, exams, evening classes, pay, policy
+node tools/smoke-careers.mjs        # apprenticeships, rank from competence, trade school, business training, skill shortages
+node tools/smoke-academia.mjs       # universities in the towns, graduates, doctor/engineer/researcher posts, research
+node tools/smoke-knowhow.mjs        # know-how spreading between people and settlements; adoption-scaled effects
+node tools/smoke-study.mjs          # your own education: classes, tutors, apprenticeship, university; teaching, sponsoring, founding
+node tools/smoke-eduworld.mjs       # education and the valley: figures, specialty, landmarks, events, a 5-year run
 ```
 
 In dev mode (`npm run dev` only) there's a **debug panel on F9**: live stats, simulation
 timing, and buttons to trigger events, change the weather, spawn migrants, fail a business,
 discover know-how and skip time. The browser console also has `dev.*` helpers (`dev.sim`,
 `dev.skip(minutes)`, `dev.teleport(tx, ty)`, `dev.pump(frames)`…). See `src/debug/`.
+Education has its own helpers: `dev.edu.stats()`, `dev.edu.npc(id)`, `dev.edu.setKnow(id, field, v)`,
+`dev.edu.enrol(id, stage)`, `dev.edu.graduate(id)`, `dev.edu.teacher(id)`, `dev.edu.school(type)`, `dev.edu.year()`,
+`dev.edu.research(pts)`, `dev.edu.unlock(tech)`, `dev.edu.event(kind)`, `dev.edu.skills()`.
 
 ## Controls
 
@@ -119,6 +129,24 @@ src/
 
 ## What's in the game
 
+- **Education, skills and knowledge.** Every villager has a knowledge profile — knowledge in
+  two dozen fields (letters, sums, trades, sciences, people skills) kept apart from practical
+  experience, aptitudes (no single "intelligence"), motivation that follows their life, and
+  interests that grow in adolescence and sway (never force) what they do. What they know changes
+  how well they work, who hires them, what they earn and which businesses they found.
+  **Schools** are real buildings: children walk there on weekday mornings, teachers are villagers
+  with a post and a wage, seats run out, and lessons are only as good as the teacher, the room and
+  the books. There are primary and upper classes, evening classes for grown-ups, a **trade school**
+  with courses, **apprenticeships** with masters (a master's child isn't forced into the trade),
+  business training, and skill shortages that businesses answer with better pay, apprentices or
+  sending for someone trained. The brightest go to **universities** in the towns — and may come
+  home as the valley's doctor, engineer or researcher, or stay away. A **research institute** works
+  on projects whose outcome depends on the real conditions. **Know-how spreads** from person to
+  person and between settlements, and a technique does its good only as far as it has spread.
+  **You** can learn too (classes, tutors, a master, the library, a university on your travels),
+  teach, take apprentices, pay for someone's studies, give to schools and research, and found
+  schools and institutes. The valley keeps its figures (J → Learning in the valley), becomes known
+  for its trades, gets landmarks, and needs literate people to become a town.
 - **Letting your houses.** Put a "to let" sign on a house you own and villagers who could use a
   better home — the homeless, lodgers, crowded families, grown children still at home, tenants
   paying too much, people with a long walk to work — ask to see it, walk over in the evening and
