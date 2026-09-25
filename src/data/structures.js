@@ -36,6 +36,9 @@ export const TYPE_FAMILY = {
   tavern: ['inn', 2],
   warehouse_bld: ['warehouse', 2],
   storage_shed: ['warehouse', 1],
+  barn: ['warehouse', 1],
+  transport_depot: ['depot', 1],
+  construction_office: ['office', 1],
   lumberyard: ['yard', 2],
   quarry_hut: ['yard', 2],
   mining_camp: ['yard', 1],
@@ -172,6 +175,28 @@ export const FAMILIES = {
     modules: ['extra_bench', 'storeroom', 'yard_shed'],
     specs: [],
   },
+  // Where barrows, carts and wagons are kept: each level has room for more, and a repair bay from level 2.
+  depot: {
+    levels: [
+      null,
+      { staff: 0, stock: 1, parking: 6, floors: 1, value: 1, slots: 1, look: { wall: 'wood', roof: 'plank' } },
+      { staff: 0, stock: 1.3, parking: 10, repairBay: true, floors: 1, value: 1.4, slots: 1, look: { wall: 'wood', roof: 'tile' }, cost: M(90, { wood: 24, planks: 18, stone: 10 }, 12), unlocks: ['repair_bay'] },
+      { staff: 1, stock: 1.6, parking: 14, repairBay: true, floors: 1, value: 1.9, slots: 2, grow: 1, look: { wall: 'stone', roof: 'tile' }, cost: M(200, { planks: 26, stone: 30, bricks: 10, iron_ingot: 3 }, 20, { minSkill: 3 }) },
+    ],
+    modules: ['storeroom'],
+    specs: [],
+  },
+  // Your contracting business's office: more work at a time, the higher it goes.
+  office: {
+    levels: [
+      null,
+      { staff: 0, contracts: 1, floors: 1, value: 1, slots: 1, look: { wall: 'plaster', roof: 'tile' } },
+      { staff: 0, contracts: 2, floors: 1, value: 1.4, slots: 1, look: { wall: 'plaster', roof: 'tile' }, cost: M(150, { planks: 20, stone: 20, glass: 2 }, 14, { minSkill: 3 }) },
+      { staff: 1, contracts: 3, floors: 2, value: 2, slots: 2, look: { wall: 'stone', roof: 'slate', flag: true }, cost: M(320, { planks: 30, stone: 36, bricks: 16, glass: 6 }, 24, { minSkill: 4 }) },
+    ],
+    modules: ['storeroom'],
+    specs: [],
+  },
   school: {
     levels: [
       null,
@@ -219,7 +244,7 @@ export const MODULES = {
   // Work premises
   extra_bench: { fams: ['workshop', 'yard'], from: 2, staff: 1, value: 1.05, cost: M(40, { planks: 16, iron_ingot: 1 }, 6) },
   tool_racks: { fams: ['workshop'], from: 1, output: 0.06, value: 1.03, cost: M(30, { planks: 10, iron_ingot: 2 }, 4) },
-  storeroom: { fams: ['workshop', 'farm', 'shop', 'warehouse', 'yard', 'inn', 'civic'], from: 1, stock: 0.25, value: 1.04, cost: M(40, { wood: 12, planks: 14 }, 6) },
+  storeroom: { fams: ['workshop', 'farm', 'shop', 'warehouse', 'yard', 'inn', 'civic', 'depot', 'office'], from: 1, stock: 0.25, value: 1.04, cost: M(40, { wood: 12, planks: 14 }, 6) },
   yard_shed: { fams: ['workshop', 'yard'], from: 2, space: 1, stock: 0.2, output: 0.04, value: 1.05, cost: M(30, { wood: 18, planks: 8 }, 6) },
   barn: { fams: ['farm'], from: 1, space: 2, stock: 0.5, output: 0.05, value: 1.1, cost: M(60, { wood: 30, planks: 16 }, 10) },
   display: { fams: ['shop'], from: 2, appeal: 1, value: 1.05, cost: M(50, { planks: 10, glass: 4 }, 6) },

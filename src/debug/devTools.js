@@ -18,6 +18,7 @@ import { installDebugPanel } from './DebugPanel.js';
 import { eduTools } from './eduTools.js';
 import { buildTools } from './buildTools.js';
 import { contractTools } from './contractTools.js';
+import { transportTools } from './transportTools.js';
 
 const KEYS = {
   w: ['w', 'KeyW', 87], a: ['a', 'KeyA', 65], s: ['s', 'KeyS', 83], d: ['d', 'KeyD', 68],
@@ -102,5 +103,6 @@ const dev = {
 dev.edu = eduTools(dev);
 dev.bt = buildTools(dev);
 dev.ct = contractTools(dev);
+dev.tr = transportTools(dev);
 window.dev = dev;
 installDebugPanel(dev);

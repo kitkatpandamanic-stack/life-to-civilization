@@ -7,6 +7,7 @@ import { t, npcName, npcFullName, fmtMoney, cap } from '../../i18n/i18n.js';
 import { tr, escapeHtml, buildingLabel, npcRole, workLabel, agoText, goalWhyText } from '../format.js';
 import { bar, portrait, hearts, button, tabs } from '../widgets.js';
 import { learningHtml } from '../education.js';
+import { workerCardHtml, workerCardAction } from '../transport.js';
 import { BALANCE } from '../../config/balance.js';
 import { GOAL_AGAINST } from '../../data/goals.js';
 
@@ -104,6 +105,7 @@ export class InspectPanel extends Panel {
     return `
       ${this.headHtml(act, nextLevel)}
       ${tabBar}
+      ${workerCardHtml(sim, npc)}
       <div class="char-cols">
         <div class="col">
           <h3>${escapeHtml(t('ui.needs'))}</h3>
@@ -224,6 +226,7 @@ export class InspectPanel extends Panel {
   }
 
   onAction(action, data) {
+    if (workerCardAction(this.ui, action, data)) return;
     if (action === 'talk') this.ui.openDialogue(this.npc.id);
     if (action === 'tab') this.tab = data.tab;
     if (action === 'inspect_npc' && data?.id) this.ui.openInspect(data.id);

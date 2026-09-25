@@ -9,7 +9,7 @@ import { t, npcName, fmtMoney, itemName } from '../../i18n/i18n.js';
 import { tr, escapeHtml, buildingLabel, dateString, npcRole, districtLabel, districtKindLabel, hoodLabel, agoText } from '../format.js';
 import { bar, button, portrait, tabs, stat, statGrid, status, condBar, emptyState, notice } from '../widgets.js';
 import { propBadges, rentMarket, worthBreakdown } from '../property.js';
-import { structureHtml, structureParts, structureAction, jobLabel, levelName } from '../structure.js';
+import { structureHtml, structureParts, structureAction, jobLabel, levelName, buildingSheetHtml } from '../structure.js';
 import { RENT_LEVELS } from '../../systems/PropertySystem.js';
 import { LETTING } from '../../systems/LettingSystem.js';
 import { FLATS } from '../../data/housing.js';
@@ -69,10 +69,11 @@ export class PropertyPanel extends Panel {
     if (!r) return `<div class="muted">—</div>`;
     const pages = [['overview', t('property.tab_overview')]];
     if (this.sim.structures.rec(this.bid)) pages.push(['building', t('property.tab_building')]);
+    pages.push(['details', t('property.tab_details')]);
     pages.push(['history', t('property.tab_history')]);
     if (!pages.some(([p]) => p === this.tab)) this.tab = 'overview';
     const parts = this.tab === 'building' ? structureParts(this.sim, this.bid) : null;
-    const body = parts ? `<div class="char-cols"><div class="col">${parts.info}</div><div class="col">${parts.actions}</div></div>` : this.tab === 'history' ? this.historyHtml() : this.overview();
+    const body = parts ? `<div class="char-cols"><div class="col">${parts.info}</div><div class="col">${parts.actions}</div></div>` : this.tab === 'details' ? buildingSheetHtml(this.sim, this.bid) : this.tab === 'history' ? this.historyHtml() : this.overview();
     return tabs(pages, this.tab) + body;
   }
 

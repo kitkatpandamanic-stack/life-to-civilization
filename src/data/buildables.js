@@ -50,7 +50,22 @@ export const BUILDABLES = {
   warehouse_bld: {
     category: 'production', w: 6, h: 4, money: 140,
     materials: { wood: 40, stone: 24, planks: 18 }, labor: 22,
-    unlock: 'start_business', minSkill: 5, effect: { premises: true }, // a trading depot (Architect: from level 3)
+    unlock: 'start_business', minSkill: 3, effect: { premises: true, storage: 400 }, // a big store for your materials (or premises for a trading depot)
+  },
+  barn: {
+    category: 'storage', w: 4, h: 3, money: 45,
+    materials: { wood: 30, planks: 12 }, labor: 10,
+    unlock: 'construction', minSkill: 1, effect: { storage: 220 }, // a farm's store: grain, feed, tools, timber
+  },
+  transport_depot: {
+    category: 'infrastructure', w: 5, h: 3, money: 90,
+    materials: { wood: 30, planks: 20, stone: 12 }, labor: 14,
+    unlock: 'construction', minSkill: 2, effect: { depot: true, parking: 6, storage: 60 }, // barrows, carts, wagons and horses kept, looked after and repaired
+  },
+  construction_office: {
+    category: 'services', w: 4, h: 3, money: 120,
+    materials: { wood: 20, planks: 18, stone: 16 }, labor: 14,
+    unlock: 'hire_worker', minSkill: 2, effect: { office: true, contracts: 1 }, // a desk for your contracting: one more job at a time, and a place to plan the work
   },
   // Outposts: built beside an explored discovery site (see data/sites.js), not on your land.
   mining_camp: {
@@ -75,7 +90,27 @@ export const BUILDABLES = {
   },
 };
 
-export const BUILD_CATEGORIES = ['residential', 'storage', 'production', 'infrastructure'];
+export const BUILD_CATEGORIES = ['residential', 'storage', 'production', 'services', 'infrastructure'];
+
+/**
+ * Every kind of building in the valley, by what it's for (the player's and the villagers'). Some
+ * are one building doing several jobs (the lumberyard is the sawmill and the forest camp); a few
+ * are still to come (a factory needs an industry the valley doesn't have yet).
+ */
+export const BUILDING_CATALOG = {
+  residential: { small_house: 'small_house', medium_house: 'house', large_house: 'player_large_house', apartment_building: 'apartment_house', luxury_residence: 'player_estate' },
+  agriculture: { farm: 'farmhouse', barn: 'barn', stable: 'transport_depot', granary: 'mill', food_storage: 'barn' },
+  commerce: { shop: 'shopfront', general_store: 'store', market: 'market_hall', warehouse: 'warehouse_bld', trading_post: 'trading_post' },
+  production: { workshop: 'workshop', sawmill: 'lumberyard', blacksmith: 'smithy', brickworks: null, bakery: 'store', factory: null },
+  resource: { mine: 'mining_camp', quarry: 'quarry_hut', forest_camp: 'lumberyard', resource_depot: 'warehouse_bld' },
+  services: { school: 'school', hospital: 'clinic', inn: 'tavern', construction_office: 'construction_office' },
+  infrastructure: { road: 'road', bridge: 'bridge', transport_depot: 'transport_depot', storage_depot: 'storage_shed' },
+};
+/** What category a building type is in (the first place it's listed). */
+export function catalogCategory(type) {
+  for (const [cat, kinds] of Object.entries(BUILDING_CATALOG)) if (Object.values(kinds).includes(type)) return cat;
+  return BUILDABLES[type]?.category || null;
+}
 
 /** Roads are laid tile by tile: each tile costs this much stone and a short bit of work. */
 export const ROAD_COST = { stone: 1, ms: 700 };

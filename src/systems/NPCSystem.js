@@ -225,7 +225,9 @@ export class NPCSystem {
       }
       const ageMult = npc.age < 14 ? 1.15 : npc.age > 60 ? 0.85 : 1;
       const road = this.world.isRoad(path[0].tx, path[0].ty) ? 1 + NB.roadSpeedBonus + (this.world.tileAt(path[0].tx, path[0].ty) === T.PLAZA ? INFRA.pavedSpeedBonus : 0) : 1;
-      let step = NB.walkSpeed * weatherMove * ageMult * road * (deltaMs / 1000);
+      // Pushing a barrow or driving a cart (EquipmentSystem): quick on a road, slow over grass.
+      const eqMove = npc.eq ? this.sim.equipment.moveMultFor(npc, road > 1) : 1;
+      let step = NB.walkSpeed * weatherMove * ageMult * road * eqMove * (deltaMs / 1000);
       while (step > 0 && path.length) {
         const c = this.world.tileCenter(path[0].tx, path[0].ty);
         const dx = c.x - npc.x;
@@ -450,6 +452,8 @@ export class NPCSystem {
   }
 
   startTask(npc, desired) {
+    // One of yours finishing work: what they're pushing is left where they stand (WorkerSystem.leaveWork).
+    if (npc.task?.type === 'work' && desired.type !== 'work' && npc.eq) this.sim.workers.leaveWork(npc);
     this.clearReservation(npc);
     npc.task = { type: desired.type, stage: 'start', data: desired, until: 0 };
     switch (desired.type) {

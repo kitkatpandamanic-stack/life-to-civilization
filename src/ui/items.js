@@ -27,7 +27,7 @@ export function toolTier(id) {
 /** What an item goes into (recipes, buildings) — "Used for: …". */
 function usedFor(id) {
   const out = [];
-  for (const [rid, r] of Object.entries(RECIPES)) if (r.inputs?.[id]) out.push(itemName(Object.keys(r.output)[0] || rid));
+  for (const [rid, r] of Object.entries(RECIPES)) if (r.inputs?.[id]) out.push((r.equipment ? t(`equip.${r.equipment}`) : itemName(Object.keys(r.output)[0] || rid)));
   const building = Object.values(BUILDABLES).some((b) => b.materials?.[id]) || Object.values(FAMILIES).some((f) => f.levels.some((l) => l?.cost?.materials?.[id])) || Object.values(MODULES).some((m) => m.cost?.materials?.[id]);
   if (building) out.push(t('ui.used_building'));
   return [...new Set(out)].slice(0, 5);

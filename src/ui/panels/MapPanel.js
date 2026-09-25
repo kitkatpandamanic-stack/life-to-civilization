@@ -10,9 +10,10 @@ import { button, filters } from '../widgets.js';
 import { PLOTS } from '../../data/land.js';
 
 /** Map layers — one at a time, only when you ask for it. */
-const LAYERS = ['normal', 'ownership', 'value', 'land_use', 'places', 'infrastructure', 'population'];
+const LAYERS = ['normal', 'ownership', 'value', 'land_use', 'places', 'infrastructure', 'transport', 'population'];
 const OWNER_COLORS = { player: '#ffcf5a', village: '#60a0f0', npc: '#9ad07a', nobody: '#e06a5a' };
 import { T } from '../../world/WorldGenerator.js';
+import { BUILDABLES } from '../../data/buildables.js';
 import { BALANCE } from '../../config/balance.js';
 
 const SCALE = 5; // map pixels per tile
@@ -79,6 +80,7 @@ export class MapPanel extends Panel {
     else if (L === 'value') legend = `<span><i class="lg" style="background:#4a90d0;border-radius:2px"></i>${escapeHtml(t('map.value_low'))}</span><span><i class="lg" style="background:#f0c040;border-radius:2px"></i>${escapeHtml(t('map.value_high'))}</span>`;
     else if (L === 'infrastructure') legend = `<span><i class="lg" style="background:#e8d4a8;border-radius:2px"></i>${escapeHtml(t('map.roads'))}</span><span><i class="lg" style="background:#b8b2a6;border-radius:2px"></i>${escapeHtml(t('map.paved'))}</span><span><i class="lg" style="background:#c08050;border-radius:2px"></i>${escapeHtml(t('map.bridges'))}</span><span><i class="lg" style="background:#e07050;border-radius:2px"></i>${escapeHtml(t('map.unlinked'))}</span><span><i class="lg" style="background:#60c0ff"></i>${escapeHtml(t('map.wells'))}</span><span><i class="lg" style="background:#ffd070"></i>${escapeHtml(t('map.lamps'))}</span>`;
     else if (L === 'places') legend = Object.entries(DISTRICT_COLORS).filter(([k]) => this.sim.state.districts.list.some((d) => d.type === k)).map(([k, c]) => `<span><i class="lg" style="background:${c}"></i>${escapeHtml(t(`district.kind.${k}`))}</span>`).join('') + `<span><i class="lg" style="border:2px dashed #ffe7a8;border-radius:2px"></i>${escapeHtml(t('map.hoods'))}</span>`;
+    else if (L === 'transport') legend = [['#e8d4a8', 'map.roads'], ['#ffcf5a', 'map.t_stores'], ['#c890ff', 'map.t_depots'], ['#60d0a0', 'map.t_sites'], ['#e07050', 'map.t_waiting'], ['#ffffff', 'map.t_equipment'], ['#ff9a6a', 'map.t_carrying']].map(([c, k]) => `<span><i class="lg" style="background:${c};border-radius:2px"></i>${escapeHtml(t(k))}</span>`).join('');
     else if (L === 'population') legend = `<span><i class="lg" style="background:#ff9a6a"></i>${escapeHtml(t('map.people_hint'))}</span>`;
     return `${filters(LAYERS.map((l) => [l, t(`map.layer_${l}`)]), L, 'layer')}
       <div class="map-wrap"><canvas class="map-canvas clickable" title="${escapeHtml(t('map.click_hint'))}"></canvas></div>
@@ -287,6 +289,43 @@ export class MapPanel extends Panel {
         ctx.fillText(label, ((h.x1 + h.x2) / 2) * SCALE, h.y1 * SCALE - 3);
       }
       ctx.font = 'bold 10px Nunito, sans-serif';
+    } else if (L === 'transport') {
+      // How goods move: roads, your stores and depots, sites (waiting ones in red), equipment where it
+      // stands, and your workers with a load.
+      ctx.fillStyle = 'rgba(10,8,5,0.5)';
+      ctx.fillRect(0, 0, sim.world.W * SCALE, sim.world.H * SCALE);
+      for (let y = 0; y < sim.world.H; y++) {
+        for (let x = 0; x < sim.world.W; x++) {
+          if (!sim.world.isRoad(x, y)) continue;
+          ctx.fillStyle = '#e8d4a8';
+          ctx.fillRect(x * SCALE, y * SCALE, SCALE, SCALE);
+        }
+      }
+      const C = sim.construction;
+      for (const c of C.finished()) {
+        const fx = BUILDABLES[c.type]?.effect || {};
+        const b = sim.world.buildings[c.id];
+        if (b && (fx.storage || fx.depot)) rect(b, fx.depot ? '#c890ff' : '#ffcf5a');
+      }
+      const home = sim.world.buildings[sim.state.player.homeId];
+      if (home) rect(home, '#ffcf5a', 0.6);
+      for (const c of C.sites()) {
+        if (!C.isPlayers(c) && c.supplier !== 'player' && c.contractor !== 'player') continue;
+        rect(c, C.siteState(c) === 'waiting_materials' ? '#e07050' : '#60d0a0');
+      }
+      for (const e of sim.equipment?.mine() || []) {
+        const tl = sim.equipment.tile(e);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(tl.tx * SCALE - 1, tl.ty * SCALE - 1, SCALE + 2, SCALE + 2);
+      }
+      for (const w of sim.workers.list()) {
+        const n = sim.npcs.byId(w.npcId);
+        if (!n?.carry) continue;
+        ctx.fillStyle = '#ff9a6a';
+        ctx.beginPath();
+        ctx.arc(n.x / 32 * SCALE, n.y / 32 * SCALE, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
     } else if (L === 'population') {
       for (const b of sim.world.buildingList) {
         const n = sim.npcs.residentsOf(b.id).length;

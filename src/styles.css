@@ -183,6 +183,14 @@ h3:first-child { margin-top: 0; }
 .kv span { color: var(--c-text-2); }
 .kv b { font-variant-numeric: tabular-nums; text-align: right; }
 .kv.selected { background: rgba(255, 210, 122, 0.12); }
+.kv-grid { display: grid; grid-template-columns: minmax(110px, auto) 1fr; gap: 3px 12px; align-items: baseline; }
+.kv-grid > div:nth-child(odd) { color: var(--c-text-2); }
+.kv-grid > div { padding: 2px 0; border-bottom: 1px dashed var(--c-divider); min-width: 0; overflow-wrap: anywhere; }
+.kv-grid .btn.sm { margin-left: 6px; }
+.wcard { margin: 6px 0; }
+.round-row { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; font-size: 11px; font-weight: 800; margin-top: 6px; }
+.round-row .stage { padding: 2px 7px; }
+.eq-icon { font-size: 28px; line-height: 1; width: 36px; text-align: center; }
 .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: var(--s2); margin: var(--s2) 0; }
 .stat { background: var(--c-surface-2); border: 1px solid var(--c-divider); border-radius: var(--r-md); padding: 8px 10px; }
 .stat-label { font-size: 10.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-text-2); }

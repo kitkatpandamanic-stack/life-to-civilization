@@ -9,6 +9,7 @@ import { tr, escapeHtml, npcRole, buildingLabel, districtLabel } from '../format
 import { bar, button, portrait, emptyState, status, stat, statGrid } from '../widgets.js';
 import { JOB_CATS, PRIORITIES, WORKFORCE } from '../../data/workforce.js';
 import { ROLES } from '../../data/contracting.js';
+import { workerCardHtml, workerCardAction } from '../transport.js';
 
 /** Roles: what each worker is for (their focus — see data/workforce.js FOCUS). */
 const ASSIGNMENTS = ROLES;
@@ -129,6 +130,9 @@ export class WorkersPanel extends Panel {
     html += `<div class="setting-row"><div><b>${escapeHtml(t('workers.contract_prio'))}</b><div class="hint">${escapeHtml(t(`workers.contract_prio_${cp}`))}</div></div>
       <div class="btn-row">${['high', 'medium', 'low'].map((p) => button(t(`prio.${p}`), 'contract_prio', { p }, { cls: `sm ${cp === p ? 'selected' : 'ghost'}` })).join('')}</div></div>`;
     html += this.managerHtml();
+    // Your equipment: barrows and carts to lend (what each worker has is on their card).
+    const eqN = sim.equipment?.mine().length || 0;
+    html += `<div class="setting-row"><div><b>🛒 ${escapeHtml(t('workers.equipment_title'))}</b><div class="hint">${escapeHtml(t(eqN ? 'workers.equipment_hint' : 'workers.equipment_none', { n: eqN }))}</div></div>${button(t('workers.equipment_open'), 'equipment', {}, { cls: 'sm' })}</div>`;
     if (!list.length) {
       html += emptyState('👷', t('ui.no_workers_title'), t(sim.progression.hasUnlock('hire_worker') ? 'ui.no_workers' : 'ui.workers_locked', { level: sim.progression.unlockLevel('hire_worker') }));
     }
@@ -173,6 +177,7 @@ export class WorkersPanel extends Panel {
             <div class="btn-row">${button('−', 'salary', { npc: c.npcId, d: -1 }, { cls: 'sm ghost' })}${button('+', 'salary', { npc: c.npcId, d: 1 }, { cls: 'sm ghost' })}</div>
           </div>
         </div>
+        ${workerCardHtml(sim, npc)}
         <div class="char-cols" style="margin-top:6px">
           <div class="col">${skills}</div>
           <div class="col">
@@ -199,6 +204,8 @@ export class WorkersPanel extends Panel {
 
   onAction(action, data) {
     const W = this.sim.workers;
+    if (workerCardAction(this.ui, action, data)) return;
+    if (action === 'equipment') return this.ui.openEquipment();
     if (action === 'assign') {
       const a = { type: data.a };
       if (data.a === 'build') a.siteId = this.sim.construction.playerSites()[0]?.id;

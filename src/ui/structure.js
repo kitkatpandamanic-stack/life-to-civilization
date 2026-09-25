@@ -2,7 +2,7 @@
  * The building side of a property: its level, quality, modules and what could be done to it
  * (StructureSystem). Used by PropertyPanel's "Building" tab and the Build panel's home tab.
  */
-import { t, fmtMoney, itemName } from '../i18n/i18n.js';
+import { t, fmtMoney, itemName, npcName } from '../i18n/i18n.js';
 import { tr, escapeHtml, buildingLabel } from './format.js';
 import { bar, button, condBar, status, stat, statGrid, reqList, emptyState, notice, tipAttr } from './widgets.js';
 import { drawStructure, lookKey } from '../render/TextureFactory.js';
@@ -260,4 +260,47 @@ export function structureAction(ui, id, action, data) {
     return true;
   }
   return false;
+}
+
+/**
+ * The building's details sheet (StructureSystem.sheet): every fact about it in one place — what
+ * it's for, level / quality / condition, capacity and staff, who works there, what's kept there,
+ * what it makes and uses, its running costs, land and roads, where people stand to use it, and
+ * what the next level takes.
+ */
+export function buildingSheetHtml(sim, id) {
+  const s = sim.structures.sheet(id);
+  if (!s) return '';
+  const row = (k, v) => `<div>${escapeHtml(t(k))}</div><div>${v}</div>`;
+  const list = (obj) => Object.entries(obj || {}).map(([k, q]) => `${q} ${escapeHtml(itemName(k))}`).join(', ') || '—';
+  const who = (x) => npcName(sim.npcs.byId(x)) || x;
+  const names = (ids) => ids.map((x) => escapeHtml(who(x))).join(', ') || '—';
+  const eqNames = (ids) => ids.map((x) => escapeHtml(t(`equip.${sim.equipment.byId(x)?.type}`))).join(', ') || '—';
+  const pts = Object.entries(s.points).map(([r, n]) => `${escapeHtml(t(`point.${r}`))} ${n}`).join(' · ');
+  const up = s.upgrade;
+  return `<div class="kv-grid small">
+    ${row('sheet.id', `<code>${escapeHtml(s.id)}</code>`)}
+    ${row('sheet.type', `${escapeHtml(buildingLabel(sim, id))}${s.category ? ` · ${escapeHtml(t(`catalog.${s.category}`))}` : ''}`)}
+    ${row('sheet.owner', escapeHtml(s.owner === 'player' ? t('equip.owner_you') : s.owner === 'village' ? t('owner.village') : s.owner ? who(s.owner) : '—'))}
+    ${s.level ? row('sheet.level', `${s.level} / ${s.maxLevel} · ${escapeHtml(levelName(sim, id))}`) : ''}
+    ${s.quality !== null ? row('sheet.quality', `${s.quality}% <span class="muted">(${escapeHtml(t('sheet.up_to', { n: s.qualityCap }))})</span>`) : ''}
+    ${row('sheet.condition', `${s.condition}% · ${escapeHtml(t(`cond_band.${s.conditionBand}`))}`)}
+    ${row('sheet.construction', escapeHtml(t(`sheet.state_${s.constructionState}`)))}
+    ${row('sheet.upgrade_state', s.upgradeState ? escapeHtml(t(`site_state.${s.upgradeState.state}`)) : '—')}
+    ${row('sheet.capacity', [s.capacity ? t('sheet.cap_people', { n: s.capacity }) : null, s.staffCap ? t('sheet.cap_staff', { n: s.staffCap }) : null, s.storage.cap ? t('sheet.cap_store', { n: s.storage.cap }) : null].filter(Boolean).map(escapeHtml).join(' · ') || '—')}
+    ${row('sheet.workers', names(s.workers))}
+    ${row('sheet.equipment', `${eqNames(s.equipment.here)}${s.equipment.out.length ? ` <span class="muted">(${escapeHtml(t('sheet.eq_out', { n: s.equipment.out.length }))})</span>` : ''}`)}
+    ${row('sheet.storage', list(s.storage.stock))}
+    ${row('sheet.production', s.production.map((x) => escapeHtml(itemName(x))).join(', ') || '—')}
+    ${row('sheet.consumption', s.consumption.map((x) => escapeHtml(itemName(x))).join(', ') || '—')}
+    ${row('sheet.maintenance', escapeHtml(t(`cond_band.${s.maintenance.band}`)))}
+    ${row('sheet.operating', s.operatingCost ? `${fmtMoney(s.operatingCost)} ${escapeHtml(t('ui.per_day'))}` : '—')}
+    ${row('sheet.location', escapeHtml(t('sheet.loc', { x: s.location.tx, y: s.location.ty, w: s.location.w, h: s.location.h })))}
+    ${row('sheet.land', s.land ? `<code>${escapeHtml(s.land.id)}</code>` : '—')}
+    ${row('sheet.roads', s.roads ? escapeHtml(s.roads.distance === null ? t('sheet.no_road') : t(s.roads.linked ? 'sheet.road_linked' : 'sheet.road_near', { n: s.roads.distance })) : '—')}
+    ${row('sheet.infra', s.infrastructure ? `${s.infrastructure.water ? '💧' : ''}${s.infrastructure.light ? '💡' : ''}${s.infrastructure.transport ? '🛞' : ''} ${s.infrastructure.score}%` : '—')}
+    ${row('sheet.points', escapeHtml(pts) || '—')}
+    ${row('sheet.next_level', up ? `${fmtMoney(up.money)} · ${list(up.materials)} · ${escapeHtml(t('sheet.hours', { n: up.labor }))}${up.check && !up.check.ok ? ` <span class="muted">(${escapeHtml(tr(sim, `reason.${up.check.reason}`, up.check.params || {}))})</span>` : ''}` : '—')}
+    ${row('sheet.visual', escapeHtml(t(`sheet.visual_${s.visual.stage}`, { n: s.visual.floors })))}
+  </div>`;
 }

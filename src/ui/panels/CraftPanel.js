@@ -7,6 +7,7 @@ import { t, itemName } from '../../i18n/i18n.js';
 import { tr, escapeHtml, qualityBadge } from '../format.js';
 import { icon, button } from '../widgets.js';
 import { RECIPES } from '../../data/recipes.js';
+import { EQUIPMENT } from '../../data/transport.js';
 
 export class CraftPanel extends Panel {
   constructor(ui, station) {
@@ -32,11 +33,11 @@ export class CraftPanel extends Panel {
           return `<span class="ingr ${have >= qty ? 'ok' : 'no'}">${icon(item, 20)} ${escapeHtml(itemName(item))} ${have}/${qty}</span>`;
         })
         .join(' ');
-      const [outId, outQty] = Object.entries(r.output)[0];
+      const [outId, outQty] = r.equipment ? [null, 1] : Object.entries(r.output)[0];
       const secs = (sim.crafting.duration(id) / 1000).toFixed(1);
       const extras = [r.tool ? t(`ui.req_tool_${r.tool}`) : null, r.minSkill ? `${t(`skill.${r.skill}.name`)} ${r.minSkill}` : null, r.energy ? `⚡ ${r.energy}` : null].filter(Boolean).join(' · ');
       return `<div class="craft-row${check.ok ? '' : ' unavailable'}">
-        <div class="craft-out">${icon(outId, 36)}<div><b>${escapeHtml(itemName(outId))}</b>${outQty > 1 ? ` ×${outQty}` : ''}<div class="muted small">${escapeHtml(t(`item.${outId}.desc`))}</div></div></div>
+        <div class="craft-out">${r.equipment ? `<span class="eq-icon">${EQUIPMENT[r.equipment].icon}</span><div><b>${escapeHtml(t(`equip.${r.equipment}`))}</b><div class="muted small">${escapeHtml(t('equip.made_desc', { n: EQUIPMENT[r.equipment].cap }))}</div></div>` : `${icon(outId, 36)}<div><b>${escapeHtml(itemName(outId))}</b>${outQty > 1 ? ` ×${outQty}` : ''}<div class="muted small">${escapeHtml(t(`item.${outId}.desc`))}</div></div>`}</div>
         <div class="craft-in">${inputs}${extras ? `<div class="muted small">${escapeHtml(extras)}</div>` : ''}</div>
         <div class="craft-act">
           <div class="muted small">⏱ ${secs}s</div>

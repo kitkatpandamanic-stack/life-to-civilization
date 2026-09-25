@@ -113,6 +113,10 @@ export class InteractionSystem {
     for (const b of this.sim.world.buildingList) {
       consider({ kind: 'building', id: b.id, labelY: b.w === 1 ? 56 : 44 }, b.door.tx * TS + TS / 2, b.door.ty * TS + 4);
     }
+    // Barrows, carts and baskets left on the ground (EquipmentSystem).
+    for (const eq of this.sim.equipment?.parkedNear(tile.tx, tile.ty, 2) || []) consider({ kind: 'equipment', id: eq.id, labelY: 40 }, eq.at.tx * TS + TS / 2, eq.at.ty * TS + TS - 4, -4);
+    // Pushing one yourself: with nothing else in front of you, you can put it down here.
+    if (this.sim.equipment?.playerHeld()) consider({ kind: 'held', id: 'held', labelY: 58 }, px, py + 2, 60, R + 60);
     for (const c of this.sim.construction.sites()) {
       if (c.kind !== 'building' && c.kind !== 'repair') continue;
       consider({ kind: 'site', id: c.id, labelY: c.h * TS + 36 }, (c.tx + c.w / 2) * TS, (c.ty + c.h) * TS + 6);

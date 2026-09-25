@@ -166,7 +166,7 @@ function detailsHtml(sim, c) {
     kv(t('contract.d.deadline'), dateString(c.deadline)),
     kv(t('contract.d.xp'), t('contract.xp_n', { n: C.playerXp(c) })),
     C.canDelegate(c) ? kv(t('contract.d.wxp'), t('contract.xp_n', { n: C.workerXp(c) })) : '',
-    c.costs ? kv(t('contract.d.spent'), t('contract.spent', { money: fmtMoney(Math.round(c.costs.materials)), money2: fmtMoney(Math.round(c.costs.wages)) })) : '',
+    c.costs ? kv(t('contract.d.spent'), t('contract.spent', { money: fmtMoney(Math.round(c.costs.materials)), money2: fmtMoney(Math.round(c.costs.wages)) }) + (c.costs.equipment ? ` · ${t('contract.spent_eq', { money: fmtMoney(Math.ceil(c.costs.equipment)) })}` : '')) : '',
     c.materialsMode ? kv(t('contract.d.materials'), t(`contract.mode.${c.materialsMode}`)) : '',
   ];
   const crew = Object.entries(c.crew || {}).map(([who, w]) => `${who === 'player' ? t('contract.you') : npcName(sim.npcs.byId(who)) || '—'}: ${Math.round(w * 10) / 10}`);

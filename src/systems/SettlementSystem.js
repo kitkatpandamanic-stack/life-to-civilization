@@ -29,7 +29,7 @@
 import { SETTLEMENTS, SETTLEMENT_SIZES, PLAYER_TRANSPORT, TRADE as T } from '../data/settlements.js';
 import { REGIONS } from '../data/regions.js';
 import { ITEMS } from '../data/items.js';
-import { CARRIERS } from '../data/transport.js';
+import { CARRIERS, EQUIPMENT } from '../data/transport.js';
 import { Mod } from './Modifiers.js';
 import { rand } from '../core/rng.js';
 
@@ -539,8 +539,10 @@ export class SettlementSystem {
 
   // ------------------------------------------------------------------ your transport
 
+  /** Your best transport for a journey: the best cart or horse you own (EquipmentSystem) that isn't lent out. */
   transport() {
-    return PLAYER_TRANSPORT[this.p.transport] || PLAYER_TRANSPORT.foot;
+    const kind = this.sim.equipment ? this.sim.equipment.journeyKind() : this.p.transport;
+    return PLAYER_TRANSPORT[kind] || PLAYER_TRANSPORT.foot;
   }
 
   cargoCap() {
@@ -561,6 +563,13 @@ export class SettlementSystem {
     return Math.max(0, PLAYER_TRANSPORT[kind].price - Math.floor(this.transport().price / 2));
   }
 
+  /** The piece of equipment that's your journey transport now (the one traded in for a better one). */
+  transportPiece() {
+    const E = this.sim.equipment;
+    const kind = E?.journeyKind();
+    return kind && kind !== 'foot' ? E.mine().find((e) => E.def(e).journey === kind && E.usable(e) && e.holder?.kind !== 'worker') : null;
+  }
+
   buyTransport(kind) {
     const chk = this.canBuyTransport(kind);
     if (!chk.ok) return chk;
@@ -572,7 +581,15 @@ export class SettlementSystem {
       E.biz(seller).money += chk.price;
       E.ledger(seller, 'rev', chk.price);
     }
-    this.p.transport = kind;
+    // It's a real cart (or horse) now: it stands in your yard. What you traded in goes to the seller.
+    const EQ = this.sim.equipment;
+    if (EQ) {
+      const old = this.transportPiece();
+      if (old) EQ.remove(old.id);
+      const type = Object.keys(EQUIPMENT).find((k) => EQUIPMENT[k].journey === kind);
+      if (type) EQ.create(type);
+      EQ.syncJourney();
+    } else this.p.transport = kind;
     this.p.transportUnfed = 0;
     this.sim.chronicle('chronicle.player_transport', { transport: kind });
     this.sim.bus.emit('player:changed');
@@ -594,8 +611,12 @@ export class SettlementSystem {
     p.transportUnfed = (p.transportUnfed || 0) + 1;
     this.sim.toast('toast.transport_unfed', { transport: p.transport }, 'danger');
     if (p.transportUnfed >= T.upkeepMissedWeeks) {
-      const old = p.transport;
-      p.transport = old === 'wagon' || old === 'horse_cart' ? 'handcart' : 'foot';
+      const old = this.sim.equipment?.journeyKind() || p.transport;
+      const piece = this.transportPiece();
+      if (piece) {
+        this.sim.equipment.remove(piece.id);
+        this.sim.equipment.syncJourney();
+      } else p.transport = old === 'wagon' || old === 'horse_cart' ? 'handcart' : 'foot';
       p.money += Math.floor(PLAYER_TRANSPORT[old].price * 0.3);
       this.sim.toast('toast.transport_sold', { transport: old }, 'danger');
     }

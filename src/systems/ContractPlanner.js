@@ -32,6 +32,8 @@ import { JOB_CATEGORIES, JOB_TYPE_CATEGORY, PRIORITY as PR, PROPOSALS as PP, RAT
 import { VILLAGE_BUILDINGS } from '../data/villageBuildings.js';
 import { BALANCE } from '../config/balance.js';
 import { GATHERABLE } from './ContractSystem.js';
+import { BUILDABLES } from '../data/buildables.js';
+import { levelDef } from '../data/structures.js';
 
 const clamp01 = (x) => Math.max(0, Math.min(1, x));
 
@@ -55,7 +57,19 @@ export const ContractPlanner = {
     return STANDINGS[STANDINGS.indexOf(this.rank()) + 1] || null;
   },
   maxActive() {
-    return this.rank().maxActive + (this.S.company ? CO.maxActiveBonus : 0);
+    return this.rank().maxActive + (this.S.company ? CO.maxActiveBonus : 0) + this.officeSlots();
+  },
+
+  /** A construction office of yours: more jobs at a time (one a level). */
+  officeSlots() {
+    const S = this.sim.structures;
+    let n = 0;
+    for (const c of this.sim.construction.finished()) {
+      if (!BUILDABLES[c.type]?.effect?.office) continue;
+      const r = S?.rec(c.id);
+      n = Math.max(n, (r && levelDef(r.fam, r.lvl)?.contracts) || BUILDABLES[c.type].effect.contracts || 1);
+    }
+    return n;
   },
 
   /** What a client remembers of working with you. */
@@ -423,7 +437,7 @@ export const ContractPlanner = {
       materials = seller ? short * W.unitPrice(seller.id, c.item) : 0;
       noSource = short > 0 && !seller && !GATHERABLE[c.item];
     } else if (c.materialsMode && c.materialsMode !== 'client') materials = this.valueOf(this.materialsNeeded(c));
-    const spent = (c.costs?.materials || 0) + (c.costs?.wages || 0);
+    const spent = (c.costs?.materials || 0) + (c.costs?.wages || 0) + (c.costs?.equipment || 0);
     const income = c.pay + (c.advance || 0);
     return { hours: Math.round(hours * 10) / 10, days: Math.round(days * 10) / 10, hands, wages: Math.round(wages), materials: Math.round(materials), spent: Math.round(spent), profit: Math.round(income - wages - materials - spent), noSource };
   },

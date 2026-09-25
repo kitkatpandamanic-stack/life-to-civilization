@@ -713,7 +713,21 @@
     "take_sign_down": "Take the \"to let\" sign down",
     "contract_repair": "Repair it for the owner (1 hour) — {n}% sound",
     "contract_handover": "Hand over the harvest: {item} ×{qty}",
-    "send_workers_here": "Send your workers here"
+    "send_workers_here": "Send your workers here",
+    "eq_take": "Take the {eq}",
+    "eq_lend_pick": "Lend equipment…",
+    "eq_lend_to": "Lend the {eq} to {npc}",
+    "eq_retrieve": "Ask for the {eq} back",
+    "eq_repair": "Repair ({money})",
+    "eq_inspect": "Look it over",
+    "eq_load": "Load the {eq} with what your sites need",
+    "eq_unload_site": "Unload the {eq} here ({n})",
+    "eq_unload_store": "Unload into storage ({n})",
+    "eq_put_down": "Leave the {eq} here",
+    "buy_equipment": "Buy baskets, barrows, carts",
+    "manage_equipment": "Equipment and parking",
+    "open_contracts": "Your contracts",
+    "manage_workers": "Your workers"
   },
   "reason": {
     "nothing_here": "Nothing to do here.",
@@ -921,7 +935,25 @@
     "need_workers": "You need at least {n} workers for a manager to be worth it.",
     "is_workforce_manager": "They're your manager already.",
     "no_staff_here": "This business has no staff to join.",
-    "staff_full": "There's no room for more staff there ({n} at most)."
+    "staff_full": "There's no room for more staff there ({n} at most).",
+    "eq_none": "You have no equipment to lend.",
+    "eq_in_use": "Someone's using it.",
+    "eq_under_repair": "It's being repaired.",
+    "eq_broken": "It's broken — repair it first.",
+    "eq_hands_full": "Your hands are full — leave what you're pushing first.",
+    "eq_has_it": "They have it already.",
+    "eq_lent": "It's lent to {npc} — take it back first.",
+    "eq_worker_level": "Too much for them to handle yet (level {level}).",
+    "eq_not_lent": "It isn't lent to anyone.",
+    "eq_fine": "It's in good condition.",
+    "eq_need_planks": "You need {n} planks in storage.",
+    "eq_need_iron": "You need an iron ingot in storage.",
+    "eq_on_its_way": "It's on its way back.",
+    "eq_empty": "It's empty.",
+    "eq_full": "It's full.",
+    "eq_nothing_to_load": "Nothing in storage that your sites need.",
+    "not_sold_here": "They don't sell that here.",
+    "max_level": "It can't be improved any further."
   },
   "toast": {
     "hungry": "You're getting hungry. Press Q to eat.",
@@ -1111,7 +1143,20 @@
     "company_founded": "Your contracting company is registered!",
     "manager_appointed": "{npc} is your manager now ({money} a day).",
     "posted_to_business": "{npc} now works at {building}.",
-    "back_to_crew": "{npc} is back with your crew."
+    "back_to_crew": "{npc} is back with your crew.",
+    "eq_bought": "You bought a {eq} for {money}.",
+    "eq_made": "You made a {eq} ({quality}).",
+    "eq_lent": "{npc} has your {eq} to use.",
+    "eq_returning": "{npc} will bring the {eq} back to your yard.",
+    "eq_back": "The {eq} is yours to use again.",
+    "eq_returned": "{npc} brought the {eq} back to your yard.",
+    "eq_damaged": "Your {eq} is badly worn — it holds less now. Repair it soon.",
+    "eq_broken": "Your {eq} has broken. It must be repaired before it can be used.",
+    "eq_repairing": "The {eq} will be repaired in about {hours} h.",
+    "eq_repaired": "Your {eq} is repaired — as good as new.",
+    "eq_upgraded": "Your {eq} is better made now (level {n}).",
+    "eq_loaded": "Loaded {qty} into the {eq}.",
+    "eq_unloaded": "Unloaded {qty} into storage."
   },
   "objective": {
     "harvest": "Harvest ripe wheat in the farm fields ({have}/{qty})",
@@ -1523,7 +1568,8 @@
     "npc_converted": "{npc} turned {building} into a shop — the house had stood empty on a busy street.",
     "contractor_rank": "The contracts you've seen through earned you a new standing: {crank}.",
     "company_founded": "{name} founded a contracting company.",
-    "workforce_manager": "{npc} took charge of your workers as manager."
+    "workforce_manager": "{npc} took charge of your workers as manager.",
+    "eq_bought": "You bought a {eq}."
   },
   "event": {
     "good_harvest": {
@@ -2953,7 +2999,11 @@
     "carrying_contract": "Carrying goods for a job",
     "watering_contract": "Watering a field for you",
     "managing_rounds": "Going round your jobs",
-    "managing_plan": "Planning the work"
+    "managing_plan": "Planning the work",
+    "loading": "Loading {item}",
+    "unloading": "Unloading {item}",
+    "fetching_equipment": "Fetching the {eq}",
+    "returning_equipment": "Taking the {eq} back to your yard"
   },
   "schedule": {
     "wake": "Wake up",
@@ -3145,7 +3195,7 @@
     },
     "warehouse_bld": {
       "name": "Warehouse",
-      "desc": "Big premises for a trading depot: buy goods in bulk and sell them on."
+      "desc": "+400 kg storage for your materials — your workers fetch from here and bring goods back here. It can also be premises for a trading depot."
     },
     "mining_camp": {
       "name": "Mining camp",
@@ -3174,6 +3224,18 @@
     "apartment_house": {
       "name": "Block of flats",
       "desc": "Several households under one roof, each in a flat of its own, each paying its own rent. Flats let for less than a house — for people who can't afford one."
+    },
+    "barn": {
+      "name": "Barn",
+      "desc": "+220 kg storage: grain, feed, tools and timber. Your workers fetch and deliver here."
+    },
+    "transport_depot": {
+      "name": "Transport Depot",
+      "desc": "Parking for your barrows, carts and wagons (+60 kg storage). Equipment is kept and repaired here; level 2 adds a repair bay."
+    },
+    "construction_office": {
+      "name": "Construction Office",
+      "desc": "A desk for your contracting: one more contract at a time (two at level 2, three at level 3)."
     }
   },
   "build_cat": {
@@ -3182,7 +3244,8 @@
     "production": "Production",
     "infrastructure": "Infrastructure",
     "roads": "Roads",
-    "home": "Your home"
+    "home": "Your home",
+    "services": "Services"
   },
   "home_tier": {
     "shack": "Rented shack",
@@ -5390,7 +5453,8 @@
     "overview": "{n} contracts on · {free} workers free",
     "crew_by_you": "crew chosen by you",
     "crew_by_manager": "crew by {name}",
-    "let_manager": "Let the manager handle it"
+    "let_manager": "Let the manager handle it",
+    "spent_eq": "equipment wear {money}"
   },
   "ambition": {
     "title": "Ambitions",
@@ -5728,13 +5792,19 @@
     "buy_mats_on": "They buy the materials ✓",
     "buy_mats_off": "They buy the materials",
     "budget_left": "Money left for the builders",
-    "hire_hint": "Put money down and the builders' firms ({n}) and people looking for work ({n2}) come and work on it by the hour — and buy the materials, if you tick that. What's left comes back to you when it's done."
+    "hire_hint": "Put money down and the builders' firms ({n}) and people looking for work ({n2}) come and work on it by the hour — and buy the materials, if you tick that. What's left comes back to you when it's done.",
+    "on_the_way": "On the way: {list}",
+    "points": "Places to work: {a} of {b} taken · material drop: {c} of {d}"
   },
   "site_state": {
     "unknown": "Unexplored",
     "discovered": "Not yet explored",
     "explored": "Explored",
-    "developed": "Outpost built"
+    "developed": "Outpost built",
+    "active": "Work going on",
+    "waiting_materials": "Waiting for materials",
+    "ready": "Materials all here",
+    "done": "Finished"
   },
   "site_ui": {
     "found": "What you found",
@@ -5946,7 +6016,14 @@
     "click_hint_places": "Click a neighbourhood or a district to see what it's like.",
     "paved": "Cobbles",
     "bridges": "Bridges",
-    "unlinked": "Roads that don't link up"
+    "unlinked": "Roads that don't link up",
+    "layer_transport": "Transport",
+    "t_stores": "Your stores",
+    "t_depots": "Transport depot",
+    "t_sites": "Building sites",
+    "t_waiting": "Waiting for materials",
+    "t_equipment": "Your carts and barrows",
+    "t_carrying": "Workers carrying"
   },
   "institution": {
     "market": {
@@ -6664,6 +6741,16 @@
         "3": "Two-storey building",
         "4": "Fine building",
         "5": "Grand building"
+      },
+      "depot": {
+        "1": "Cart shed",
+        "2": "Transport depot",
+        "3": "Great depot"
+      },
+      "office": {
+        "1": "Site office",
+        "2": "Construction office",
+        "3": "Builders' headquarters"
       }
     },
     "none": "This is not a building that can be improved.",
@@ -6861,7 +6948,8 @@
   "property": {
     "tab_overview": "Overview",
     "tab_building": "Building",
-    "tab_history": "History"
+    "tab_history": "History",
+    "tab_details": "Details"
   },
   "bhist": {
     "built": "Built",
@@ -7006,7 +7094,9 @@
     "cwater": "Watering a client's field",
     "csaw": "Sawing planks for a site",
     "minspect": "Looking over a job",
-    "mplan": "Planning who works where"
+    "mplan": "Planning who works where",
+    "take_eq": "Fetching their equipment",
+    "return_eq": "Taking equipment back"
   },
   "jobcat": {
     "construction": "Construction",
@@ -7068,7 +7158,11 @@
     "post_to": "Send to {building}",
     "post_tip": "They join the staff there and do its work, paid from its till. You can call them back any time.",
     "posted_title": "Working at your businesses",
-    "posted_at": "at {building} · {money} a day from the till"
+    "posted_at": "at {building} · {money} a day from the till",
+    "equipment_title": "Equipment",
+    "equipment_hint": "You have {n} pieces. Lend a barrow or cart to a worker and they carry four times as much a trip.",
+    "equipment_none": "Buy or make a barrow or basket, and lend it to a worker: they'll carry far more a trip.",
+    "equipment_open": "Your equipment"
   },
   "land_name": {
     "lot": "{building} lot",
@@ -7559,5 +7653,193 @@
     "unpaid": "{npc} wasn't paid.",
     "ill": "{npc} is ill.",
     "late": "The {ckind} job is late."
+  },
+  "equip": {
+    "basket": "Basket",
+    "sack": "Sack",
+    "crate": "Crate",
+    "wheelbarrow": "Wheelbarrow",
+    "handcart": "Handcart",
+    "wooden_wagon": "Wooden wagon",
+    "pack_horse": "Pack horse",
+    "horse_cart": "Horse cart",
+    "wagon": "Large wagon",
+    "truck": "Truck",
+    "tractor": "Tractor",
+    "trailer": "Trailer",
+    "lv": "Lv{n}",
+    "lent_to": "lent to {npc}",
+    "title": "Your equipment",
+    "shop_title": "Equipment for sale — {building}",
+    "lend_to_title": "Lend equipment to {name}",
+    "lend_to_hint": "Pick something for {name} to use. If it's standing somewhere, they'll walk over and fetch it when they're next at work.",
+    "has_already": "{npc} already has your {eq} — lending something else takes that back first.",
+    "none": "You have no equipment yet",
+    "none_free": "Nothing free to lend",
+    "none_hint": "Buy a basket at the store, a wheelbarrow at the smithy or carpenter's, or make one at your workbench. It helps whoever carries goods: you or your workers.",
+    "none_filter": "Nothing here.",
+    "hint": "Equipment is real: it stands where it was left. A worker you lend it to walks over, takes it, and carries far more per trip. Take it back at any time — they'll bring it to your yard.",
+    "owned": "Owned",
+    "lent_out": "Lent out",
+    "needs_repair": "Needs repair",
+    "wear_cost": "Wear so far",
+    "f_all": "All",
+    "f_free": "Available",
+    "f_out": "In use",
+    "f_damaged": "Damaged",
+    "condition": "Condition",
+    "owner": "Owner",
+    "owner_you": "You",
+    "assigned": "Given to",
+    "holder_worker": "{npc}",
+    "holder_building": "Kept at {building}",
+    "holder_you": "You (you're using it)",
+    "holder_none": "Nobody — free to use",
+    "where": "Where",
+    "where_npc": "With {npc}",
+    "where_you": "With you",
+    "where_at": "At {building}",
+    "where_ground": "Left on the ground",
+    "where_site": "By a building site",
+    "capacity": "Capacity",
+    "vs_hand": "(by hand {n} — ×{x})",
+    "speed": "Speed",
+    "speed_line": "{road}% on roads · {off}% over grass",
+    "cargo": "Load",
+    "empty": "empty",
+    "used": "Used",
+    "used_line": "{trips} loads · {n} units carried",
+    "needs_level": "Needs level",
+    "needs_level_n": "needs level {n}",
+    "coming_back": "being brought back",
+    "lend": "Lend…",
+    "lend_pick": "Lend to:",
+    "no_workers": "You have no workers.",
+    "retrieve": "Take back",
+    "retrieve_tip": "They finish what they're carrying, bring it to your yard and leave it there.",
+    "repair": "Repair · {money} + {n} planks",
+    "repair_tip": "Out of use for about {hours} h, then as good as new.",
+    "upgrade": "Improve · {money} + {n} planks",
+    "upgrade_tip": "Better made: holds 20% more and wears slower.",
+    "keep_at": "Keep at:",
+    "keep_default": "Your yard",
+    "buy": "Buy",
+    "shop_line": "Holds {cap} (by hand 20 — ×{x}) · {road}% on roads, {off}% over grass",
+    "upkeep": "feed {money} a week",
+    "shop_hint": "A basket comes straight into your hands; anything bigger is left for you in front of the shop — walk over and take it, or lend it to a worker.",
+    "desc_hand": "Carried by hand: a little more per trip, no slower.",
+    "desc_push": "Pushed on wheels: much more per trip; quick on roads, slower over grass.",
+    "desc_pull": "A big wagon, drawn by hand: a lot per trip, but slow — best on roads.",
+    "desc_animal": "An animal does the pulling: quick and strong — but it needs feeding.",
+    "desc_vehicle": "An engine does the work (not yet in this age).",
+    "made_desc": "Holds {n} a trip. It'll stand beside you when it's made.",
+    "parking": "Parked here",
+    "out": "Out",
+    "repair_bay": "Repair bay",
+    "bay_hint": "The repair bay mends equipment twice as fast.",
+    "no_bay_hint": "Build the depot up to level 2 for a repair bay (repairs twice as fast).",
+    "cap_n": "holds {n}"
+  },
+  "equip_status": {
+    "available": "Available",
+    "assigned_player": "Yours to use",
+    "assigned_worker": "Lent out",
+    "assigned_building": "Kept at a building",
+    "in_use": "In use",
+    "damaged": "Damaged",
+    "broken": "Broken",
+    "under_repair": "Under repair"
+  },
+  "equip_tier": {
+    "hand": "By hand",
+    "early": "Early",
+    "mid": "Middle ages",
+    "late": "Later",
+    "advanced": "Advanced"
+  },
+  "phase": {
+    "collect": "Collect",
+    "load": "Load",
+    "transport": "Transport",
+    "unload": "Unload",
+    "return": "Return"
+  },
+  "wcard": {
+    "worker": "Worker",
+    "job": "Job",
+    "task": "Task",
+    "equipment": "Equipment",
+    "cargo": "Cargo",
+    "status": "Status",
+    "by_hand": "By hand (an armful)",
+    "not_in_hand": "not fetched yet",
+    "lend": "Lend…"
+  },
+  "sheet": {
+    "id": "Building ID",
+    "type": "Type",
+    "owner": "Owner",
+    "level": "Level",
+    "quality": "Quality",
+    "up_to": "can be up to {n}%",
+    "condition": "Condition",
+    "construction": "Construction",
+    "state_built": "Built",
+    "state_site": "Being built",
+    "upgrade_state": "Improvement",
+    "capacity": "Capacity",
+    "cap_people": "{n} people",
+    "cap_staff": "{n} staff",
+    "cap_store": "{n} kg of goods",
+    "workers": "Who works here",
+    "equipment": "Equipment here",
+    "eq_out": "{n} out",
+    "storage": "In store",
+    "production": "Makes",
+    "consumption": "Uses",
+    "maintenance": "Upkeep",
+    "operating": "Running cost",
+    "location": "Location",
+    "loc": "tile {x},{y} · {w}×{h}",
+    "land": "Land",
+    "roads": "Roads",
+    "no_road": "No road near",
+    "road_linked": "On a road to the square",
+    "road_near": "A road {n} tiles away (not linked up)",
+    "infra": "Services",
+    "points": "Interaction points",
+    "next_level": "Next level",
+    "hours": "{n} h of work",
+    "visual": "Looks",
+    "visual_standing": "Standing · {n} floor(s)",
+    "visual_works": "Scaffolding up — being improved"
+  },
+  "point": {
+    "door": "door",
+    "load": "loading",
+    "park": "parking",
+    "work": "work",
+    "material": "material drop",
+    "storage": "storage",
+    "workbench": "workbench",
+    "bed": "beds"
+  },
+  "catalog": {
+    "residential": "Residential",
+    "agriculture": "Agriculture",
+    "production": "Production",
+    "resource": "Resources",
+    "commerce": "Commerce",
+    "services": "Services",
+    "infrastructure": "Infrastructure",
+    "storage": "Storage"
+  },
+  "cond_band": {
+    "new": "New",
+    "good": "Good",
+    "worn": "Worn",
+    "damaged": "Damaged",
+    "critical": "Critical",
+    "abandoned": "Abandoned"
   }
 }

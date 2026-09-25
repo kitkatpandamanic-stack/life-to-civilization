@@ -32,6 +32,8 @@ import { ITEMS } from '../data/items.js';
 import { HOME_TIERS } from '../data/homes.js';
 import { T } from '../world/WorldGenerator.js';
 import { hashStr } from '../core/rng.js';
+import { BUILDABLES, catalogCategory } from '../data/buildables.js';
+import { conditionBand } from '../data/transport.js';
 import { Mod, skill } from './Modifiers.js';
 
 const NOT_ON = [T.WATER, T.DEEP, T.CLIFF, T.MOUNTAIN, T.FARMLAND, T.ROAD, T.PLAZA, T.BRIDGE];
@@ -1137,6 +1139,69 @@ export class StructureSystem {
   // ------------------------------------------------------------------ for the UI
 
   /** The universal building view: type, level, quality, condition, size, owner, occupants, value, rent… */
+  /**
+   * Everything about a building in one place (the building's details sheet): what it is and what
+   * it's for, who owns it, level / quality / condition, whether it's being built or improved, how
+   * many it holds and employs, who works there, what's kept there (goods, equipment), what it
+   * makes and uses, what it costs to keep and run, where it stands (land, roads, services), where
+   * people stand to use it, and what the next level takes. Read from the systems that own each
+   * part — nothing is stored twice.
+   */
+  sheet(id) {
+    const sim = this.sim;
+    const v = this.view(id);
+    if (!v) return null;
+    const b = this.world.buildings[id];
+    const r = this.rec(id);
+    const E = sim.economy;
+    const biz = E.businessAtBuilding(id);
+    const def = biz ? E.def(biz) : null;
+    const own = sim.construction.byId(id);
+    const fx = own ? BUILDABLES[own.type]?.effect || {} : {};
+    const L = r ? levelDef(r.fam, r.lvl) || {} : {};
+    const nextL = r ? levelDef(r.fam, r.lvl + 1) : null;
+    const pr = sim.property.rec(id);
+    // Who works there: staff of the business, your workers sent there, your workers busy there now.
+    const staff = biz ? sim.npcs.staffOf(biz).map((n) => n.id) : [];
+    const yours = sim.workers.list().filter((c) => c.task?.target === id || sim.points?.atDoor(c.task?.spot?.tx, c.task?.spot?.ty) === id).map((c) => c.npcId);
+    // What's kept there.
+    const base = sim.workers.baseBuilding().id === id || id === sim.state.player.homeId;
+    const stock = biz ? Object.fromEntries(Object.entries(E.biz(biz).stock || {}).filter(([, q]) => q >= 1).map(([k, q]) => [k, Math.floor(q)])) : base ? Object.fromEntries(sim.home.storage.reduce((m, s) => m.set(s.id, (m.get(s.id) || 0) + s.qty), new Map())) : {};
+    const eq = sim.equipment ? sim.equipment.atYard(id) : { here: [], out: [] };
+    // What it makes and uses.
+    const makes = def?.recipes ? Object.keys(def.recipes) : def?.produces ? [].concat(def.produces) : [];
+    const uses = def?.recipes ? [...new Set(Object.values(def.recipes).flatMap((x) => (x.alts || []).flatMap((a) => Object.keys(a.in || {}))))] : def?.input ? [def.input] : [];
+    // Its keep: wages (a business), upkeep (a house you let), wear (condition lost a week, roughly).
+    const wages = biz ? staff.reduce((s, n) => s + (sim.npcs.wageFor(biz, sim.npcs.byId(n)) || 0), 0) : 0;
+    const upkeep = pr?.owner === 'player' && sim.property.isHome(id) && pr.tenant ? 1 : 0;
+    const cov = sim.infra?.coverage(b.door.tx, b.door.ty) || null;
+    const parcel = sim.territory?.parcelAt(b.door.tx, b.door.ty - 1) || null;
+    const pts = sim.points ? sim.points.of(id).reduce((m, p) => ((m[p.role] = (m[p.role] || 0) + 1), m), {}) : {};
+    const next = r && nextL ? this.cost(id, { type: 'level', to: r.lvl + 1 }) : null;
+    return {
+      ...v,
+      category: catalogCategory(own?.type || b.type) || catalogCategory(b.type),
+      constructionState: sim.construction.sites().some((s) => s.id === id) ? 'site' : 'built',
+      upgradeState: v.works ? { job: v.works.job?.type || v.works.kind, siteId: v.works.id, state: sim.construction.siteState(v.works) } : null,
+      conditionBand: conditionBand(v.condition, !!pr?.ruined || !!pr?.abandoned),
+      staffCap: (def?.maxWorkers || 0) + (L.staff || 0),
+      workers: [...new Set([...staff, ...yours])],
+      storage: { cap: fx.storage ? sim.construction.storageOf(id) : null, stock },
+      equipment: { here: eq.here.map((e) => e.id), out: eq.out.map((e) => e.id), parking: pts.park || 0 },
+      production: makes,
+      consumption: uses,
+      maintenance: { band: conditionBand(v.condition), perDay: upkeep },
+      operatingCost: Math.round(wages + upkeep),
+      location: { tx: b.tx, ty: b.ty, w: b.w, h: b.h, door: { ...b.door } },
+      land: parcel ? { id: parcel.id, owner: sim.territory.owner?.(parcel.id) ?? null } : null,
+      roads: cov ? { distance: cov.road === Infinity ? null : cov.road, linked: !!cov.linked, paved: !!cov.paved } : null,
+      infrastructure: cov ? { water: !!cov.water, light: !!cov.light, transport: !!cov.transport, score: Math.round((cov.score || 0) * 100) } : null,
+      points: pts,
+      upgrade: next ? { to: r.lvl + 1, money: next.money || 0, materials: { ...(next.materials || {}) }, labor: next.labor || 0, check: this.check(id, { type: 'level', to: r.lvl + 1 }) } : null,
+      visual: { look: this.look(id), floors: v.floors, stage: sim.construction.sites().find((s) => s.target === id) ? 'works' : 'standing' },
+    };
+  }
+
   view(id) {
     const sim = this.sim;
     const b = this.world.buildings[id];

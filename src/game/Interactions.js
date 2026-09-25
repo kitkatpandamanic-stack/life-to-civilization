@@ -50,9 +50,19 @@ export function targetName(scene, target) {
       return t('ui.water_source');
     case 'animal':
       return t(`animal.${target.animal.kind}`);
+    case 'equipment':
+    case 'held': {
+      const eq = target.kind === 'held' ? sim.equipment.playerHeld() : sim.equipment.byId(target.id);
+      return eq ? equipName(eq) : '';
+    }
     default:
       return '';
   }
+}
+
+/** "Wheelbarrow Lv2". */
+export function equipName(eq) {
+  return `${t(`equip.${eq.type}`)}${(eq.level || 1) > 1 ? ` ${t('equip.lv', { n: eq.level })}` : ''}`;
 }
 
 /** Second line under the name: a villager's role, or whether a shop is open. */
@@ -60,6 +70,13 @@ export function targetSubtitle(scene, target) {
   const sim = scene.sim;
   if (target.kind === 'npc') return npcRole(sim, sim.npcs.byId(target.id));
   if (target.kind === 'discovery') return t(`site_state.${sim.exploration.site(target.id)?.state}`);
+  if (target.kind === 'equipment' || target.kind === 'held') {
+    const E = sim.equipment;
+    const eq = target.kind === 'held' ? E.playerHeld() : E.byId(target.id);
+    if (!eq) return '';
+    const who = eq.holder?.kind === 'worker' ? ` · ${t('equip.lent_to', { npc: npcName(sim.npcs.byId(eq.holder.id)) })}` : '';
+    return `${t(`equip_status.${E.status(eq)}`)} · ${Math.round(eq.condition)}% · ${E.load(eq)}/${E.cap(eq)}${who}`;
+  }
   if (target.kind === 'site') {
     const c = sim.construction.byId(target.id);
     return c ? t('ui.site_progress', { pct: Math.round((c.labor / c.laborNeeded) * 100), mat: Math.round(sim.construction.materialsFraction(c) * 100) }) : '';
@@ -126,6 +143,20 @@ export function getActions(scene, target) {
     case 'npc':
       add('action.talk', {}, () => ui.openDialogue(target.id), OK, 'E');
       add('action.inspect', {}, () => ui.openInspect(target.id), OK, 'F');
+      // One of your workers: their equipment.
+      if (sim.workers.contract(target.id)) {
+        const lent = sim.equipment.assignedTo(target.id);
+        if (lent) add('action.eq_retrieve', { eq: lent.type }, () => {
+          const r = sim.equipment.retrieve(lent.id);
+          sim.toast(r.ok ? (r.returning ? 'toast.eq_returning' : 'toast.eq_back') : `reason.${r.reason}`, { npc: target.id, eq: lent.type }, r.ok ? 'info' : 'warn');
+        }, lent.recall ? { ok: false, reason: 'eq_on_its_way' } : OK);
+        else if (!sim.equipment.playerHeld()) add('action.eq_lend_pick', {}, () => ui.openEquipment({ lendTo: target.id }), sim.equipment.mine().length ? OK : { ok: false, reason: 'eq_none' });
+      }
+      break;
+    case 'equipment':
+      equipmentActions(scene, target.id, add);
+      break;
+    case 'held':
       break;
     case 'decor':
       if (target.type === 'well') {
@@ -169,7 +200,71 @@ export function getActions(scene, target) {
       furnitureActions(scene, target.type, add);
       break;
   }
+  heldActions(scene, target, add);
   return list;
+}
+
+/** A barrow, cart or basket standing on the ground: take it, lend it, repair it, look it over. */
+function equipmentActions(scene, id, add) {
+  const sim = scene.sim;
+  const E = sim.equipment;
+  const eq = E.byId(id);
+  if (!eq) return;
+  add('action.eq_take', { eq: eq.type }, () => {
+    const r = E.take(id);
+    if (!r.ok) sim.toast(`reason.${r.reason}`, r.params || {}, 'warn');
+  }, E.canTake(id), 'E');
+  if (eq.holder?.kind !== 'worker' && sim.workers.list().length) add('action.eq_lend_pick', {}, () => scene.ui.openEquipment({ lend: id }), E.usable(eq) ? OK : { ok: false, reason: 'eq_broken' });
+  if (eq.condition < 99) add('action.eq_repair', { money: E.repairCost(eq).money }, () => {
+    const r = E.repair(id);
+    sim.toast(r.ok ? 'toast.eq_repairing' : `reason.${r.reason}`, r.ok ? { eq: eq.type, hours: r.hours } : r.params || {}, r.ok ? 'info' : 'warn');
+  }, E.canRepair(id));
+  add('action.eq_inspect', {}, () => scene.ui.openEquipment({ focus: id }), OK, 'F');
+}
+
+/**
+ * Pushing a barrow or driving a cart: load it at your storage, unload it at a site (or back into
+ * storage), lend it to the worker in front of you — or leave it here.
+ */
+function heldActions(scene, target, add) {
+  const sim = scene.sim;
+  const E = sim.equipment;
+  const eq = E?.playerHeld();
+  if (!eq) return;
+  const C = sim.construction;
+  // A site (yours, or one you're supplying): unload what it needs.
+  let site = target.kind === 'site' ? C.byId(target.id) : null;
+  if (!site && target.kind === 'building') site = C.sites().find((s) => (s.kind === 'works' || s.kind === 'upgrade') && s.target === target.id) || null;
+  if (site && (C.isPlayers(site) || site.supplier === 'player' || site.contractor === 'player')) {
+    add('action.eq_unload_site', { eq: eq.type, n: E.load(eq) }, () => {
+      const n = E.unloadAt(site);
+      sim.toast('toast.delivered', { qty: n }, 'gain');
+    }, E.canUnloadAt(site) ? OK : { ok: false, reason: E.load(eq) ? 'nothing_to_deliver' : 'eq_empty' });
+  }
+  // Your storage: load what your sites need, or unload into it.
+  if (target.kind === 'building' && isYourStore(sim, target.id)) {
+    const wanted = E.sitesToSupply().some((s) => Object.keys(C.missing(s)).some((id) => sim.home.storageCount(id) > 0));
+    add('action.eq_load', { eq: eq.type }, () => {
+      const n = E.loadFromStorage();
+      sim.toast(n ? 'toast.eq_loaded' : 'reason.eq_nothing_to_load', { qty: n, eq: eq.type }, n ? 'gain' : 'warn');
+    }, E.room(eq) <= 0 ? { ok: false, reason: 'eq_full' } : wanted ? OK : { ok: false, reason: 'eq_nothing_to_load' });
+    if (E.load(eq)) add('action.eq_unload_store', { n: E.load(eq) }, () => sim.toast('toast.eq_unloaded', { qty: E.unloadToStorage() }, 'gain'));
+  }
+  // Your worker: lend it to them, there and then.
+  if (target.kind === 'npc' && sim.workers.contract(target.id)) {
+    add('action.eq_lend_to', { eq: eq.type, npc: target.id }, () => {
+      const r = E.lend(eq.id, target.id);
+      sim.toast(r.ok ? 'toast.eq_lent' : `reason.${r.reason}`, r.ok ? { eq: eq.type, npc: target.id } : r.params || {}, r.ok ? 'good' : 'warn');
+    }, E.canLend(eq.id, target.id));
+  }
+  add('action.eq_put_down', { eq: eq.type }, () => E.putDown(), OK, target.kind === 'held' ? 'E' : null);
+}
+
+/** Your storage: your home, a shed, barn, warehouse or depot of yours (all hold your stores). */
+function isYourStore(sim, id) {
+  if (id === sim.state.player.homeId || id === sim.workers.baseBuilding().id) return true;
+  const c = sim.construction.byId(id);
+  return !!c && c.status === 'done' && sim.construction.isPlayers(c) && !!BUILDABLES[c.type]?.effect?.storage;
 }
 
 /** A construction site (or your house while it's being upgraded). */
@@ -206,7 +301,12 @@ function playerBuildingActions(scene, id, add) {
     if (upgrade) siteActions(scene, upgrade, add);
     else if (sim.home.nextTier() && !sim.structures?.rec(id)) add('action.upgrade_home', {}, () => ui.openBuild('home'));
   }
-  if (c.type === 'storage_shed') add('action.open_storage', {}, () => ui.openStorage());
+  if (BUILDABLES[c.type]?.effect?.storage) add('action.open_storage', {}, () => ui.openStorage());
+  if (BUILDABLES[c.type]?.effect?.depot) add('action.manage_equipment', {}, () => ui.openEquipment({ depot: id }));
+  if (BUILDABLES[c.type]?.effect?.office) {
+    add('action.open_contracts', {}, () => ui.openJournal('tasks'));
+    add('action.manage_workers', {}, () => ui.openWorkers());
+  }
   if (c.type === 'forge') add('action.use_own_forge', {}, () => ui.openCraft('forge'));
   const biz = sim.businesses.atBuilding(id);
   if (biz) {
@@ -378,6 +478,8 @@ function buildingActions(scene, id, add) {
       );
     }
     if (def.repairs) add('action.repair', {}, () => ui.openShop(bizId, 'repair'), open ? OK : closed);
+    // Baskets, barrows and carts for sale (EquipmentSystem).
+    if (sim.equipment?.forSale(bizId).length) add('action.buy_equipment', {}, () => ui.openEquipment({ shop: bizId }), open ? OK : closed);
     if (jobs.jobsForBusiness(bizId).length) add('action.ask_work', {}, () => ui.openJobBoard(bizId));
   }
 

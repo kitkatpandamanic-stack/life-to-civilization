@@ -34,7 +34,9 @@ export const WORKFORCE = {
   gatherMinutes: 70,
   workBlockMinutes: 60, // one stint of building, repairing, crafting
   farmMinutes: 20,
-  carryLoad: 20,
+  carryLoad: 20, // by hand (a basket, barrow or cart holds more — see data/transport.js EQUIPMENT)
+  carrierBonus: 40, // a worker with a barrow or cart prefers carrying to building
+  sameLoadPenalty: 25, // …and something nobody else is already fetching
   tilesPerWorker: 5, // a site takes one worker per this many tiles of footprint…
   maxPerSite: 6, // …up to this many
   haulersPerSite: 2,

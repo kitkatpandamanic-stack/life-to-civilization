@@ -129,6 +129,8 @@ import { PlaceSystem } from '../systems/PlaceSystem.js';
 import { InfrastructureSystem } from '../systems/InfrastructureSystem.js';
 import { DevelopmentSystem } from '../systems/DevelopmentSystem.js';
 import { FlatSystem } from '../systems/FlatSystem.js';
+import { PointSystem } from '../systems/PointSystem.js';
+import { EquipmentSystem } from '../systems/EquipmentSystem.js';
 import { buildParcels } from '../world/Parcels.js';
 import { rand } from './rng.js';
 
@@ -205,6 +207,8 @@ export class Simulation {
     this.infra = new InfrastructureSystem(this); // roads and how they link up, paving, bridges, water, lamps
     this.development = new DevelopmentSystem(this); // villagers buy land, build on it, develop rows of houses
     this.flats = new FlatSystem(this); // blocks of flats: a household in each flat, each with its own tenancy
+    this.points = new PointSystem(this); // where people stand at buildings and sites: doors, loading bays, parking, work
+    this.equipment = new EquipmentSystem(this); // baskets, barrows, carts, wagons: real things that help move goods
     this.ledger = new LedgerSystem(this); // last: it watches the others handle your money
     this.jobs.ensureOpenings();
     this.bus.on('time:day', () => this.onNewDay());

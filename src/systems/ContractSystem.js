@@ -696,6 +696,17 @@ export class ContractSystem {
     this.checkDone(c);
   }
 
+  /**
+   * Credit for a hand's part in a job that isn't the measured work — carrying the materials to a
+   * building job: it counts towards their share of the pay and experience (not towards the work).
+   */
+  creditCrew(c, who, units) {
+    if (!c || !this.S.active.includes(c) || units <= 0) return;
+    this.normalize(c);
+    c.crew[who] = Math.round(((c.crew[who] || 0) + units) * 10) / 10;
+    c.lastWork = this.sim.time.total;
+  }
+
   /** Is all the work in? Then the client looks it over, and it's settled. */
   checkDone(c) {
     if (!this.S.active.includes(c)) return false;
@@ -1156,7 +1167,7 @@ export class ContractSystem {
   }
 
   log(c, how, paid) {
-    const cost = Math.round((c.costs?.materials || 0) + (c.costs?.wages || 0));
+    const cost = Math.round((c.costs?.materials || 0) + (c.costs?.wages || 0) + (c.costs?.equipment || 0)); // (equipment: the wear on your barrows and carts)
     this.S.log.push({ id: c.id, kind: c.kind, type: c.type, jobId: c.jobId, item: c.item, how, paid: paid + (c.advance || 0) - (c.refunded || 0), day: this.sim.time.day, issuer: c.issuer, building: c.building, xp: c.awarded?.xp, crew: c.awarded?.workers ? Object.fromEntries(Object.entries(c.awarded.workers).map(([id, x]) => [id, x.xp])) : undefined, you: c.crew?.player, grade: c.result?.grade, score: c.result?.score, late: c.result?.daysLate || (c.late ? 1 : 0), cost, size: c.size, proposal: c.proposal ? c.proposal.type || c.proposal.what : undefined });
     if (this.S.log.length > 80) this.S.log.shift();
   }

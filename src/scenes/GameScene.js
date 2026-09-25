@@ -31,6 +31,7 @@ import { BuildMode } from '../game/BuildMode.js';
 import { FieldViews } from '../game/FieldViews.js';
 import { AnimalViews } from '../game/AnimalViews.js';
 import { CartViews } from '../game/CartViews.js';
+import { EquipmentViews } from '../game/EquipmentViews.js';
 import { FireViews } from '../game/FireViews.js';
 import { UIManager } from '../ui/UIManager.js';
 import { icon } from '../ui/widgets.js';
@@ -75,6 +76,7 @@ export class GameScene extends Phaser.Scene {
     this.animals = new AnimalViews(this, sim);
     this.sites = new SiteViews(this, sim);
     this.carts = new CartViews(this, sim);
+    this.equipmentViews = new EquipmentViews(this, sim); // barrows, carts and wagons where they really are
     this.fireViews = new FireViews(this, sim);
     this.atmosphere = new Atmosphere(this, sim, this.player);
     this.objective = new ObjectiveIndicator(this, sim);
@@ -128,6 +130,7 @@ export class GameScene extends Phaser.Scene {
     this.npcViews.update(delta);
     this.animals.update(delta);
     this.carts.update(delta);
+    this.equipmentViews.update(delta);
     this.fireViews.update();
     this.interaction.update(blocked);
     const darkness = this.atmosphere.update();

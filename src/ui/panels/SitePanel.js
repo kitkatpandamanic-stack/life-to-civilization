@@ -5,7 +5,7 @@ import { Panel } from '../Panel.js';
 import { t, itemName, npcName, cap, fmtMoney } from '../../i18n/i18n.js';
 import { escapeHtml, buildingLabel } from '../format.js';
 import { jobLabel } from '../structure.js';
-import { bar, button, icon } from '../widgets.js';
+import { bar, button, icon, status } from '../widgets.js';
 
 export class SitePanel extends Panel {
   constructor(ui, id) {
@@ -40,7 +40,15 @@ export class SitePanel extends Panel {
       })
       .join('');
     const hoursLeft = ((c.laborNeeded - c.labor) / 60).toFixed(1);
-    const workers = Object.values(sim.state.workers).filter((w) => w.assignment?.type === 'build' && w.assignment.siteId === c.id);
+    // Your workers on it now: building, fetching for it, carrying to it (and the ones sent to it).
+    const workers = Object.values(sim.state.workers).filter((w) => (w.assignment?.type === 'build' && w.assignment.siteId === c.id) || w.task?.target === c.id || w.task?.forSite === c.id || sim.npcs.byId(w.npcId)?.carry?.to === c.id);
+    const state = cons.siteState(c);
+    const STATE = { active: ['good', '🔨'], waiting_materials: ['warn', '📦'], ready: ['info', '✅'] }[state] || ['neutral', '•'];
+    const way = cons.onTheWay(c);
+    const wayText = Object.entries(way).map(([id, q]) => `${q} ${itemName(id)}`).join(', ');
+    const pts = sim.points ? { work: sim.points.list(c.id, 'work'), mat: sim.points.list(c.id, 'material') } : null;
+    const taken = pts ? sim.points.taken() : null;
+    const used = (list) => list.filter((p) => taken.has(`${p.tx},${p.ty}`)).length;
     const theirs = !cons.isPlayers(c);
     // Villagers working on a villager's (or the village's) building right now.
     const helpers = theirs ? sim.state.npcs.filter((n) => (n.task?.site === c.id && n.task.stage === 'idle') || (n.task?.siteId === c.id && n.task.stage === 'doing')) : [];
@@ -49,6 +57,7 @@ export class SitePanel extends Panel {
     const stages = ['foundation', 'frame', 'walls', 'roof'].map((s, i) => `<span class="stage${i < stage ? ' done' : i === stage ? ' now' : ''}">${escapeHtml(t(`site_stage.${s}`))}</span>`).join('<span class="stage-arrow">→</span>');
     return `
       ${ownerLine}
+      <div class="btn-row">${status(t(`site_state.${state}`), STATE[0], STATE[1])}${wayText ? ` <span class="small">🚚 ${escapeHtml(t('site.on_the_way', { list: wayText }))}</span>` : ''}</div>
       <div class="stages">${stages}</div>
       ${theirs ? '' : this.hireHtml(c)}
       <h3>${escapeHtml(t('ui.work_progress'))}</h3>
@@ -58,7 +67,10 @@ export class SitePanel extends Panel {
       ${mats}
       ${cons.materialsFraction(c) < 1 && c.labor >= cons.maxLabor(c) - 0.5 ? `<div class="warn small">${escapeHtml(t('reason.need_materials'))}</div>` : ''}
       <h3>${escapeHtml(t('ui.builders'))}</h3>
-      ${[...workers.map((w) => sim.npcs.byId(w.npcId)), ...helpers].filter(Boolean).map((n) => `<div class="rumor">👷 ${escapeHtml(npcName(n))}</div>`).join('') || `<div class="muted small">${escapeHtml(t('ui.no_builders'))}</div>`}
+      ${pts ? `<div class="muted small">${escapeHtml(t('site.points', { a: used(pts.work), b: pts.work.length, c: used(pts.mat), d: pts.mat.length }))}</div>` : ''}
+      ${workers.map((w) => { const n = sim.npcs.byId(w.npcId); const act = n && sim.workers.activity(n); return n ? `<div class="rumor">👷 ${escapeHtml(npcName(n))}${act ? ` <span class="muted small">— ${escapeHtml(t(`activity.${act.key}`, act.params || {}))}</span>` : ''}</div>` : ''; }).join('')}
+      ${helpers.map((n) => `<div class="rumor">👷 ${escapeHtml(npcName(n))}</div>`).join('')}
+      ${workers.length || helpers.length ? '' : `<div class="muted small">${escapeHtml(t('ui.no_builders'))}</div>`}
       <div class="btn-row">
         ${button(t(theirs ? 'ui.give_materials' : 'action.deliver_materials'), 'deliver', {}, { cls: 'primary' })}
         ${theirs ? '' : button(t('ui.deliver_from_chest'), 'deliver_chest', {})}

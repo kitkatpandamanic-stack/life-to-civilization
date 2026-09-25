@@ -64,6 +64,7 @@ export class CraftingSystem {
     if (r.unlock && !this.sim.progression.hasUnlock(r.unlock)) return { ok: false, reason: 'locked', params: { level: this.sim.progression.unlockLevel(r.unlock) } };
     if (r.minSkill && skill(p, r.skill) < r.minSkill) return { ok: false, reason: 'need_skill', params: { skill: r.skill, level: r.minSkill } };
     if (r.tool && !this.hasTool(r.tool, useStorage)) return { ok: false, reason: `need_${r.tool}` };
+    if (r.tech && !this.sim.tech?.has(r.tech)) return { ok: false, reason: 'needs_tech', params: { tech: r.tech } };
     for (const [id, qty] of Object.entries(r.inputs)) {
       if (this.available(id, useStorage) < qty) return { ok: false, reason: 'missing_materials', params: { item: id, qty } };
     }
@@ -130,6 +131,11 @@ export class CraftingSystem {
       const added = sim.inventory.add(id, qty, opts);
       if (added < qty) sim.home.store(id, qty - added, { force: true, q: opts.q });
       sim.toast(hasQuality(id) ? 'toast.crafted_q' : 'toast.crafted', { item: id, qty, quality: ['crude', 'standard', 'fine', 'masterwork'][q] }, q >= 2 ? 'good' : 'gain');
+    }
+    // Equipment isn't a pocketful: it's a real barrow or crate, standing by you (EquipmentSystem).
+    if (r.equipment && sim.equipment) {
+      sim.equipment.made(r.equipment, q);
+      sim.toast('toast.eq_made', { eq: r.equipment, quality: ['crude', 'standard', 'fine', 'masterwork'][q] }, q >= 2 ? 'good' : 'gain');
     }
     sim.needs.spendEnergy(r.energy || 0);
     sim.progression.addXp(r.xp || 0);

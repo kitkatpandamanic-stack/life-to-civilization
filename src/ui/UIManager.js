@@ -11,6 +11,7 @@
  * All text comes from the locale files and re-renders when the language changes.
  */
 import { EnterprisePanel } from './panels/EnterprisePanel.js';
+import { EquipmentPanel } from './panels/EquipmentPanel.js';
 import { t, fmtMoney, onLanguageChange, npcName, itemName } from '../i18n/i18n.js';
 import { tr, escapeHtml, hoodLabel, districtLabel } from './format.js';
 import { WEATHER_ICONS } from '../systems/WeatherSystem.js';
@@ -755,6 +756,13 @@ export class UIManager {
   }
   openEnterprise(id, focus = null) {
     this.openPanel(new EnterprisePanel(this, id, focus));
+  }
+  /** Your equipment: { focus: eqId } · { lend: eqId } · { lendTo: npcId } · { depot: buildingId } · { shop: bizId }. */
+  openEquipment(opts = {}) {
+    this.openPanel(new EquipmentPanel(this, opts));
+  }
+  openJournal(tab = 'tasks') {
+    this.openPanel(new JournalPanel(this, tab));
   }
 
   /** Translate with id-params resolved (used by world-space text like build hints). */

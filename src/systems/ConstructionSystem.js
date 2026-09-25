@@ -16,6 +16,7 @@ import { HOME_TIERS } from '../data/homes.js';
 import { VILLAGE_BUILDINGS } from '../data/villageBuildings.js';
 import { Mod, skill } from './Modifiers.js';
 import { T } from '../world/WorldGenerator.js';
+import { TYPE_FAMILY, levelDef } from '../data/structures.js';
 import { rand } from '../core/rng.js';
 
 const PREP_FRACTION = 0.15; // share of the work possible before any materials arrive
@@ -361,6 +362,7 @@ export class ConstructionSystem {
     }
     if (total > 0) {
       if (!this.isPlayers(c)) this.sim.growth?.playerHelped(c);
+      this.refreshState(c);
       this.sim.bus.emit('construction:changed', c);
       this.tryComplete(c);
     }
@@ -371,7 +373,38 @@ export class ConstructionSystem {
   receive(c, id, qty) {
     c.delivered[id] = (c.delivered[id] || 0) + qty;
     this.sim.bus.emit('construction:changed', c);
+    this.refreshState(c);
     this.tryComplete(c);
+  }
+
+  /**
+   * Where a site stands: ACTIVE (work can go on), WAITING_FOR_MATERIALS (the work has caught up
+   * with what's been delivered — nobody can go on until more arrives), READY (everything's here,
+   * only the work is left) or DONE.
+   */
+  siteState(c) {
+    if (!c || c.status !== 'site') return 'done';
+    if (this.materialsFraction(c) >= 1) return 'ready';
+    return c.labor >= this.maxLabor(c) - 0.5 ? 'waiting_materials' : 'active';
+  }
+  /** Keep the site's state up to date — and say so when a waiting site can go on again. */
+  refreshState(c) {
+    const s = this.siteState(c);
+    if (c.siteState === s) return;
+    const was = c.siteState;
+    c.siteState = s;
+    if (was === 'waiting_materials' && s !== 'done') this.sim.bus.emit('construction:resumed', c);
+    if (s === 'waiting_materials') this.sim.bus.emit('construction:waiting', c);
+  }
+  /** Materials on their way to a site right now (in your workers' arms and barrows). */
+  onTheWay(c) {
+    const out = {};
+    for (const w of this.sim.workers.list()) {
+      const n = this.sim.npcs.byId(w.npcId);
+      if (n?.carry?.to !== c.id) continue;
+      for (const [id, q] of Object.entries(n.carry.items || { [n.carry.item]: n.carry.qty })) out[id] = (out[id] || 0) + q;
+    }
+    return out;
   }
 
   canWork(c) {
@@ -405,6 +438,7 @@ export class ConstructionSystem {
     const was = c.labor;
     c.labor = Math.min(this.maxLabor(c), c.labor + minutes);
     if (c.labor > was) c.lastProgressDay = this.sim.time.day;
+    this.refreshState(c);
     if (this.stage(c) !== before) this.sim.bus.emit('construction:stage', c);
     this.sim.bus.emit('construction:changed', c);
     this.tryComplete(c);
@@ -572,7 +606,18 @@ export class ConstructionSystem {
   }
 
   extraStorage() {
-    return this.finished().reduce((s, c) => s + (BUILDABLES[c.type]?.effect?.storage || 0), 0);
+    return this.finished().reduce((s, c) => s + this.storageOf(c.id), 0);
+  }
+
+  /** What a storage building of yours holds: more as it's built up (a level's stock against the first). */
+  storageOf(id) {
+    const c = this.byId(id);
+    const base = c && BUILDABLES[c.type]?.effect?.storage;
+    if (!base) return 0;
+    const r = this.sim.structures?.rec(id);
+    const f = TYPE_FAMILY[c.type];
+    const mult = r && f ? (levelDef(r.fam, r.lvl)?.stock || 1) / (levelDef(f[0], f[1])?.stock || 1) : 1;
+    return Math.round(base * mult);
   }
 
   /** Wells you built (and the village well) are water sources. */

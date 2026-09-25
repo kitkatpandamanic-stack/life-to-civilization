@@ -265,6 +265,7 @@ export class HoldingsSystem {
     if (job) K.assign(job.id, job.workers.filter((x) => x !== npcId), 'manager');
     if (W.isManager(npcId)) W.dismissManager();
     W.release(wc);
+    sim.equipment?.releaseWorker(npcId); // (your barrow stays with you, not with the business)
     sim.npcs.clearReservation(npc);
     // Your terms with them, kept for when they come back.
     npc.crew = { ...wc, task: null, job: undefined, since: sim.time.day };

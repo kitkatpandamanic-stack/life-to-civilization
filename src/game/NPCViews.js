@@ -96,6 +96,16 @@ export class NPCViews {
       if (t.stage === 'doing') return this.sim.workers.contract(npc.id)?.assignment.type === 'gather_stone' ? 'mine' : 'chop';
       if (t.stage === 'building' || t.stage === 'crafting') return 'build';
       if (t.stage === 'farming') return 'farm';
+      // Loading and unloading a barrow or an armful: busy hands.
+      if (t.stage === 'loading' || t.stage === 'unloading') return 'load';
+      if (t.stage === 'working') {
+        const k = this.sim.workers.contract(npc.id)?.task?.kind;
+        if (k === 'gather_wood') return 'chop';
+        if (k === 'gather_stone') return 'mine';
+        if (k === 'farm' || k === 'charvest' || k === 'cwater' || k === 'gather_berries') return 'farm';
+        if (k === 'build' || k === 'repair' || k === 'crepair') return 'build';
+        return 'load';
+      }
       return null;
     }
     const act = this.sim.npcs.activityOf(npc);

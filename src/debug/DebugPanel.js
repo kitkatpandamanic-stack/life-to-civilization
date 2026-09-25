@@ -82,7 +82,8 @@ export function installDebugPanel(dev) {
     caravans: (sim) => sim.settlements.dispatchCaravans(),
     week: (sim) => sim.settlements.weekly(),
     horse: (sim) => {
-      sim.state.player.transport = 'horse_cart';
+      sim.equipment.create('horse_cart');
+      sim.equipment.syncJourney();
     },
     // Civic: hold the election now; make you headman; fill the fund for the next institution; renown.
     election: (sim) => sim.civic.election(),
@@ -148,6 +149,17 @@ export function installDebugPanel(dev) {
     ct_repair: () => console.log(dev.ct.repair()),
     ct_finish: () => console.log(dev.ct.finish()),
     ct_list: () => console.log(dev.ct.list()),
+    // Equipment and transport (see transportTools.js — also dev.tr.* in the console).
+    tr_give: () => console.log(dev.tr.give('wheelbarrow', 'you')),
+    tr_cart: () => console.log(dev.tr.give('handcart', 'yard')),
+    tr_lend: () => console.log(dev.tr.lend()),
+    tr_retrieve: () => console.log(dev.tr.retrieve()),
+    tr_warehouse: () => console.log(dev.tr.warehouse(200)),
+    tr_depot: () => console.log(dev.tr.build('transport_depot')),
+    tr_scenario: () => console.log(dev.tr.scenario()),
+    tr_list: () => console.log(dev.tr.list()),
+    tr_crew: () => console.log(dev.tr.crew()),
+    tr_points: () => console.log(dev.tr.points()),
     bt_settype: (sim) => {
       const me = sim.world.toTile(sim.state.player.x, sim.state.player.y);
       const id = sim.territory.idAt(me.tx, me.ty);
@@ -295,7 +307,7 @@ export function installDebugPanel(dev) {
         ${btn('contact', 'Contact all settlements')}${btn('week', 'Settlements: a week')}${btn('caravans', 'Send caravans')}${btn('horse', 'Get a horse cart')}
         ${btn('election', 'Election now')}${btn('headman', 'Make me headman')}${btn('fund', 'Fill civic fund')}${btn('renown', '+20 renown')}
         ${btn('edu_school', 'Build school')}${btn('edu_trade', 'Build trade school')}${btn('edu_institute', 'Build institute')}${btn('edu_teacher', 'Make a teacher')}${btn('edu_enrol', 'Enrol now')}
-        ${btn('rental', 'A house to let, let')}${btn('rentday', 'Rent day')}${btn('housing', 'Households review homes')}${btn('bt_hood', 'Create neighbourhood')}${btn('bt_district', 'Create district (shops)')}${btn('bt_places', 'Recount places')}${btn('bt_complete', 'Complete construction near')}${btn('bt_land', 'Inspect land here')}${btn('bt_works', 'Public works now')}${btn('bt_pave', 'Pave road here')}${btn('bt_infra', 'Infrastructure numbers')}${btn('bt_developer', 'NPC develops a row')}${btn('bt_buylot', 'NPC buys a lot')}${btn('bt_flats', 'Block of flats here')}${btn('bt_settype', 'Cycle land type here')}${btn('bt_demolish', 'Demolish nearest')}${btn('bt_convert', 'Nearest → shop')}${btn('hire3', 'Hire 3 workers')}${btn('ct_farm', 'Farmer harvest → workers')}${btn('ct_repair', 'Repair job → workers')}${btn('ct_finish', 'Finish contract')}${btn('ct_list', 'List contracts')}${btn('edu_week', 'Education: a week')}${btn('edu_year', 'School year ends')}${btn('edu_research', '+20 research')}${btn('edu_spread', 'Know-how spreads')}${btn('edu_talent', 'Talented pupil')}${btn('edu_scholar', 'Scholar arrives')}${btn('edu_inspect', 'Inspect learning')}
+        ${btn('rental', 'A house to let, let')}${btn('rentday', 'Rent day')}${btn('housing', 'Households review homes')}${btn('bt_hood', 'Create neighbourhood')}${btn('bt_district', 'Create district (shops)')}${btn('bt_places', 'Recount places')}${btn('bt_complete', 'Complete construction near')}${btn('bt_land', 'Inspect land here')}${btn('bt_works', 'Public works now')}${btn('bt_pave', 'Pave road here')}${btn('bt_infra', 'Infrastructure numbers')}${btn('bt_developer', 'NPC develops a row')}${btn('bt_buylot', 'NPC buys a lot')}${btn('bt_flats', 'Block of flats here')}${btn('bt_settype', 'Cycle land type here')}${btn('bt_demolish', 'Demolish nearest')}${btn('bt_convert', 'Nearest → shop')}${btn('hire3', 'Hire 3 workers')}${btn('ct_farm', 'Farmer harvest → workers')}${btn('ct_repair', 'Repair job → workers')}${btn('ct_finish', 'Finish contract')}${btn('ct_list', 'List contracts')}${btn('tr_give', 'Wheelbarrow in hand')}${btn('tr_cart', 'Handcart at yard')}${btn('tr_lend', 'Lend equipment')}${btn('tr_retrieve', 'Retrieve equipment')}${btn('tr_warehouse', 'Warehouse + 200 wood')}${btn('tr_depot', 'Transport depot')}${btn('tr_scenario', 'Transport scenario')}${btn('tr_list', 'List equipment')}${btn('tr_crew', 'Crew: phase/cargo')}${btn('tr_points', 'Points of nearest site')}${btn('edu_week', 'Education: a week')}${btn('edu_year', 'School year ends')}${btn('edu_research', '+20 research')}${btn('edu_spread', 'Know-how spreads')}${btn('edu_talent', 'Talented pupil')}${btn('edu_scholar', 'Scholar arrives')}${btn('edu_inspect', 'Inspect learning')}
       </div>
       ${workersHtml(sim)}
       <div class="dbg-sel">
