@@ -49,6 +49,23 @@ export class WorkersPanel extends Panel {
     }
   }
 
+  /** Your manager: who, their duties (on/off), their notes — or how to get one. */
+  managerHtml() {
+    const sim = this.sim;
+    const W = sim.workers;
+    const M = W.mgr();
+    if (!M) {
+      if (W.list().length < 2) return '';
+      return `<div class="hint">🧑‍💼 ${escapeHtml(t('workers.no_manager'))}</div>`;
+    }
+    const npc = sim.npcs.byId(M.npc);
+    const duty = (d) => button(t(M[d] ? `workers.duty_${d}_on` : `workers.duty_${d}_off`), 'duty', { d }, { cls: `sm ${M[d] ? 'selected' : 'ghost'}` });
+    const notes = (W.state.managerLog || []).slice(0, 6).map((x) => `<div class="rumor small">${escapeHtml(String(x.hour ?? '').padStart(2, '0'))}:00 · ${escapeHtml(tr(sim, `manager_note.${x.key}`, x.params || {}))}</div>`).join('');
+    return `<div class="card"><div class="card-head"><div><div class="card-title">🧑‍💼 ${escapeHtml(t('workers.manager_title', { name: npcName(npc) }))}</div><div class="card-sub">${escapeHtml(t('workers.manager_sub'))}</div></div></div>
+      <div class="btn-row">${duty('assign')}${duty('roles')}${button(t('workers.dismiss_manager'), 'dismiss_manager', {}, { cls: 'sm ghost' })}</div>
+      ${notes ? `<div class="stat-label">${escapeHtml(t('workers.manager_notes'))}</div>${notes}` : ''}</div>`;
+  }
+
   /** "Building: Stepan's house", "Buying planks", "Chopping wood"… */
   taskText(c) {
     const sim = this.sim;
@@ -90,6 +107,7 @@ export class WorkersPanel extends Panel {
     const cp = S.contractPrio || 'high';
     html += `<div class="setting-row"><div><b>${escapeHtml(t('workers.contract_prio'))}</b><div class="hint">${escapeHtml(t(`workers.contract_prio_${cp}`))}</div></div>
       <div class="btn-row">${['high', 'medium', 'low'].map((p) => button(t(`prio.${p}`), 'contract_prio', { p }, { cls: `sm ${cp === p ? 'selected' : 'ghost'}` })).join('')}</div></div>`;
+    html += this.managerHtml();
     if (!list.length) {
       html += emptyState('👷', t('ui.no_workers_title'), t(sim.progression.hasUnlock('hire_worker') ? 'ui.no_workers' : 'ui.workers_locked', { level: sim.progression.unlockLevel('hire_worker') }));
     }
@@ -146,6 +164,7 @@ export class WorkersPanel extends Panel {
         ${queue ? `<div class="hint">📋 ${escapeHtml(t('workers.queue', { list: queue }))}</div>` : ''}
         ${prios}
         <div class="btn-row">
+          ${W.isManager(c.npcId) ? `<span class="chip">🧑‍💼 ${escapeHtml(t('workers.is_manager'))}</span>` : list.length >= 2 ? button(t('workers.make_manager'), 'appoint', { npc: c.npcId }, { cls: 'sm ghost', disabled: !W.canAppoint(c.npcId).ok, title: W.canAppoint(c.npcId).ok ? t('workers.manager_tip') : tr(sim, `reason.${W.canAppoint(c.npcId).reason}`, W.canAppoint(c.npcId).params || {}) }) : ''}
           ${button(promo.ok ? t('ui.promote_to', { rank: t(`worker_rank.${promo.next}`, { gender: npc.gender }) }) : t('ui.promote'), 'promote', { npc: c.npcId }, { cls: 'sm', disabled: !promo.ok, title: promo.ok ? '' : tr(sim, `reason.${promo.reason || 'max_rank'}`, promo.params || {}) })}
           ${this.confirmFire === c.npcId ? `${escapeHtml(t('ui.fire_confirm'))} ${button(t('ui.yes'), 'fire_yes', { npc: c.npcId }, { cls: 'danger sm' })} ${button(t('ui.no'), 'fire_no', {}, { cls: 'sm ghost' })}` : button(t('ui.fire'), 'fire', { npc: c.npcId }, { cls: 'sm ghost' })}
         </div>
@@ -174,6 +193,11 @@ export class WorkersPanel extends Panel {
     else if (action === 'toggle') this.open = this.open === data.npc ? null : data.npc;
     else if (action === 'buy_toggle') W.state.buy = W.state.buy === false;
     else if (action === 'contract_prio') W.state.contractPrio = data.p;
+    else if (action === 'appoint') {
+      const r = W.appoint(data.npc);
+      if (!r.ok) this.sim.toast(`reason.${r.reason}`, r.params || {}, 'warn');
+    } else if (action === 'dismiss_manager') W.dismissManager();
+    else if (action === 'duty') W.setDuty(data.d, !W.mgr()?.[data.d]);
     else if (action === 'budget') W.state.budget = Math.max(0, (W.state.budget ?? WORKFORCE.buyBudgetPerDay) + Number(data.d));
     else if (action === 'promote') W.promote(data.npc);
     else if (action === 'fire') this.confirmFire = data.npc;

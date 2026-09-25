@@ -167,6 +167,8 @@ export function resolveParams(sim, params = {}) {
     else if (k === 'crank') out[k] = t(`contractor_rank.${v}`);
     else if (k === 'grade' || k === 'speed') out[k] = t(`contract.grade.${v}`).toLowerCase();
     else if (k === 'dl') out[k] = t(`contract.when.${v}`);
+    else if (k === 'role') out[k] = t(`assignment.${v}`);
+    else if (k === 'ckind') out[k] = t(`contract.kind.${v}`);
     else if (k === 'edu_level') out[k] = t(`edu_level.${v}`);
     else if (k === 'works') out[k] = worksLabel(sim, params.building, v);
     else if (k === 'slevel') {

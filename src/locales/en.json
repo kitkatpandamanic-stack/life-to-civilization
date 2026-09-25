@@ -915,7 +915,10 @@
     "job_started": "You've already started on it — finish it yourself.",
     "need_skilled_hand": "It needs someone with {field} {n}+ — you or one of your workers.",
     "need_standing": "You need to be a {crank} first.",
-    "have_company": "You have a company already."
+    "have_company": "You have a company already.",
+    "not_your_worker": "They don't work for you.",
+    "need_workers": "You need at least {n} workers for a manager to be worth it.",
+    "is_workforce_manager": "They're your manager already."
   },
   "toast": {
     "hungry": "You're getting hungry. Press Q to eat.",
@@ -1102,7 +1105,8 @@
     "haggle_time_yes": "Agreed: {n} days.",
     "haggle_no": "They won't budge.",
     "haggle_walked": "They'll find someone else.",
-    "company_founded": "Your contracting company is registered!"
+    "company_founded": "Your contracting company is registered!",
+    "manager_appointed": "{npc} is your manager now ({money} a day)."
   },
   "objective": {
     "harvest": "Harvest ripe wheat in the farm fields ({have}/{qty})",
@@ -1513,7 +1517,8 @@
     "village_demolished": "The village cleared away {btype} — the ground is free to build on again.",
     "npc_converted": "{npc} turned {building} into a shop — the house had stood empty on a busy street.",
     "contractor_rank": "The contracts you've seen through earned you a new standing: {crank}.",
-    "company_founded": "{name} founded a contracting company."
+    "company_founded": "{name} founded a contracting company.",
+    "workforce_manager": "{npc} took charge of your workers as manager."
   },
   "event": {
     "good_harvest": {
@@ -2576,7 +2581,8 @@
       "job_accept_included": "I'll take it on — give me {money} and I'll get the materials.",
       "job_accept_player": "I'll bring the materials myself — pay me {money} for them at the end.",
       "job_ask_pay": "Make it {money} and I'll do it.",
-      "job_ask_time": "I'd need more time than that."
+      "job_ask_time": "I'd need more time than that.",
+      "ask_manage": "Would you manage my workers?"
     },
     "no_gifts": "You have nothing suitable to give.",
     "chat_again": [
@@ -2845,6 +2851,10 @@
     "job_urgent": [
       "It can't wait, mind.",
       "And it's needed soon."
+    ],
+    "manage_yes": [
+      "Me, in charge? I'd be glad to. I'll see everyone's where they should be.",
+      "Gladly. I'll keep them all busy — and {money} a day suits me fine."
     ]
   },
   "rank": {
@@ -2926,7 +2936,9 @@
     "harvesting_contract": "Harvesting a field for you",
     "working_forage": "Picking berries",
     "carrying_contract": "Carrying goods for a job",
-    "watering_contract": "Watering a field for you"
+    "watering_contract": "Watering a field for you",
+    "managing_rounds": "Going round your jobs",
+    "managing_plan": "Planning the work"
   },
   "schedule": {
     "wake": "Wake up",
@@ -5360,7 +5372,10 @@
     "books": "earned {money} · costs {money2} · {n} jobs",
     "found": "Found a company ({money})",
     "found_tip": "A firm with a name: one more contract at once, a crew that works a little better, businesses trust it more.",
-    "overview": "{n} contracts on · {free} workers free"
+    "overview": "{n} contracts on · {free} workers free",
+    "crew_by_you": "crew chosen by you",
+    "crew_by_manager": "crew by {name}",
+    "let_manager": "Let the manager handle it"
   },
   "ambition": {
     "title": "Ambitions",
@@ -6968,7 +6983,9 @@
     "csite": "Carrying {item} to a building site",
     "gather_berries": "Picking berries",
     "cwater": "Watering a client's field",
-    "csaw": "Sawing planks for a site"
+    "csaw": "Sawing planks for a site",
+    "minspect": "Looking over a job",
+    "mplan": "Planning who works where"
   },
   "jobcat": {
     "construction": "Construction",
@@ -7014,7 +7031,19 @@
     "contract_prio_high": "Contracts come first, always.",
     "contract_prio_medium": "Contracts before most of their usual work.",
     "contract_prio_low": "Their usual work first; contracts when there's time.",
-    "role": "Role"
+    "role": "Role",
+    "make_manager": "Make manager",
+    "is_manager": "Manager",
+    "manager_tip": "They stop doing the work themselves and run the rest: go round the jobs, put the best-suited workers on each contract, take them off jobs that are stuck, give roles, keep notes. Paid more.",
+    "no_manager": "Tip: make one of your workers manager, and they'll put the others on your contracts for you (you can still choose yourself).",
+    "manager_title": "Manager: {name}",
+    "manager_sub": "Goes round your jobs and decides who works where. A crew or a role you choose yourself is left as you set it.",
+    "duty_assign_on": "Assigns crews ✓",
+    "duty_assign_off": "Assigns crews ✗",
+    "duty_roles_on": "Sets roles ✓",
+    "duty_roles_off": "Sets roles ✗",
+    "dismiss_manager": "Dismiss as manager",
+    "manager_notes": "Manager's notes"
   },
   "land_name": {
     "lot": "{building} lot",
@@ -7493,5 +7522,17 @@
     "handyman": "Handyman",
     "contractor": "Contractor",
     "master_contractor": "Master contractor"
+  },
+  "manager_note": {
+    "appointed": "{npc} took charge of the workers.",
+    "assigned": "Put {npc} on the {ckind} job ({building}).",
+    "moved": "Moved {npc} to the {ckind} job — it's at risk.",
+    "pulled_stuck": "Took everyone off the {ckind} job — they can't get on with it.",
+    "pulled_idle": "Took everyone off the {ckind} job — nothing's been done for hours.",
+    "role": "Made {npc} a {role}.",
+    "unhappy": "{npc} is unhappy — pay, perhaps?",
+    "unpaid": "{npc} wasn't paid.",
+    "ill": "{npc} is ill.",
+    "late": "The {ckind} job is late."
   }
 }

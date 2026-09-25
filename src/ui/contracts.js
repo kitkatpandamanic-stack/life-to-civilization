@@ -133,8 +133,11 @@ export function contractCard(sim, c, mode) {
   const [kind, ico] = STATUS_LOOK[st] || STATUS_LOOK.working;
   const crew = (c.workers || []).map((id) => npcName(sim.npcs.byId(id))).filter(Boolean);
   const tracked = sim.state.contracts.tracked === c.id;
+  // Who chose the crew: you (your manager leaves it be) or your manager.
+  const M = sim.workers.mgr?.();
+  const who = !delegable ? '' : c.manual && M ? ` · 👤 ${escapeHtml(t('contract.crew_by_you'))}` : M && !c.manual ? ` · 🧑‍💼 ${escapeHtml(t('contract.crew_by_manager', { name: npcName(sim.npcs.byId(M.npc)) }))}` : '';
   const crewLine = delegable
-    ? `<div class="small">👷 ${escapeHtml(t('contract.workers_n', { n: crew.length, of: C.recommended(c) }))}${crew.length ? ` — ${escapeHtml(crew.join(', '))}` : ''}</div>`
+    ? `<div class="small">👷 ${escapeHtml(t('contract.workers_n', { n: crew.length, of: C.recommended(c) }))}${crew.length ? ` — ${escapeHtml(crew.join(', '))}` : ''}${who}${c.manual && M ? ` ${button(t('contract.let_manager'), 'contract_automate', { id: c.id }, { cls: 'sm ghost' })}` : ''}</div>`
     : '';
   const handover = c.kind === 'harvest' && (c.owed || 0) > 0 ? `<div class="warn small">${escapeHtml(tr(sim, 'contract.owed', { qty: c.owed, item: c.item, building: c.building }))}</div>` : '';
   const stuck = C.blocker?.(c);
@@ -283,6 +286,7 @@ export function contractAction(sim, action, data) {
   if (action === 'contract_abandon') return sim.contracts.abandon(id), true;
   if (action === 'contract_ship') return sim.contracts.fulfilOrder(id), true;
   if (action === 'contract_track') return sim.contracts.track(id), true;
+  if (action === 'contract_automate') return sim.contracts.automate(id), true;
   if (action === 'contract_history') return (view.history = !view.history), true;
   if (action === 'company_found') {
     const r = sim.contracts.found();

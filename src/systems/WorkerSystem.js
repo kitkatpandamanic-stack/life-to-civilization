@@ -28,6 +28,7 @@ import { HOUSING } from '../data/housing.js';
 import { STANDARD } from '../data/quality.js';
 import { GATHERABLE } from './ContractSystem.js';
 import { COMPANY } from '../data/contracting.js';
+import { WorkforceManager, MANAGER } from './WorkforceManager.js';
 import { FOCUS, PRIORITY_WEIGHT, WORK_FIELDS, PROFESSIONS, WORKFORCE as WF } from '../data/workforce.js';
 
 export const WORKER_RANKS = ['worker', 'skilled', 'supervisor', 'manager'];
@@ -51,6 +52,8 @@ export class WorkerSystem {
     sim.bus.on('time:day', () => this.onDay());
     // The watchdog looks round every ten minutes (see watchdog()).
     sim.bus.on('time:minute', (t) => t % 10 === 0 && this.list().length && this.watchdog());
+    // A manager of yours thinks it over every hour they're at work (WorkforceManager).
+    sim.bus.on('time:hour', () => this.state.manager && this.manage());
   }
 
   get contracts() {
@@ -238,10 +241,12 @@ export class WorkerSystem {
     return true;
   }
 
-  assign(npcId, assignment) {
+  /** Give a worker a role (their focus). by: 'player' (you — the manager leaves it be) or 'manager'. */
+  assign(npcId, assignment, by = 'player') {
     const c = this.contract(npcId);
     const npc = this.npcs().byId(npcId);
     if (!c || !npc) return;
+    c.roleBy = by;
     this.npcs().clearReservation(npc);
     this.release(c);
     c.assignment = assignment;
@@ -315,6 +320,7 @@ export class WorkerSystem {
     let b = Mod.teamBonus(this.sim.state.player);
     for (const c of this.list()) b += W.rankTeamBonus[c.rank] || 0;
     if (this.sim.state.contracts?.company) b += COMPANY.productivity;
+    if (this.state.manager) b += MANAGER.teamBonus; // someone organising the work
     return b;
   }
 
@@ -428,7 +434,7 @@ export class WorkerSystem {
     const out = [];
     const occupied = this.occupancy(npc.id);
     const add = (task) => {
-      const prio = task.contract ? PRIORITY_WEIGHT.high : PRIORITY_WEIGHT[S.jobs[task.cat] || 'off'];
+      const prio = task.contract || task.managed ? PRIORITY_WEIGHT.high : PRIORITY_WEIGHT[S.jobs[task.cat] || 'off'];
       if (!prio) return;
       if ((S.blocked[task.key] || 0) > now) return;
       if ((occupied[task.key] || 0) >= task.cap) return;
@@ -439,6 +445,11 @@ export class WorkerSystem {
       task.score = prio * 100 - d * 0.7 + skilled + (task.urgent || 0) + (queued >= 0 ? 1000 - queued * 10 : 0);
       out.push(task);
     };
+    // Your manager: rounds of the jobs, and planning at the base — nothing else.
+    if (this.isManager(npc.id)) {
+      this.managerTasks(npc, c, pos, add);
+      return out.sort((a, b) => b.score - a.score);
+    }
     // A contract you've put them on comes first.
     if (S.job !== undefined) {
       const job = sim.contracts.S.active.find((x) => x.id === S.job && x.workers?.includes(npc.id));
@@ -906,6 +917,10 @@ export class WorkerSystem {
       if (t.kind.startsWith('gather') && K.isGoods(job) && K.goodsLeft(job) <= 0) return false;
     }
     switch (t.kind) {
+      case 'minspect':
+        return this.isManager(npc.id) && sim.contracts.isActive(t.target);
+      case 'mplan':
+        return this.isManager(npc.id);
       case 'build': {
         const s = cons.byId(t.target);
         return !!s && s.status === 'site' && s.labor < cons.maxLabor(s) - 1;
@@ -971,6 +986,12 @@ export class WorkerSystem {
         task.until = now + Math.max(5, Math.round(WF.farmMinutes / (prod * skilled)));
         return;
       }
+      case 'minspect':
+      case 'mplan':
+        // Looking the job over (or planning at the base).
+        task.stage = 'working';
+        task.until = now + (t.kind === 'minspect' ? MANAGER.inspectMinutes : MANAGER.planMinutes);
+        return;
       case 'cwater': {
         const o = sim.resources.get(t.target);
         face(o.tx, o.ty);
@@ -1340,6 +1361,17 @@ export class WorkerSystem {
         sim.contracts.addWork(sim.contracts.S.active.find((x) => x.id === t.contract), npc.id, Math.max(0.1, Math.round(pts * 10) / 10));
         return this.next(npc);
       }
+      case 'minspect':
+      case 'mplan': {
+        // Seen how it's going: decide what's to be done.
+        if (t.kind === 'minspect') {
+          const M = this.mgr();
+          if (M) (M.seen ??= {})[t.target] = sim.time.total;
+        }
+        this.completed(npc, c);
+        this.manage();
+        return this.next(npc);
+      }
       case 'cwater': {
         // Watered: it'll grow for certain tomorrow.
         const o = sim.resources.get(t.target);
@@ -1563,6 +1595,8 @@ export class WorkerSystem {
     if (k === 'repair' || k === 'crepair') return { key: npc.moving ? 'going_to_site' : 'repairing', params: {} };
     if (k === 'charvest') return { key: npc.moving ? 'going_to_work' : 'harvesting_contract', params: {} };
     if (k === 'cwater') return { key: npc.moving ? 'going_to_work' : 'watering_contract', params: {} };
+    if (k === 'minspect') return { key: 'managing_rounds', params: {} };
+    if (k === 'mplan') return { key: 'managing_plan', params: {} };
     if (k === 'chaul' || k === 'cfetch' || k === 'csite' || k === 'corder' || k === 'cpost') return { key: 'carrying_contract', params: {} };
     if (k === 'cbuy') return { key: 'buying_materials', params: { item: c.task.item } };
     if (k === 'cshift') return { key: npc.moving ? 'going_to_work' : 'working_for_you', params: {} };
@@ -1579,3 +1613,6 @@ export class WorkerSystem {
 }
 
 export { W as WORKER_TUNING };
+
+// Your manager, if you appoint one: rounds of the jobs, who goes where, roles, notes.
+Object.assign(WorkerSystem.prototype, WorkforceManager);

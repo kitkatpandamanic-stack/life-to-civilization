@@ -439,6 +439,7 @@ export class ContractSystem {
     this.normalize(o).status = 'accepted';
     this.S.active.push(o);
     this.sim.bus.emit('contracts:changed');
+    this.sim.workers.mgr?.() && this.sim.workers.manage(); // your manager (if you have one) sees to it straight away
     return { ok: true };
   }
 
@@ -625,6 +626,7 @@ export class ContractSystem {
     this.normalize(c).status = 'accepted';
     this.S.active.push(c);
     sim.bus.emit('contracts:changed');
+    sim.workers.mgr?.() && sim.workers.manage();
     return { ok: true, id: c.id };
   }
   /** Where the work is (for the map arrow and "Go to job"). */
@@ -641,14 +643,20 @@ export class ContractSystem {
     return this.S.active.some((c) => c.id === id);
   }
 
-  /** Put these workers of yours on the job (the others come off it). They go straight there. */
-  assign(id, npcIds) {
+  /**
+   * Put these workers of yours on the job (the others come off it). They go straight there.
+   * by: 'player' (you chose the crew — your manager leaves it be) or 'manager'.
+   */
+  assign(id, npcIds, by = 'player') {
     const c = this.S.active.find((x) => x.id === id);
     if (!c || !this.canDelegate(c)) return { ok: false, reason: 'contract_gone' };
     this.normalize(c);
     const W = this.sim.workers;
-    const want = [...new Set(npcIds)].filter((n) => W.contract(n));
+    const want = [...new Set(npcIds)].filter((n) => W.contract(n) && !W.isManager?.(n));
     const was = c.workers;
+    if (by === 'player') c.manual = true;
+    else c.managedBy = W.mgr?.()?.npc;
+    if (want.some((n) => !was.includes(n))) c.crewSince = this.sim.time.total;
     c.workers = want;
     for (const n of was) if (!want.includes(n)) W.offContract(n);
     for (const n of want) {
@@ -660,6 +668,15 @@ export class ContractSystem {
     this.sim.bus.emit('contracts:changed');
     this.sim.bus.emit('workers:changed');
     return { ok: true, n: want.length };
+  }
+
+  /** Hand a contract (back) to your manager: they choose its crew from now on. */
+  automate(id) {
+    const c = this.S.active.find((x) => x.id === id);
+    if (!c) return;
+    c.manual = false;
+    this.sim.workers.manage?.();
+    this.sim.bus.emit('contracts:changed');
   }
 
   /** The contract a worker of yours is on. */

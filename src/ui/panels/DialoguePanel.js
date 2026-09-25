@@ -163,6 +163,11 @@ export class DialoguePanel extends Panel {
       if (sim.workers.contract(npc.id)) {
         opt(t('dialog.opt.how_is_work'), 'how_work');
         opt(t('dialog.opt.manage_workers'), 'manage');
+        // One of your workers could run the rest for you (WorkforceManager).
+        if (!sim.workers.isManager(npc.id) && sim.workers.list().length >= 2) {
+          const c = sim.workers.canAppoint(npc.id);
+          opt(t('dialog.opt.ask_manage'), 'ask_manage', {}, !c.ok, c.ok ? '' : tr(sim, `reason.${c.reason}`, c.params || {}));
+        }
       } else if (npc.age >= 16 && !['child', 'elder'].includes(npc.occupation) && !npc.owns) {
         const chk = sim.workers.canHire(npc);
         opt(t('dialog.opt.hire'), 'hire_view', {}, !chk.ok, chk.ok ? '' : tr(sim, `reason.${chk.reason}`, chk.params || {}));
@@ -529,6 +534,11 @@ export class DialoguePanel extends Panel {
           this.line = r.reason === 'offer_refused' ? this.say('dialog.hire_no') : tr(sim, `reason.${r.reason}`, r.params || {});
           this.view = 'main';
         }
+        break;
+      }
+      case 'ask_manage': {
+        const r = sim.workers.appoint(npc.id);
+        this.line = r.ok ? this.say('dialog.manage_yes', { money: sim.workers.contract(npc.id).salary }) : tr(sim, `reason.${r.reason}`, r.params || {});
         break;
       }
       case 'how_work': {
