@@ -130,7 +130,8 @@ export class PropertySystem {
     const cond = 0.25 + 0.75 * ((r?.condition ?? 100) / 100);
     // Its level, rooms and quality (StructureSystem) — a fine Level 4 house is worth more than a shoddy one.
     const build = this.sim.structures?.valueFactor(id) ?? 1;
-    const v = Math.round(base * build * cond * location * this.demand() * (this.sim.growth?.valueFactor(id) ?? 1));
+    // The housing market takes it apart and puts it together (RealtySystem: land, demand, rent it brings…).
+    const v = this.sim.realty ? this.sim.realty.priceParts(id).total : Math.round(base * build * cond * location * this.demand() * (this.sim.growth?.valueFactor(id) ?? 1));
     this.valueCache.set(id, { day, v });
     return v;
   }
@@ -143,6 +144,8 @@ export class PropertySystem {
 
   /** Housing demand: when homes are full, prices rise; when many stand empty, they fall. */
   demand() {
+    // The market's level, as supply and demand have moved it week by week (RealtySystem).
+    if (this.sim.realty) return this.sim.realty.idx;
     const day = this.sim.time.day;
     if (this.demandCache?.day === day) return this.demandCache.v;
     const homes = this.homes().filter((id) => !this.rec(id).abandoned);
@@ -156,6 +159,7 @@ export class PropertySystem {
 
   /** The going rent for a home like this, where it is, as things are (before the landlord's own pricing). */
   marketRent(id) {
+    if (this.sim.realty) return this.sim.realty.rentParts(id).total;
     return Math.max(3, Math.round(this.value(id) * H.rentPerWeekShare));
   }
 
@@ -259,6 +263,7 @@ export class PropertySystem {
       const from = n.homeId;
       if (from === id) continue;
       n.homeId = id;
+      n.homeSince = this.sim.time.day;
       n.lodger = false;
       n.plan = null;
       if (n.task && ['home', 'sleep', 'rest', 'sick'].includes(n.task.type)) n.task = null;
@@ -729,7 +734,9 @@ export class PropertySystem {
       const buyable = buyBudget > 0 && (r.forSale || r.owner === 'village' || !r.owner) && buyBudget >= price;
       const rent = this.weeklyRent(id);
       if (!buyable && rent > maxRent) continue;
-      out.push({ id, buy: buyable, price, rent, score: (buyable ? 50 : 0) - rent + this.capacity(id) * 2 + r.condition / 20 });
+      // Best first — for this household, as they see it (HousingSystem); otherwise simply the better deal.
+      const H6 = npc && this.sim.housing;
+      out.push({ id, buy: buyable, price, rent, score: H6 ? H6.evaluate(npc, id, { buy: buyable }).score : (buyable ? 50 : 0) - rent + this.capacity(id) * 2 + r.condition / 20 });
     }
     return out.sort((a, b) => b.score - a.score);
   }
@@ -846,6 +853,24 @@ export class PropertySystem {
     }
   }
 
+  /**
+   * Villager landlords watch the market: a house standing empty for weeks gets a lower rent;
+   * when homes are short and theirs is let, the rent goes up (the greedy sooner).
+   */
+  landlordsReview() {
+    const sim = this.sim;
+    const levels = ['cheap', 'normal', 'high'];
+    const d = this.demand();
+    for (const [id, r] of Object.entries(this.all)) {
+      const owner = sim.npcs.byId(r.owner);
+      if (!owner || !this.isHome(id) || owner.homeId === id) continue;
+      const i = levels.indexOf(r.rentLevel || 'normal');
+      if (this.occupants(id) === 0 && r.forRent && r.emptyDays >= 14 && i > 0) r.rentLevel = levels[i - 1];
+      else if (this.occupants(id) > 0 && d >= (owner.traits.includes('greedy') ? 1.15 : 1.3) && i < 2 && !owner.traits.includes('generous')) r.rentLevel = levels[i + 1];
+      else if (this.occupants(id) > 0 && d <= 0.9 && i > 0) r.rentLevel = levels[i - 1];
+    }
+  }
+
   market() {
     const sim = this.sim;
     const npcs = sim.state.npcs;
@@ -920,7 +945,8 @@ export class PropertySystem {
         }
       }
     }
-    // 6. Villagers with money put it into houses to let.
+    // 6. Villagers with money put it into houses to let (or build them); landlords set their rents by the market.
     this.investInHouses();
+    this.landlordsReview();
   }
 }

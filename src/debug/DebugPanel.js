@@ -116,6 +116,12 @@ export function installDebugPanel(dev) {
       sim.letting.moveIn(n, id, 'debug');
       console.log('rental', id, 'tenant', n.id, P.lease(id));
     },
+    // Housing decisions: every household thinks it over now (moves are logged), and how content each is.
+    housing: (sim) => {
+      const moves = sim.housing.weekly({ all: true });
+      console.table(moves);
+      console.table(sim.state.npcs.filter((n) => sim.housing.isHead(n)).map((n) => ({ npc: n.id, home: n.homeId, sat: n.housing?.sat, wants: (n.housing?.wants || []).join(' ') })));
+    },
     rentday: (sim) => {
       sim.property.collectRent();
       sim.property.market();
@@ -250,7 +256,7 @@ export function installDebugPanel(dev) {
         ${btn('contact', 'Contact all settlements')}${btn('week', 'Settlements: a week')}${btn('caravans', 'Send caravans')}${btn('horse', 'Get a horse cart')}
         ${btn('election', 'Election now')}${btn('headman', 'Make me headman')}${btn('fund', 'Fill civic fund')}${btn('renown', '+20 renown')}
         ${btn('edu_school', 'Build school')}${btn('edu_trade', 'Build trade school')}${btn('edu_institute', 'Build institute')}${btn('edu_teacher', 'Make a teacher')}${btn('edu_enrol', 'Enrol now')}
-        ${btn('rental', 'A house to let, let')}${btn('rentday', 'Rent day')}${btn('hire3', 'Hire 3 workers')}${btn('edu_week', 'Education: a week')}${btn('edu_year', 'School year ends')}${btn('edu_research', '+20 research')}${btn('edu_spread', 'Know-how spreads')}${btn('edu_talent', 'Talented pupil')}${btn('edu_scholar', 'Scholar arrives')}${btn('edu_inspect', 'Inspect learning')}
+        ${btn('rental', 'A house to let, let')}${btn('rentday', 'Rent day')}${btn('housing', 'Households review homes')}${btn('hire3', 'Hire 3 workers')}${btn('edu_week', 'Education: a week')}${btn('edu_year', 'School year ends')}${btn('edu_research', '+20 research')}${btn('edu_spread', 'Know-how spreads')}${btn('edu_talent', 'Talented pupil')}${btn('edu_scholar', 'Scholar arrives')}${btn('edu_inspect', 'Inspect learning')}
       </div>
       ${workersHtml(sim)}
       <div class="dbg-sel">

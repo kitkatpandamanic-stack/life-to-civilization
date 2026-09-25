@@ -15,7 +15,7 @@ import { t, fmtMoney, npcName, itemName } from '../../i18n/i18n.js';
 import { escapeHtml, buildingLabel, villageName, parcelName, tr } from '../format.js';
 import { RENTAL } from '../../data/housing.js';
 import { bar, icon, tabs, portrait, stat, statGrid, emptyState } from '../widgets.js';
-import { propBadges } from '../property.js';
+import { propBadges, marketHtml } from '../property.js';
 import { ITEMS } from '../../data/items.js';
 import { SKILLS } from '../../data/skills.js';
 import { PLAYER_TRANSPORT } from '../../data/settlements.js';
@@ -284,6 +284,7 @@ export class AffairsPanel extends Panel {
           <h3>${escapeHtml(t('affairs.buildings'))}</h3>${summary}${letting}${buildings || emptyState('🏠', t('affairs.no_props_title'), t('affairs.no_props_text'))}
           <h3>${escapeHtml(t('affairs.land'))}</h3>${land || none}
           <h3>${escapeHtml(t('affairs.outposts'))}</h3>${outposts || none}
+          <h3>🏘️ ${escapeHtml(t('market_ui.title'))}</h3>${marketHtml(sim)}
         </div>
         <div class="col">
           <h3>${escapeHtml(t('affairs.businesses'))} <span class="muted small">${escapeHtml(t('affairs.profit_week'))}</span></h3>${businesses || none}

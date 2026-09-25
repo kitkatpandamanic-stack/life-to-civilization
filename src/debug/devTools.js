@@ -23,7 +23,8 @@ const KEYS = {
   esc: ['Escape', 'Escape', 27], 1: ['1', 'Digit1', 49], 2: ['2', 'Digit2', 50], 3: ['3', 'Digit3', 51], 4: ['4', 'Digit4', 52], 5: ['5', 'Digit5', 53],
 };
 
-const scene = () => window.game?.scene.getScene('Game');
+// (Before the game has booted — or while it's being torn down — there's no scene manager yet.)
+const scene = () => window.game?.scene?.getScene?.('Game') ?? null;
 
 const dev = {
   get sim() {

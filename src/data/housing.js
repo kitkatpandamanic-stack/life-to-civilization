@@ -71,6 +71,9 @@ export const RENTAL = {
   investReserve: 1.6, // …if they have the price × this
   investExtra: 150, // …and this much besides
   maxRentals: 3, // houses one villager lets out at most
+  buildIdx: 1.25, // homes this short (the market level) before a villager builds one to let…
+  buildPaybackWeeks: 45, // …if today's rents would pay for it within this many weeks…
+  buildReserve: 1.3, // …and they have the cost × this
   managerFee: 0.1, // a property manager takes this share of the rent…
   managerMinFee: 3, // …and at least this a week
   managerRel: 15, // someone who'll look after your houses must think this well of you
@@ -78,6 +81,52 @@ export const RENTAL = {
   managerRepairMarkup: 1.3, // (paying a builder: money for the materials too)
   managerAdAfter: 3, // days empty before they pay for an advertisement
   managerNoticeWeeks: 2, // weeks behind before they give a tenant notice
+};
+
+/**
+ * How villagers choose a home (HousingSystem, building spec Phase 6). A household weighs each
+ * home it could have: what it costs against what they earn, room for everyone, the walk to work
+ * and to school, the house itself, the street it's on, how safe it feels, the road, family nearby
+ * — each by how much *this* household cares (their traits and circumstances). They move when
+ * somewhere is clearly better, not for every small gain.
+ */
+export const HOUSING_CHOICE = {
+  reviewEveryWeeks: 4, // each household thinks it over about once a month
+  moveGain: 0.8, // how much better another home must be before a tenant moves
+  ownerMoveGain: 2.2, // (owners have far more to lose by moving)
+  stayPerYear: 0.2, // attachment to the home they know, per year lived there…
+  stayMax: 0.5, // …up to this
+  maxMovesPerWeek: 2, // the valley isn't a game of musical chairs
+  commuteScale: 40, // tiles of walk that count as "far"
+  neighbourhoodRadius: 10,
+  servicesRadius: 14,
+  industryRadius: 6,
+  industry: ['smithy', 'forge', 'lumberyard', 'quarry_hut', 'mining_camp', 'mill', 'warehouse_bld'],
+  services: ['store', 'tavern', 'shopfront', 'market_hall', 'clinic', 'well', 'bakery'],
+  buyBonus: 0.6, // owning rather than renting (more for those set on it)
+};
+
+/**
+ * The housing market (RealtySystem, Phase 7): how supply and demand set the level of rents and
+ * prices, and what a home's price and rent are made of.
+ */
+export const REALTY = {
+  minIdx: 0.6, // the market level can fall this far when homes stand empty…
+  maxIdx: 1.8, // …and rise this far when they're short
+  pressure: 0.5, // how strongly people looking (against homes free) push it
+  maxStep: 0.05, // it moves at most this much a week
+  keepWeeks: 24, // weeks of market figures kept
+  roadBonus: 0.08, // a road at the door
+  wellBonus: 0.03, // a well within reach
+  landShare: 0.25, // how much of the land's value shows in a building's price
+  incomeWeeks: 20, // a buyer pays up to this many weeks' rent for a let house…
+  incomeShare: 0.3, // …for the part of it above what the building's worth
+  jobsRadius: 20, // work within this walk counts for rent…
+  perJob: 0.01, // …each job a little
+  jobsMax: 0.08,
+  perService: 0.015, // shops, the tavern, a well nearby
+  servicesMax: 0.05,
+  areaShare: 0.06, // the state of the street
 };
 
 export const HOUSING = {

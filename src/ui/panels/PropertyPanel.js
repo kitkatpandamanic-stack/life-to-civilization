@@ -8,7 +8,7 @@ import { Panel } from '../Panel.js';
 import { t, npcName, fmtMoney, itemName } from '../../i18n/i18n.js';
 import { tr, escapeHtml, buildingLabel, dateString, npcRole, districtLabel, agoText } from '../format.js';
 import { bar, button, portrait, tabs, stat, statGrid, status, condBar, emptyState, notice } from '../widgets.js';
-import { propBadges, rentMarket } from '../property.js';
+import { propBadges, rentMarket, worthBreakdown } from '../property.js';
 import { structureHtml, structureParts, structureAction, jobLabel, levelName } from '../structure.js';
 import { RENT_LEVELS } from '../../systems/PropertySystem.js';
 import { LETTING } from '../../systems/LettingSystem.js';
@@ -210,6 +210,7 @@ export class PropertyPanel extends Panel {
           ${kv(t('ui.owner'), escapeHtml(this.ownerLabel(r.owner)))}
           ${sim.structures.rec(this.bid) ? kv(t('structure.what'), `<span class="clickable" data-action="tab" data-tab="building">${escapeHtml(levelName(sim, this.bid))} · ${escapeHtml(t('structure.level_short', { n: sim.structures.level(this.bid) }))} · ${escapeHtml(t('structure.quality'))} ${sim.structures.quality(this.bid)}%</span>`) : ''}
           ${this.districtRow(kv)}
+          ${value ? `<h3>${escapeHtml(t('worth.title'))}</h3>${worthBreakdown(sim, this.bid, { rent: isHome && !bizId && this.bid !== 'hall' })}` : ''}
           <div class="bar-label"><span>${escapeHtml(t('ui.condition'))}</span></div>${condBar(r.condition)}
           ${isHome ? `<h3>${escapeHtml(t('ui.residents'))} <span class="muted small">${escapeHtml(t('ui.capacity_n', { n: P.occupants(this.bid), cap: P.capacity(this.bid) }))}</span></h3>
           ${people ? `<div class="people">${people}</div>` : `<div class="muted small">${escapeHtml(t('ui.nobody_lives_here'))}</div>`}` : ''}

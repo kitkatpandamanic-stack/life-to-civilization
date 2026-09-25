@@ -5,8 +5,8 @@
  */
 import { Panel } from '../Panel.js';
 import { t, fmtMoney } from '../../i18n/i18n.js';
-import { tr, escapeHtml, buildingLabel, parcelName } from '../format.js';
-import { button, stat, statGrid } from '../widgets.js';
+import { tr, escapeHtml, buildingLabel, parcelName, dateString } from '../format.js';
+import { button, stat, statGrid, notice } from '../widgets.js';
 import { ownerLabel } from '../land.js';
 import { T } from '../../world/WorldGenerator.js';
 
@@ -79,8 +79,12 @@ export class LandPanel extends Panel {
       </div>
       <h3>${escapeHtml(t('ui.land_features'))}</h3>
       ${features}
+      ${this.becomeHtml()}
+      ${this.worthHtml()}
       ${on.length ? `<h3>${escapeHtml(t('ui.on_this_land'))}</h3>${on.join('')}` : ''}
+      ${this.eventsHtml()}
       ${hist ? `<h3>${escapeHtml(t('land_ui.history'))}</h3>${hist}` : ''}
+      ${owned ? this.nextDoorHtml() : ''}
       <div class="btn-row">${action}</div>
       ${check && !check.ok && check.reason !== 'already_owned' ? `<div class="warn small">${escapeHtml(tr(sim, `reason.${check.reason}`, check.params || {}))}</div>` : ''}
       <div class="muted small">${escapeHtml(t(owned ? 'ui.land_hint' : 'land_ui.buy_hint'))}</div>`;
@@ -132,7 +136,92 @@ export class LandPanel extends Panel {
     }
   }
 
+  /** What the land has become: its type (from what's on it), people, work, trade, resources — and what's wanted around it. */
+  becomeHtml() {
+    const sim = this.sim;
+    const T2 = sim.territory;
+    const p = T2.profile(this.plotId);
+    if (!p) return '';
+    const kinds = Object.entries(p.kinds).map(([k, n]) => t(`land_kind_b.${k}`, { n })).join(", ");
+    const res = [];
+    if (p.resources.trees) res.push(t('land_ui.res_trees', { n: p.resources.trees }));
+    if (p.resources.rocks) res.push(t('land_ui.res_rocks', { n: p.resources.rocks }));
+    if (p.resources.farmland) res.push(t('land_ui.res_fields', { n: p.resources.farmland }));
+    if (p.resources.water) res.push(t('land_ui.res_water'));
+    const infra = [p.infra.road ? t('land_ui.infra_road') : t('land_ui.infra_no_road'), p.infra.well ? t('land_ui.infra_well') : null, p.roads ? t('land_ui.road_tiles', { n: p.roads }) : null].filter(Boolean);
+    const q = T2.parcel(this.plotId);
+    const pr = T2.pressure(Math.round(q.cx), Math.round(q.cy));
+    const calls = [];
+    if (pr.housing > 0) calls.push(t('land_ui.calls_housing', { n: pr.jobs }));
+    if (pr.wantsShop) calls.push(t('land_ui.calls_shop', { n: pr.homes }));
+    if (pr.industry && pr.homesClose >= 2) calls.push(t('land_ui.calls_quiet'));
+    const kv = (k, v) => `<div class="kv"><span>${escapeHtml(k)}</span><b>${escapeHtml(String(v))}</b></div>`;
+    return `<h3>${escapeHtml(t('land_ui.become'))}</h3>
+      ${kv(t('land_ui.type'), t(`territory_type.${p.type}`))}
+      <div class="muted small">${escapeHtml(t(`territory_why.${p.type}`))}${kinds ? ` — ${escapeHtml(kinds)}` : ''}</div>
+      ${p.population ? kv(t('land_ui.population'), p.population) : ''}
+      ${p.jobs ? kv(t('land_ui.jobs'), p.jobs) : ''}
+      ${p.activity ? kv(t('land_ui.activity'), fmtMoney(p.activity)) : ''}
+      ${res.length ? kv(t('land_ui.resources'), res.join(', ')) : ''}
+      ${kv(t('land_ui.infra'), infra.join(', '))}
+      ${calls.length ? notice('info', escapeHtml(t('land_ui.calls', { list: calls.join('; ') })), '📣') : ''}`;
+  }
+
+  /** What the land is worth and why, how that's moved, and how built-up it is (Phase 9). */
+  worthHtml() {
+    const sim = this.sim;
+    const T2 = sim.territory;
+    const rec = T2.rec(this.plotId);
+    const v = T2.valueTarget(this.plotId);
+    const dev = T2.development(this.plotId);
+    const pct = (x) => `${x >= 0 ? '+' : '−'}${Math.abs(Math.round(x * 100))}%`;
+    const why = Object.entries(v.parts)
+      .filter(([, x]) => Math.abs(x) >= 0.005)
+      .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+      .map(([k, x]) => `<div class="wb-row"><span>${escapeHtml(t(`land_value.${k}`))}</span><b class="${x < 0 ? 'neg' : ''}">${pct(x)}</b></div>`)
+      .join('');
+    const hist = rec?.lvh || [];
+    const max = Math.max(...hist, 1);
+    const spark = hist.length > 1 ? `<div class="spark" title="${escapeHtml(t('land_ui.value_trend'))}">${hist.map((x) => `<i style="height:${Math.max(8, Math.round((x / max) * 100))}%"></i>`).join('')}</div>` : '';
+    const change = hist.length > 1 ? (hist.at(-1) - hist[0]) / Math.max(1, hist[0]) : 0;
+    const devWhy = Object.entries(dev.parts)
+      .filter(([, x]) => x >= 0.05)
+      .sort((a, b) => b[1] - a[1])
+      .map(([k]) => t(`land_dev_part.${k}`))
+      .join(', ');
+    const kv = (k, val) => `<div class="kv"><span>${escapeHtml(k)}</span><b>${val}</b></div>`;
+    return `<h3>${escapeHtml(t('land_ui.worth'))}</h3>
+      ${kv(t('land_ui.value_now'), `${escapeHtml(fmtMoney(T2.price(this.plotId)))}${hist.length > 1 ? ` <span class="${change < 0 ? 'neg' : 'muted'} small">${change >= 0 ? '📈' : '📉'} ${pct(change)}</span>` : ''}`)}
+      ${spark}
+      ${why ? `<div class="wb"><div><div class="wb-head">${escapeHtml(t('land_ui.value_why'))}</div>${why}</div><div><div class="wb-head">${escapeHtml(t('land_ui.development'))}</div><div class="wb-row"><span>${escapeHtml(t(`dev_level.${dev.level}`))}</span></div><div class="muted small">${escapeHtml(devWhy || t('land_ui.dev_nothing'))}</div></div></div>` : ''}`;
+  }
+
+  /** What has happened to this land (it became residential, it was built up…). */
+  eventsHtml() {
+    const sim = this.sim;
+    const ev = (sim.territory.rec(this.plotId)?.events || []).slice(-5).reverse();
+    if (!ev.length) return '';
+    return `<h3>${escapeHtml(t('land_ui.story'))}</h3>${ev.map((e) => `<div class="small"><span class="muted">${escapeHtml(dateString(e.day))}</span> ${escapeHtml(tr(sim, `land_event.${e.k}`, e.k === 'dev' ? { dev: e.to } : { tfrom: e.from, ttype: e.to }))}</div>`).join('')}`;
+  }
+
+  /** Land next to yours: grow your holding a plot at a time (walk over to buy). */
+  nextDoorHtml() {
+    const sim = this.sim;
+    const T2 = sim.territory;
+    const rows = T2.neighbours(this.plotId)
+      .filter((id) => T2.owner(id) !== 'player')
+      .map((id) => ({ id, chk: T2.canBuy(id, 'player', { anywhere: true }) }))
+      .filter((x) => x.chk.ok || x.chk.reason === 'no_money')
+      .slice(0, 6)
+      .map((x) => `<div class="rumor clickable" data-action="land" data-id="${x.id}">🏞️ ${escapeHtml(parcelName(sim, x.id))} <span class="muted small">· ${escapeHtml(ownerLabel(sim, T2.owner(x.id)))} · ${escapeHtml(fmtMoney(x.chk.price ?? T2.price(x.id)))}</span></div>`);
+    return rows.length ? `<h3>${escapeHtml(t('land_ui.next_door'))}</h3>${rows.join('')}<div class="muted small">${escapeHtml(t('land_ui.next_door_hint'))}</div>` : '';
+  }
+
   onAction(action, data) {
+    if (action === 'land') {
+      this.ui.openLand(data.id);
+      return;
+    }
     if (action === 'buy') this.sim.land.buy(this.plotId);
     else if (action === 'build') this.ui.openBuild();
     else if (action === 'building') this.ui.openProperty(data.id);

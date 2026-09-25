@@ -24,8 +24,10 @@ const runOn = (sim) => (minutes) => {
   check('owners are who the business says', sim.state.npcs.filter((n) => n.owns).every((n) => sim.economy.biz(n.owns).owner === n.id));
   const json = JSON.stringify(sim.state);
   const sim2 = new Simulation(JSON.parse(json));
+  // (Both run on two more days — the loaded one must go exactly the same way.)
   runOn(sim2)(2 * 1440);
-  check('a world with new businesses saves and loads', sim2.economy.ids().length === sim.economy.ids().length);
+  run(2 * 1440);
+  check('a world with new businesses saves and loads', sim2.economy.ids().length === sim.economy.ids().length && sim2.economy.ids().every((id) => sim.economy.ids().includes(id)));
 }
 
 // 2. Competition: a second bakery takes customers, and prices react.

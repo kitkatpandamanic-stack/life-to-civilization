@@ -144,8 +144,13 @@ const L = long.eduworld.stats();
 const keys = new Set(long.state.chronicle.map((e) => e.key));
 console.log(`   ${years}y in ${secs.toFixed(0)}s: pop ${L.pop}, literacy ${(L.literacy * 100).toFixed(0)}%, pupils ${L.pupils}, teachers ${L.teachers}, apprentices ${L.apprentices}, masters ${L.masters}, students away ${L.students}, schools ${long.schools.list().length}, known for ${L.specialty || '—'}`);
 console.log(`   education news: ${[...keys].filter((k) => /school|teacher|pupil|graduate|apprentice|journeyman|course|university|research|literacy|landmark|known_for|talent/.test(k)).join(', ')}`);
-check('in time the village builds itself a school', long.schools.list().length > 0 || long.construction.list.some((c) => c.type === 'school'));
-check('…children go to it', long.state.npcs.some((n) => n.edu?.enrol) || long.state.chronicle.some((e) => e.key === 'chronicle.first_pupils'));
+// (A school is built once there are children enough for one — CIVIC.school.when; a valley where
+// few children were born may not get there in five years, and that's no failure.)
+const kidsNow = long.state.npcs.filter((n) => n.age >= 5 && n.age <= 15).length;
+const hasSchool = long.schools.list().length > 0 || long.construction.list.some((c) => c.type === 'school');
+const villageSaving = long.tech.civicWanted() === 'school' || long.state.village.civicSaving?.type === 'school';
+check('in time the village builds itself a school (once it has the children)', hasSchool || (kidsNow < 5 && (villageSaving || kidsNow < 3)), `schools ${long.schools.list().length}, children ${kidsNow}`);
+check('…children go to it', !hasSchool || long.state.npcs.some((n) => n.edu?.enrol) || long.state.chronicle.some((e) => e.key === 'chronicle.first_pupils'));
 check('…and young people learn trades from masters', long.state.education.apprenticeships.length > 0);
 check('the simulation keeps up (less than 2 minutes a game year headless)', secs / years < 120, `${(secs / years).toFixed(0)}s a year`);
 

@@ -325,6 +325,16 @@ h3:first-child { margin-top: 0; }
 .land-chip.mine .lc-owner { color: var(--c-primary); }
 .land-chip.sale .lc-owner { color: var(--c-success); }
 .land-owner { font-weight: 800; margin-bottom: 8px; }
+/* What a building is worth, part by part; the housing market */
+.wb { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 12px; }
+.wb-head { font-weight: 800; color: var(--c-text-2); margin-bottom: 2px; }
+.wb-row { display: flex; justify-content: space-between; gap: 6px; padding: 1px 0; }
+.wb-row b { font-variant-numeric: tabular-nums; }
+.wb-row b.neg { color: var(--c-danger); }
+.wb-total { border-top: 1px solid var(--c-divider); margin-top: 2px; padding-top: 3px; }
+.spark { display: flex; align-items: flex-end; gap: 3px; height: 36px; margin: 8px 0 4px; }
+.spark i { flex: 1; background: var(--c-primary-2); border-radius: 2px 2px 0 0; opacity: 0.8; }
+@media (max-width: 560px) { .wb { grid-template-columns: 1fr; } }
 /* Setting the rent */
 .rent-set { display: flex; align-items: center; gap: 8px; margin: 4px 0 6px; }
 .rent-set .rent-ask { font-size: 20px; min-width: 64px; text-align: center; font-variant-numeric: tabular-nums; }

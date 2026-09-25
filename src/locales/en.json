@@ -894,7 +894,8 @@
     "letting_rent_too_high": "the rent is far above the going rate",
     "letting_moving": "they're moving on",
     "letting_arrears": "rent owed",
-    "letting_landlord": "the landlord wants the house back"
+    "letting_landlord": "the landlord wants the house back",
+    "letting_better_home": "it suits them better"
   },
   "toast": {
     "hungry": "You're getting hungry. Press Q to eat.",
@@ -1439,7 +1440,13 @@
     "notice_given": "{npc} was given notice to leave {building}.",
     "tenants_left": "{npc} moved out of {building}.",
     "npc_became_landlord": "{npc} bought {building} to let it out — a landlord now.",
-    "npc_more_rentals": "{npc} bought {building} to let — {n} houses now."
+    "npc_more_rentals": "{npc} bought {building} to let — {n} houses now.",
+    "npc_moved_for": "{npc} moved to {building} — {hwhy}.",
+    "rents_rising": "Rents are climbing — an ordinary home now lets for {money} a week.",
+    "rents_falling": "Rents are falling — homes stand empty, and an ordinary one lets for {money} a week.",
+    "npc_builds_to_let": "{npc} is building a house to let — homes are short and rents are high.",
+    "land_became": "{plot} has changed: once {tfrom}, it is now {ttype}.",
+    "land_developed": "{plot} is now {dev} — the village is growing into it."
   },
   "event": {
     "good_harvest": {
@@ -3206,7 +3213,8 @@
     "rent_raised": "The rent on {building} went up to {money}.",
     "rent_lowered": "The rent on {building} came down to {money}.",
     "bought_rental": "Bought {building} to let.",
-    "manages_player_houses": "Looks after your houses for you."
+    "manages_player_houses": "Looks after your houses for you.",
+    "moved_for": "Moved to {building}: {hwhy}."
   },
   "talk": {
     "deflect": [
@@ -3670,6 +3678,10 @@
       "bought_rental": [
         "I've bought {building} to let. The rent will pay for itself in time.",
         "A house to let — that's where money should go, not under the bed."
+      ],
+      "moved_for": [
+        "We've moved to {building} — {hwhy}. Best thing we've done in a while.",
+        "Have you seen our new place? {building}. We wanted {hwhy}."
       ]
     },
     "work": {
@@ -5803,7 +5815,8 @@
     "own_place": "wants a place of their own",
     "near_work": "closer to work",
     "better_deal": "a better deal than now",
-    "curious": "saw your notice"
+    "curious": "saw your notice",
+    "better_home": "it suits them better"
   },
   "knowledge": {
     "reading": "reading",
@@ -6601,7 +6614,35 @@
     "gone": "This land isn't there as it was any more.",
     "buy_hint": "You buy land standing on it (or right beside it). Land that belongs to nobody is bought from the village — it keeps the register.",
     "for_sale_short": "for sale",
-    "chip_tip": "The land you're standing on. Click to look at it — and to buy it."
+    "chip_tip": "The land you're standing on. Click to look at it — and to buy it.",
+    "become": "What it has become",
+    "type": "Land use",
+    "population": "People living here",
+    "jobs": "People working here",
+    "activity": "Trade this week",
+    "resources": "Resources",
+    "res_trees": "{n} trees",
+    "res_rocks": "{n} rocks",
+    "res_fields": "{n} tiles of field",
+    "res_water": "water",
+    "infra": "Access",
+    "infra_road": "road",
+    "infra_no_road": "no road near",
+    "infra_well": "a well near",
+    "road_tiles": "{n} tiles of road along it",
+    "calls": "Around here, people could use: {list}.",
+    "calls_housing": "homes for the {n} who work nearby",
+    "calls_shop": "a shop for the {n} houses around",
+    "calls_quiet": "less noise — workshops sit close to houses",
+    "story": "What's happened here",
+    "next_door": "Next to your land",
+    "next_door_hint": "Walk over to a plot to buy it and grow your holding.",
+    "worth": "What the land is worth",
+    "value_now": "Worth today",
+    "value_trend": "Its price, week by week",
+    "value_why": "Against bare land",
+    "development": "Development",
+    "dev_nothing": "nothing built here yet"
   },
   "lease": {
     "title": "Tenancy",
@@ -6633,5 +6674,138 @@
   "manager": {
     "looks_after": "{npc} looks after your houses",
     "none_hint": "no manager yet — ask someone who knows you well"
+  },
+  "housing_why": {
+    "cheaper": "the rent is easier",
+    "roomier": "more room",
+    "near_work": "closer to work",
+    "near_school": "closer to the school",
+    "better_house": "a better house",
+    "centre": "nearer the centre",
+    "quiet": "somewhere quieter",
+    "nicer_area": "a nicer street",
+    "safer": "a safer spot",
+    "road": "a road at the door",
+    "near_family": "near family",
+    "own_home": "a home of their own",
+    "better_home": "a home that suits them better"
+  },
+  "housing_want": {
+    "too_dear": "rent is a stretch",
+    "crowded": "too cramped",
+    "far_from_work": "long walk to work",
+    "far_from_school": "long walk to school",
+    "run_down": "house is run down",
+    "rough_area": "rough street",
+    "unsafe": "doesn't feel safe",
+    "far_from_family": "far from family",
+    "no_home": "no home of their own"
+  },
+  "housing_ui": {
+    "content": "Happy at home"
+  },
+  "worth": {
+    "title": "What it's worth, and why",
+    "price": "Price",
+    "rent": "Rent a week",
+    "total": "Price",
+    "total_week": "Rent",
+    "building": "The building",
+    "base": "The house",
+    "condition": "Its repair",
+    "location": "Location",
+    "infrastructure": "Road and well",
+    "district": "The district",
+    "land": "The land",
+    "demand": "Demand",
+    "income": "Rent it brings in",
+    "jobs": "Work nearby",
+    "services": "Shops and services near",
+    "neighbourhood": "The street"
+  },
+  "market_ui": {
+    "title": "Housing market",
+    "homes": "Homes",
+    "vacant": "Standing empty",
+    "looking": "Looking for a home",
+    "avg_rent": "Average rent",
+    "avg_price": "Average price",
+    "demand": "Demand",
+    "rent_trend": "Average rent, week by week",
+    "no_data": "The market's first figures come at the end of the week.",
+    "hint": "When more people are looking than there are homes free, rents and prices climb — and building houses to let begins to pay."
+  },
+  "territory_type": {
+    "residential": "Residential",
+    "commercial": "Commercial",
+    "industrial": "Industrial",
+    "agricultural": "Farmland",
+    "forest": "Forest",
+    "mining": "Mining land",
+    "education": "Education",
+    "research": "Research",
+    "government": "Village grounds",
+    "recreation": "Leisure",
+    "mixed": "Mixed",
+    "developing": "Being built on",
+    "undeveloped": "Undeveloped"
+  },
+  "territory_why": {
+    "residential": "people live here",
+    "commercial": "shops and trade",
+    "industrial": "workshops and yards",
+    "agricultural": "fields are worked here",
+    "forest": "woods, untouched",
+    "mining": "stone in the ground (or a cave near)",
+    "education": "a school or a place of learning",
+    "research": "the institute works here",
+    "government": "the village's own buildings",
+    "recreation": "where people go to unwind",
+    "mixed": "homes, trade and work side by side",
+    "developing": "building has begun",
+    "undeveloped": "nothing much here yet"
+  },
+  "land_kind_b": {
+    "home": "homes: {n}",
+    "shop": "shops: {n}",
+    "industry": "workshops: {n}",
+    "farm": "farms: {n}",
+    "public": "public buildings: {n}",
+    "school": "schools: {n}",
+    "research": "institutes: {n}",
+    "leisure": "taverns: {n}",
+    "trade": "depots: {n}"
+  },
+  "land_event": {
+    "type": "It became {ttype} (it was {tfrom}).",
+    "dev": "It became {dev}."
+  },
+  "land_value": {
+    "road": "Road access",
+    "infrastructure": "A well near",
+    "jobs": "Work nearby",
+    "population": "People nearby",
+    "services": "Shops nearby",
+    "activity": "Trade nearby",
+    "education": "A school near",
+    "safety": "Safety",
+    "demand": "Demand for homes",
+    "environment": "Surroundings",
+    "development": "How built-up it is"
+  },
+  "dev_level": {
+    "undeveloped": "Undeveloped",
+    "developing": "Developing",
+    "developed": "Developed",
+    "highly_developed": "Highly developed"
+  },
+  "land_dev_part": {
+    "buildings": "buildings",
+    "population": "people living here",
+    "jobs": "work",
+    "roads": "roads",
+    "infrastructure": "a well",
+    "services": "shops near",
+    "activity": "trade"
   }
 }

@@ -17,6 +17,8 @@
  */
 import { VILLAGE_BUILDINGS, GROWTH as G } from '../data/villageBuildings.js';
 import { AREAS } from '../data/villageLayout.js';
+import { TERRITORY } from '../data/territory.js';
+import { RENTAL } from '../data/housing.js';
 import { ITEMS } from '../data/items.js';
 import { T } from '../world/WorldGenerator.js';
 import { rand, hashStr } from '../core/rng.js';
@@ -121,8 +123,11 @@ export class GrowthSystem {
     const door = { tx: tx + Math.floor(def.w / 2), ty: ty + def.h };
     const road = this.roadDistance(door.tx, door.ty);
     if (road === Infinity) return;
-    // Near the centre, near a road; buildings line streets rather than scatter.
-    take({ tx, ty, score: Math.hypot(tx - near.tx, ty - near.ty) + road * 1.5 });
+    // Near the centre, near a road; buildings line streets rather than scatter. And where it suits
+    // what it is (TerritorySystem): homes by work and shops, workshops away from houses, shops among people.
+    const kind = this.kindOfType(def);
+    const suit = kind && this.sim.territory ? this.sim.territory.suitability(kind, door.tx, door.ty) : 0;
+    take({ tx, ty, score: Math.hypot(tx - near.tx, ty - near.ty) + road * 1.5 - suit * TERRITORY.suitWeight });
   }
 
   // ------------------------------------------------------------------ materials & money
@@ -260,6 +265,25 @@ export class GrowthSystem {
     T2.acquireLot(owner.id, ...rect, { pay: false, price: paid, how: paid < price ? 'granted' : 'lot', whole: true });
   }
 
+  /**
+   * A villager builds a house to let: when people need homes, or when rents are high enough that
+   * the house would pay for itself (today's rents against what it costs to build).
+   */
+  buildToLet(n, { need = false } = {}) {
+    const sim = this.sim;
+    if (this.projectOf(n)) return false;
+    const type = n.money >= this.estimate('house') * RENTAL.buildReserve ? 'house' : 'small_house';
+    const cost = this.estimate(type);
+    const rent = sim.realty?.S.weeks.at(-1)?.avgRent || 8;
+    const pays = (sim.realty?.idx ?? 1) >= RENTAL.buildIdx && cost / Math.max(1, rent) <= RENTAL.buildPaybackWeeks;
+    if (!need && !pays) return false;
+    if (n.money < cost * (need ? 0.7 : RENTAL.buildReserve)) return false;
+    const c = this.start(n, type, 'rental', PLAZA_C);
+    if (!c) return false;
+    if (!need) sim.chronicle('chronicle.npc_builds_to_let', { npc: n.id, gender: n.gender });
+    return true;
+  }
+
   /** Weekly: who needs to build, and who can? */
   considerProjects() {
     const sim = this.sim;
@@ -290,12 +314,14 @@ export class GrowthSystem {
         busy.add(n.id);
       }
     }
-    // 2. Landlords: well-off villagers build houses to let when people need homes.
-    if (pressure >= 1 && vacant === 0 && started < 2) {
+    // 2. Landlords: well-off villagers build houses to let when people need homes — or when the
+    // housing market (RealtySystem) says rents would pay for it.
+    const market = (sim.realty?.idx ?? 1) >= RENTAL.buildIdx;
+    if (((pressure >= 1 && vacant === 0) || market) && started < 2) {
       const investor = npcs
         .filter((n) => n.age >= 25 && n.money >= 650 && !busy.has(n.id) && !n.traits.includes('generous'))
         .sort((a, b) => b.money - a.money)[0];
-      if (investor && this.start(investor, 'house', 'rental', PLAZA_C)) started++;
+      if (investor && this.buildToLet(investor, { need: pressure >= 1 && vacant === 0 })) started++;
     }
     // 3. The village builds with its rent income: homes when people sleep in the hall, wells for new streets.
     // (While it's saving for a school or the like, only real need for homes comes first.)
@@ -475,6 +501,7 @@ export class GrowthSystem {
       sim.memory.remember(owner, 'built_home', { params: { building: c.id } });
       sim.chronicle('chronicle.npc_built_home', { npc: owner.id, gender: owner.gender, building: c.id });
     } else if (c.purpose === 'rental') {
+      if (owner) sim.property.rec(c.id).forRent = true; // built to let
       sim.chronicle('chronicle.new_rental', { building: c.id, npc: owner?.id, owner: c.owner });
     } else if (c.purpose === 'shop' && owner) {
       if (c.bizType && !owner.owns && owner.money >= sim.enterprise.startCost(c.bizType, true)) sim.enterprise.open(owner, c.bizType, { building: c.id, how: 'own' }, sim.family.spouse(owner));
@@ -674,24 +701,11 @@ export class GrowthSystem {
     const add = (tx, ty, kind) => {
       const k = `${Math.floor(tx / DISTRICT_CELL)},${Math.floor(ty / DISTRICT_CELL)}`;
       cells[k] ??= { home: 0, shop: 0, industry: 0, farm: 0, public: 0, school: 0, leisure: 0, trade: 0 };
-      cells[k][kind]++;
+      cells[k][kind === 'research' ? 'school' : kind]++;
     };
     for (const b of sim.world.buildingList) {
-      const biz = E.businessAtBuilding(b.id);
-      const d = biz && E.def(biz);
-      let kind;
-      if (['school', 'grammar_school', 'trade_school', 'institute', 'library', 'guild_hall'].includes(b.type)) kind = 'school';
-      else if (['market_hall', 'bank'].includes(b.type)) kind = 'shop';
-      else if (['watch_house', 'clinic'].includes(b.type)) kind = 'public';
-      else if (b.id === 'hall' || ['well', 'mill'].includes(b.type)) kind = 'public';
-      else if (d?.type === 'tavern') kind = 'leisure';
-      else if (d?.kind === 'depot' || d?.type === 'carters') kind = 'trade';
-      else if (d?.output === 'farm' || b.type === 'farmhouse') kind = 'farm';
-      else if (d?.kind === 'producer' || ['smithy', 'carpentry', 'workshop'].includes(d?.type || b.type) || b.type === 'lumberyard' || b.type === 'quarry_hut' || b.type === 'workshop' || b.type === 'storage_shed') kind = 'industry';
-      else if (d?.kind === 'shop') kind = 'shop';
-      else if (P.isHome(b.id)) kind = 'home';
-      else continue;
-      add(b.door.tx, b.door.ty, kind);
+      const kind = this.kindOf(b);
+      if (kind) add(b.door.tx, b.door.ty, kind);
     }
     const types = {};
     for (const [k, c] of Object.entries(cells)) {
@@ -733,6 +747,42 @@ export class GrowthSystem {
       const ty = (cy + 0.5) * DISTRICT_CELL;
       D.list.push({ id: group.sort()[0], type, cells: group, tx, ty, name: this.districtName(type, tx, ty, group.sort()[0]) });
     }
+  }
+
+  /** What a kind of village building will be (before it stands): home, shop, industry, farm, public… */
+  kindOfType(def) {
+    const v = def?.visual || '';
+    if (['house', 'small_house', 'rental_house', 'shack', 'farmhouse'].includes(v) || def?.capacity) return 'home';
+    if (['school', 'grammar_school', 'trade_school', 'library', 'guild_hall'].includes(v)) return 'school';
+    if (v === 'institute') return 'research';
+    if (['watch_house', 'clinic', 'hall', 'well', 'mill'].includes(v)) return 'public';
+    if (['market_hall', 'shopfront', 'store', 'bank'].includes(v)) return 'shop';
+    if (['tavern'].includes(v)) return 'leisure';
+    if (['smithy', 'lumberyard', 'quarry_hut', 'workshop', 'warehouse_bld', 'storage_shed'].includes(v)) return 'industry';
+    return null;
+  }
+
+  /**
+   * What a building is for, as far as the look of a place goes: home · shop · industry · farm ·
+   * public · school · research · leisure · trade (null for the rest). Districts and the land's
+   * own character (TerritorySystem) both read it.
+   */
+  kindOf(b) {
+    const E = this.sim.economy;
+    const biz = E.businessAtBuilding(b.id);
+    const d = biz && E.def(biz);
+    if (['institute'].includes(b.type)) return 'research';
+    if (['school', 'grammar_school', 'trade_school', 'library', 'guild_hall'].includes(b.type)) return 'school';
+    if (['market_hall', 'bank'].includes(b.type)) return 'shop';
+    if (['watch_house', 'clinic'].includes(b.type)) return 'public';
+    if (b.id === 'hall' || ['well', 'mill'].includes(b.type)) return 'public';
+    if (d?.type === 'tavern') return 'leisure';
+    if (d?.kind === 'depot' || d?.type === 'carters') return 'trade';
+    if (d?.output === 'farm' || b.type === 'farmhouse') return 'farm';
+    if (d?.kind === 'producer' || ['smithy', 'carpentry', 'workshop'].includes(d?.type || b.type) || ['lumberyard', 'quarry_hut', 'workshop', 'storage_shed', 'mining_camp', 'forge'].includes(b.type)) return 'industry';
+    if (d?.kind === 'shop') return 'shop';
+    if (this.sim.property.isHome(b.id)) return 'home';
+    return null;
   }
 
   /** Names come from where the district is: by the river, the plaza, north, south… */

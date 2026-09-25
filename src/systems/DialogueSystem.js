@@ -33,7 +33,7 @@ const SELF_MEMORY_LINES = new Set([
   'started_building', 'helped_build', 'built_home', 'gave_up_building', 'arrived_village', 'friend_left',
   'home_flood', 'home_storm', 'home_fire', 'home_burnt', 'mine_accident', 'took_in', 'fire_helped', 'went_exploring', 'laid_off_season', 'invented', 'became_teacher', 'mentored_by', 'took_apprentice', 'new_interest', 'finished_school', 'left_school', 'failed_exam', 'finished_course', 'finished_apprenticeship', 'apprenticeship_ended', 'wants_retrain', 'rose_in_trade', 'went_to_university', 'child_to_university', 'graduated', 'failed_degree', 'cant_afford_study', 'took_post', 'made_discovery',
   'goal_achieved', 'goal_given_up', 'moved_near_work', 'decided_to_leave', 'stayed_for_family', 'became_headman', 'bank_loan',
-  'bought_rental',
+  'bought_rental', 'moved_for',
 ]);
 
 export class DialogueSystem {

@@ -146,8 +146,10 @@ check('(time restored)', sim.time.weekday === wd);
 // 9. Villagers as landlords.
 const investor = sim.state.npcs.find((n) => n.age >= 30 && n.age < 60 && P.rec(n.homeId)?.owner === n.id);
 investor.money = 5000;
+for (const n of sim.state.npcs) if (n !== investor) n.money = Math.min(n.money, 100); // (the only one who can afford it)
 P.rec(newHouse()).forSale = true; // a house on the market…
-P.demandCache = { day: sim.time.day, v: 1.3 }; // …while people are looking for homes
+sim.state.realty.idx = 1.3; // …while people are looking for homes (the housing market's level)
+P.valueCache.clear();
 const chance = RENTAL.investChance;
 RENTAL.investChance = 1;
 P.investInHouses();

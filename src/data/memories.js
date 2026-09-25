@@ -136,6 +136,7 @@ export const MEMORY_KINDS = {
   rent_raised: { imp: 2, val: -2, bond: { f: -2 }, merge: 21 },
   rent_lowered: { imp: 2, val: 2, bond: { f: 3, t: 2 }, merge: 21 },
   bought_rental: { imp: 4, val: 3 },
+  moved_for: { imp: 4, val: 3 }, // moved to a home that suits them better (and why)
   manages_player_houses: { imp: 3, val: 2, bond: { t: 4 } },
   sold_land_to_player: { imp: 3, val: 1, bond: { t: 3 } },
 

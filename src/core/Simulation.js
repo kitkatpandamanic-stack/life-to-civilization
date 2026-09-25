@@ -51,6 +51,8 @@
  *    ├── crafting     CraftingSystem (recipes at stations)
  *    ├── land         LandSystem (your land: buying it, what it's worth)
  *    ├── territory    TerritorySystem (the valley in plots of land, and who owns each)
+ *    ├── housing      HousingSystem (how villagers choose where to live)
+ *    ├── realty       RealtySystem (the housing market: supply, demand, what homes are worth)
  *    ├── nature       NatureSystem (forests grow and thin, finite ore, fish and game populations)
  *    ├── construction ConstructionSystem (sites, buildings, roads, home upgrades)
  *    ├── farming      FarmingSystem (till, plant, water, grow, harvest)
@@ -117,6 +119,8 @@ import { StudySystem } from '../systems/StudySystem.js';
 import { EducationWorldSystem } from '../systems/EducationWorldSystem.js';
 import { StructureSystem, restoreStructures } from '../systems/StructureSystem.js';
 import { TerritorySystem } from '../systems/TerritorySystem.js';
+import { HousingSystem } from '../systems/HousingSystem.js';
+import { RealtySystem } from '../systems/RealtySystem.js';
 import { buildParcels } from '../world/Parcels.js';
 import { rand } from './rng.js';
 
@@ -187,6 +191,8 @@ export class Simulation {
     this.legacy = new LegacySystem(this);
     this.civic = new CivicSystem(this); // it weighs up everyone and everything
     this.letting = new LettingSystem(this);
+    this.housing = new HousingSystem(this); // how villagers choose where to live
+    this.realty = new RealtySystem(this); // the housing market: rents and prices from supply and demand
     this.ledger = new LedgerSystem(this); // last: it watches the others handle your money
     this.jobs.ensureOpenings();
     this.bus.on('time:day', () => this.onNewDay());

@@ -31,6 +31,17 @@ export class InspectPanel extends Panel {
     return `🔍 ${escapeHtml(npcName(this.npc))}`;
   }
 
+  /** How content they are with their home, and what they'd look for in another (HousingSystem). */
+  homeHtml(kv) {
+    const sim = this.sim;
+    const npc = this.npc;
+    if (npc.age < 16 || !sim.housing) return '';
+    const h = sim.housing.satisfaction(npc);
+    const face = h.sat >= 75 ? '😊' : h.sat >= 50 ? '🙂' : h.sat >= 30 ? '😕' : '😣';
+    const wants = h.wants.length ? ` · ${h.wants.map((w) => t(`housing_want.${w}`)).join(', ')}` : '';
+    return kv(t('housing_ui.content'), `${face} ${h.sat}%<span class="muted small">${escapeHtml(wants)}</span>`);
+  }
+
   /** Refresh a few times per second so needs and activity update live. */
   tick(delta) {
     this.timer = (this.timer || 0) - delta;
@@ -105,6 +116,7 @@ export class InspectPanel extends Panel {
           ${this.goalHtml(goal, kv)}
           <h3>${escapeHtml(t('ui.life'))}</h3>
           ${kv(t('ui.home'), escapeHtml(npc.homeId ? buildingLabel(sim, npc.homeId) : t('ui.homeless')))}
+          ${this.homeHtml(kv)}
           ${kv(t('ui.work'), escapeHtml(work))}
           ${this.careerKey() ? kv(t('ui.career'), escapeHtml(t(`career.${this.careerKey()}`))) : ''}
           ${npc.employer && npc.employer !== 'player' && npc.jobSat !== undefined ? kv(t('ui.job_satisfaction'), npc.jobSat) : ''}

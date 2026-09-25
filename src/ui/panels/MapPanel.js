@@ -23,6 +23,8 @@ const TILE_COLORS = {
 };
 const LABELLED = ['hall', 'store', 'tavern', 'smithy', 'farmhouse', 'lumberyard', 'quarry_hut', 'shack'];
 let baseCache = null;
+/** What each piece of land has become (TerritorySystem) — undeveloped land is left bare. */
+const TERRITORY_COLORS = { residential: '#f0c060', commercial: '#e0603a', industrial: '#8a8aa0', agricultural: '#9ad050', forest: '#2f8a3a', mining: '#b8a890', education: '#70d0c0', research: '#a0e0ff', government: '#60a0f0', recreation: '#f080a0', mixed: '#c080d0', developing: '#f4f0a0' };
 const DISTRICT_COLORS = { residential: '#f0c060', commercial: '#e0603a', industrial: '#8a8aa0', agricultural: '#9ad050', civic: '#60a0f0', education: '#70d0c0', entertainment: '#f080a0', transport: '#b09060', mixed: '#c080d0' };
 
 export class MapPanel extends Panel {
@@ -69,7 +71,10 @@ export class MapPanel extends Panel {
   render() {
     const L = this.layer;
     let legend = '';
-    if (L === 'land_use') legend = Object.entries(DISTRICT_COLORS).map(([k, c]) => `<span><i class="lg" style="background:${c}"></i>${escapeHtml(t(`district.kind.${k}`))}</span>`).join('');
+    if (L === 'land_use' && this.sim.territory) {
+      const present = new Set(this.sim.territory.all().map((q) => this.sim.territory.profile(q.id)?.type));
+      legend = Object.entries(TERRITORY_COLORS).filter(([k]) => present.has(k)).map(([k, c]) => `<span><i class="lg" style="background:${c}"></i>${escapeHtml(t(`territory_type.${k}`))}</span>`).join('');
+    } else if (L === 'land_use') legend = Object.entries(DISTRICT_COLORS).map(([k, c]) => `<span><i class="lg" style="background:${c}"></i>${escapeHtml(t(`district.kind.${k}`))}</span>`).join('');
     else if (L === 'ownership') legend = Object.entries(OWNER_COLORS).map(([k, c]) => `<span><i class="lg" style="background:${c};border-radius:2px"></i>${escapeHtml(t(`map.owner_${k}`))}</span>`).join('') + `<span><i class="lg" style="border:1px dashed #fff;border-radius:2px"></i>${escapeHtml(t('map.for_sale'))}</span>`;
     else if (L === 'value') legend = `<span><i class="lg" style="background:#4a90d0;border-radius:2px"></i>${escapeHtml(t('map.value_low'))}</span><span><i class="lg" style="background:#f0c040;border-radius:2px"></i>${escapeHtml(t('map.value_high'))}</span>`;
     else if (L === 'infrastructure') legend = `<span><i class="lg" style="background:#e8d4a8;border-radius:2px"></i>${escapeHtml(t('map.roads'))}</span><span><i class="lg" style="background:#60c0ff"></i>${escapeHtml(t('map.wells'))}</span><span><i class="lg" style="background:#ffd070"></i>${escapeHtml(t('map.lamps'))}</span>`;
@@ -83,7 +88,7 @@ export class MapPanel extends Panel {
         <span><i class="lg home"></i>${escapeHtml(t('ui.map_home'))}</span>
       </div>
       ${legend ? `<div class="map-legend">${legend}</div>` : ''}
-      <div class="hint">${escapeHtml(t(L === 'ownership' ? 'map.click_hint_land' : 'map.click_hint'))}</div>
+      <div class="hint">${escapeHtml(t(['ownership', 'land_use', 'value'].includes(L) ? 'map.click_hint_land' : 'map.click_hint'))}</div>
       ${this.settlementsHtml()}`;
   }
 
@@ -127,7 +132,7 @@ export class MapPanel extends Panel {
       const b = this.sim.world.buildingList.find((o) => tx >= o.tx && tx < o.tx + o.w && ty >= o.ty - 0.5 && ty < o.ty + o.h + 0.5);
       if (b && this.sim.property.rec(b.id)) this.ui.openProperty(b.id);
       // …or a piece of land, on the ownership map.
-      else if (this.layer === 'ownership') {
+      else if (this.layer === 'ownership' || this.layer === 'land_use' || this.layer === 'value') {
         const id = this.sim.territory?.idAt(Math.floor(tx), Math.floor(ty));
         if (id) this.ui.openLand(id);
       }
@@ -184,6 +189,24 @@ export class MapPanel extends Panel {
         rect(b, OWNER_COLORS[o === 'player' ? 'player' : o === 'village' ? 'village' : o ? 'npc' : 'nobody']);
       }
     } else if (L === 'value') {
+      // Land: dearer land glows warmer (TerritorySystem: its worth per tile, as the village has made it).
+      const T2 = sim.territory;
+      if (T2) {
+        const per = new Map(T2.all().map((q) => [q.id, T2.price(q.id) / Math.max(1, q.n)]));
+        const top = Math.max(...per.values(), 1);
+        for (let y = 0; y < sim.world.H; y++) {
+          for (let x = 0; x < sim.world.W; x++) {
+            const id = T2.idAt(x, y);
+            if (!id) continue;
+            const f = Math.min(1, per.get(id) / top);
+            const c = (a, z) => Math.round(a + (z - a) * f);
+            ctx.globalAlpha = 0.18 + f * 0.3;
+            ctx.fillStyle = `rgb(${c(74, 240)},${c(144, 192)},${c(208, 64)})`;
+            ctx.fillRect(x * SCALE, y * SCALE, SCALE, SCALE);
+          }
+        }
+        ctx.globalAlpha = 1;
+      }
       const vals = sim.world.buildingList.map((b) => P.value(b.id) || 0).filter((v) => v > 0);
       const max = Math.max(1, ...vals);
       for (const b of sim.world.buildingList) {
@@ -241,8 +264,29 @@ export class MapPanel extends Panel {
     const TS = BALANCE.tileSize;
     const k = SCALE / TS;
 
-    // Districts: what each part of the village has become.
-    if (this.showDistricts) {
+    // What each piece of land has become (its own shape, not a grid), and the lines between them.
+    if (this.showDistricts && sim.territory) {
+      const T2 = sim.territory;
+      const color = new Map(T2.all().map((q) => [q.id, TERRITORY_COLORS[T2.profile(q.id)?.type]]));
+      for (let y = 0; y < sim.world.H; y++) {
+        for (let x = 0; x < sim.world.W; x++) {
+          const id = T2.idAt(x, y);
+          const col = id && color.get(id);
+          if (col) {
+            ctx.globalAlpha = 0.6;
+            ctx.fillStyle = col;
+            ctx.fillRect(x * SCALE, y * SCALE, SCALE, SCALE);
+          }
+          if (id) {
+            ctx.globalAlpha = 0.3;
+            ctx.fillStyle = '#1a120a';
+            if (T2.idAt(x + 1, y) !== id) ctx.fillRect((x + 1) * SCALE - 1, y * SCALE, 1, SCALE);
+            if (T2.idAt(x, y + 1) !== id) ctx.fillRect(x * SCALE, (y + 1) * SCALE - 1, SCALE, 1);
+          }
+        }
+      }
+      ctx.globalAlpha = 1;
+    } else if (this.showDistricts) {
       for (const d of sim.state.districts.list) {
         ctx.fillStyle = DISTRICT_COLORS[d.type] || '#fff';
         ctx.globalAlpha = 0.32;

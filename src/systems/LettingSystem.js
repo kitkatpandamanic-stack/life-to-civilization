@@ -153,6 +153,9 @@ export class LettingSystem {
       if (P.weeklyRent(id) < cur * 0.85 || ((P.rec(id)?.condition ?? 100) > cond + 20)) return { n: 1, why: 'better_deal' };
     }
     if (P.rec(home)?.owner === npc.id) return { n: 0, why: 'owns_home' };
+    // Simply a better home for them, all told (HousingSystem: the walk, the room, the street, the price…).
+    const cmp = sim.housing?.compare(npc, id);
+    if (cmp && cmp.gain >= 0.8) return { n: 1.1, why: 'better_home' };
     return { n: this.advertised(id) ? 0.4 : 0, why: 'curious' };
   }
 
@@ -175,6 +178,9 @@ export class LettingSystem {
     const cond = P.rec(id)?.condition ?? 100;
     let score = need.n * 1.2 + (budget - rent) / Math.max(4, rent) + (cond - 60) / 40 + (npc.rel || 0) / 50 + pb.t / 60 + (asked ? L.askBonus : 0);
     if (P.capacity(id) > hh.length + 1) score += 0.2; // room to grow
+    // How the house suits them, all told, against where they live now.
+    const cmp = sim.housing?.compare(npc, id);
+    if (cmp) score += Math.max(-1, Math.min(1, cmp.gain)) * 0.6;
     return { ok: score >= L.acceptScore, reason: score >= L.acceptScore ? need.why : 'not_worth_it', score, rent, budget };
   }
 

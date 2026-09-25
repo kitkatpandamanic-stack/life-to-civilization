@@ -18,14 +18,30 @@
  * buy a lot from the village (or a neighbour) before they build; the village builds on its own.
  * A building's lot goes with it when it's sold. Land has a price that depends on where it is.
  *
- * (Later phases add what each stretch of land has become, its value over time,
- * neighbourhoods and districts — all on top of these plots.)
+ * What each stretch of land has become (Phase 8): its profile — the buildings on it, the people
+ * living there, the jobs, the trade done, its trees, stone, fields and water, the road and well —
+ * and its type, which comes out of all that rather than being painted on: houses make it
+ * residential, shops commercial, workshops industrial, fields agricultural; untouched woods are
+ * forest; rocky ground mining land; several kinds together make it mixed; nothing yet, undeveloped.
+ * Types change as the land changes, and the land remembers (plots[id].events).
+ *
+ * Buildings shape the land around them (land-use pressure): workplaces want worker housing near,
+ * homes want shops, workshops want their materials and room from houses. New buildings prefer the
+ * places that suit them (suitability) — a preference, never a rule.
+ *
+ * Land value and development (Phase 9): each week every plot's worth moves toward what it's now
+ * worth — the road at its edge, a well, work and people nearby, shops and trade around, a school,
+ * safety, the demand for homes, water and quiet — a step at a time (plots[id].lv, with a record
+ * of its price week by week in plots[id].lvh). Its development — undeveloped, developing,
+ * developed, highly developed — is worked out from what's really there: buildings, people, work,
+ * roads, a well, services, trade. A plot by the centre grows dearer as the village grows.
  */
 import { buildParcels, applyOp } from '../world/Parcels.js';
 import { LAND } from '../data/territory.js';
 import { LAND_PRICING } from '../data/land.js';
 import { AREAS } from '../data/villageLayout.js';
 import { T } from '../world/WorldGenerator.js';
+import { TERRITORY as TT, LAND_VALUE as LV, DEVELOPMENT as DV, DEV_LEVELS } from '../data/territory.js';
 
 export class TerritorySystem {
   constructor(sim) {
@@ -37,6 +53,10 @@ export class TerritorySystem {
     this.cache = new Map();
     this.seedOwners();
     this.syncPlayerLand();
+    this.profiles = new Map();
+    this.rev = 0;
+    sim.bus.on('building:added', () => this.rev++);
+    sim.bus.on('time:day', () => sim.time.weekday === 4 && this.weekly());
   }
 
   get S() {
@@ -279,6 +299,9 @@ export class TerritorySystem {
     const L = LAND_PRICING;
     const d = Math.abs(x - (P.x1 + P.x2) / 2) + Math.abs(y - (P.y1 + P.y2) / 2);
     let v = LAND.perTile * (1 + Math.max(0, (L.centreRange - d) / L.centreRange) * L.centreBonus);
+    // What the land has come to be worth (the week's review, Phase 9).
+    const i = this.indexAt(x, y);
+    if (i >= 0) v *= this.S.plots[this.P.list[i].id]?.lv ?? 1;
     return v;
   }
 
@@ -374,6 +397,274 @@ export class TerritorySystem {
     const b = this.buildingsOn(id)[0];
     if (b) return { lot: b.id };
     return { kind: this.info(id)?.kind || 'meadow', n: Number(String(id).replace(/\D/g, '')) || 0 };
+  }
+
+  // ------------------------------------------------------------------ what the land has become
+
+  /**
+   * A plot's profile, from what's on it and around it (cached until the week's review, or until
+   * something is built): { buildings, kinds, population, jobs, activity, resources, roads, infra, type }.
+   */
+  profile(id) {
+    const hit = this.profiles.get(id);
+    if (hit && hit.day >= this.sim.time.day - 7 && hit.rev === this.rev) return hit.p;
+    const p = this.computeProfile(id);
+    if (p) this.profiles.set(id, { day: this.sim.time.day, rev: this.rev, p });
+    return p;
+  }
+
+  computeProfile(id) {
+    const sim = this.sim;
+    const q = this.parcel(id);
+    if (!q) return null;
+    const info = this.info(id);
+    const buildings = this.buildingsOn(id);
+    const kinds = {};
+    let population = 0;
+    let jobs = 0;
+    let activity = 0;
+    for (const b of buildings) {
+      const k = sim.growth?.kindOf(b);
+      if (k) kinds[k] = (kinds[k] || 0) + 1;
+      population += sim.npcs.residentsOf(b.id).length;
+      const biz = sim.economy.businessAtBuilding(b.id);
+      if (biz) {
+        jobs += sim.npcs.staffOf(biz).length;
+        activity += sim.enterprise?.books(biz, 7).rev || 0;
+      }
+    }
+    // Building going on here counts too.
+    const sites = sim.construction.sites().filter((c) => c.kind === 'building' && this.idAt(c.tx + Math.floor(c.w / 2), c.ty + Math.floor(c.h / 2)) === id).length;
+    let farmland = 0;
+    for (const [x, y] of this.tiles(id)) if (this.world.tileAt(x, y) === T.FARMLAND || sim.state.fields[`${x},${y}`]) farmland++;
+    const resources = { trees: info.trees, rocks: info.rocks, farmland, water: info.water };
+    const infra = { road: info.roadDist <= 2, well: this.wellNear(q.cx, q.cy) };
+    const roads = this.roadTiles(id);
+    const p = { id, n: q.n, buildings: buildings.map((b) => b.id), kinds, population, jobs, activity: Math.round(activity), sites, resources, roads, infra };
+    p.type = this.typeOf(p);
+    return p;
+  }
+
+  /** The kind of land this has become, from what's actually there. */
+  typeOf(p) {
+    const entries = Object.entries(p.kinds);
+    const total = entries.reduce((s, [, n]) => s + n, 0);
+    if (total) {
+      const [top, n] = entries.sort((a, b) => b[1] - a[1])[0];
+      if (entries.length >= 2 && n / total < TT.mixedBelow) return 'mixed';
+      return TT.kindType[top] || 'mixed';
+    }
+    if (p.sites) return 'developing';
+    const r = p.resources;
+    if (r.farmland > p.n * TT.fieldShare) return 'agricultural';
+    if (r.rocks >= TT.mineRocks || this.nearSite(p.id, ['cave', 'mine_shaft', 'quarry'])) return 'mining';
+    if (r.trees >= Math.max(6, p.n * TT.forestShare)) return 'forest';
+    return 'undeveloped';
+  }
+
+  /** Road tiles along the plot's edge (roads aren't part of any plot — they run between them). */
+  roadTiles(id) {
+    let n = 0;
+    const seen = new Set();
+    for (const [x, y] of this.tiles(id)) {
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const k = (y + dy) * this.P.W + (x + dx);
+        if (!seen.has(k) && this.world.isRoad(x + dx, y + dy)) {
+          seen.add(k);
+          n++;
+        }
+      }
+    }
+    return n;
+  }
+
+  wellNear(tx, ty, r = 14) {
+    for (const d of this.world.decor) if (d.type === 'well' && Math.abs(d.tx - tx) + Math.abs(d.ty - ty) <= r) return true;
+    for (const o of this.world.buildingList) if (o.type === 'well' && Math.abs(o.door.tx - tx) + Math.abs(o.door.ty - ty) <= r) return true;
+    return false;
+  }
+
+  /** An exploration site of these kinds on or beside the plot (a cave, a quarry…). */
+  nearSite(id, kinds) {
+    const q = this.parcel(id);
+    return (this.sim.state.exploration?.sites || []).some((s) => kinds.includes(s.kind) && s.tx >= q.x1 - 3 && s.tx <= q.x2 + 3 && s.ty >= q.y1 - 3 && s.ty <= q.y2 + 3);
+  }
+
+  /** Once a week: every plot's profile afresh, its worth and development — and what has changed is remembered. */
+  weekly() {
+    const sim = this.sim;
+    this.rev = (this.rev || 0) + 1;
+    let told = 0;
+    let toldDev = 0;
+    for (const q of this.all()) {
+      const p = this.profile(q.id);
+      const r = this.rec(q.id);
+      if (!p || !r) continue;
+      // Its worth moves a step toward what it's now worth; its price is kept week by week.
+      const tv = this.valueTarget(q.id).mult;
+      r.lv = r.lv === undefined ? tv : r.lv + Math.max(-LV.maxStep, Math.min(LV.maxStep, tv - r.lv));
+      r.lv = Math.round(r.lv * 1000) / 1000;
+      this.cache.delete(q.id);
+      r.lvh ??= [];
+      r.lvh.push(this.price(q.id));
+      if (r.lvh.length > LV.keepWeeks) r.lvh.shift();
+      // Development, from what's really there.
+      const dev = this.development(q.id).level;
+      if (r.dev && r.dev !== dev) {
+        this.event(q.id, 'dev', { from: r.dev, to: dev });
+        const di = DEV_LEVELS.indexOf(dev);
+        if (toldDev < 1 && di > DEV_LEVELS.indexOf(r.dev) && di >= 2 && di > (r.devMax ?? 0)) {
+          toldDev++;
+          sim.chronicle('chronicle.land_developed', { plot: q.id, dev });
+        }
+        r.devMax = Math.max(r.devMax ?? 0, di);
+      }
+      r.dev = dev;
+      if (r.type && r.type !== p.type) {
+        this.event(q.id, 'type', { from: r.type, to: p.type });
+        // Land built up for the first time, or turned to something new, is news (a little at a time).
+        if (told < 2 && TT.newsTypes.includes(p.type) && r.type !== 'developing') {
+          told++;
+          sim.chronicle('chronicle.land_became', { plot: q.id, tfrom: r.type, ttype: p.type });
+        }
+      }
+      r.type = p.type;
+    }
+    sim.bus.emit('territory:week');
+  }
+
+  /**
+   * How built-up a plot is, from what's really there: { score, level, parts }.
+   * (Not a number to push: buildings, people, work, roads, a well, services and trade make it.)
+   */
+  development(id, prev = this.rec(id)?.dev) {
+    const p = this.profile(id);
+    if (!p) return { score: 0, level: 'undeveloped', parts: {} };
+    const sim = this.sim;
+    const q = this.parcel(id);
+    const pr = this.pressure(Math.round(q.cx), Math.round(q.cy));
+    const levels = p.buildings.reduce((s, b) => s + (sim.structures?.rec(b) ? sim.structures.level(b) : 1), 0);
+    const parts = {
+      buildings: Math.min(DV.buildingsMax, levels * DV.perLevel),
+      population: Math.min(DV.popMax, p.population * DV.perPerson),
+      jobs: Math.min(DV.jobsMax, p.jobs * DV.perJob),
+      roads: (p.infra.road ? DV.road : 0) + Math.min(DV.roadTilesMax, p.roads * DV.perRoadTile),
+      infrastructure: p.infra.well ? DV.well : 0,
+      services: Math.min(DV.servicesMax, pr.shops * DV.perService),
+      activity: Math.min(DV.activityMax, p.activity / DV.activityPer),
+    };
+    const score = Object.values(parts).reduce((a, b) => a + b, 0);
+    let level = DEV_LEVELS[0];
+    for (let i = 0; i < DV.thresholds.length; i++) if (score >= DV.thresholds[i]) level = DEV_LEVELS[i + 1];
+    // A place doesn't lose its standing over one quiet week: it slips back only on a real decline.
+    const was = DEV_LEVELS.indexOf(prev);
+    if (was > DEV_LEVELS.indexOf(level) && score >= DV.thresholds[was - 1] * DV.slip) level = prev;
+    if (level === 'undeveloped' && p.sites) level = 'developing';
+    return { score: Math.round(score * 100) / 100, level, parts };
+  }
+
+  /**
+   * What the land ought to be worth now, against bare land: { mult, parts }. Road access,
+   * a well, work and people nearby, shops and trade around, a school, safety, the demand for
+   * homes, water and quiet — and how developed it already is.
+   */
+  valueTarget(id) {
+    const sim = this.sim;
+    const q = this.parcel(id);
+    const p = this.profile(id);
+    if (!q || !p) return { mult: 1, parts: {} };
+    const pr = this.pressure(Math.round(q.cx), Math.round(q.cy));
+    const ruins = this.world.buildingList.filter((b) => Math.abs(b.door.tx - q.cx) + Math.abs(b.door.ty - q.cy) <= 10 && (sim.property.rec(b.id)?.ruined || sim.property.rec(b.id)?.abandoned)).length;
+    const dev = DEV_LEVELS.indexOf(this.development(id).level);
+    const parts = {
+      road: p.infra.road ? LV.road : LV.noRoad,
+      infrastructure: p.infra.well ? LV.well : 0,
+      jobs: Math.min(LV.jobsMax, pr.jobs * LV.perJob),
+      population: Math.min(LV.popMax, pr.homes * LV.perHome),
+      services: Math.min(LV.servicesMax, pr.shops * LV.perService),
+      activity: Math.min(LV.activityMax, pr.activity / LV.activityPer),
+      education: pr.schools ? LV.school : 0,
+      safety: (sim.civic?.has('watch') ? LV.watch : 0) - Math.min(LV.ruinsMax, ruins * LV.perRuin),
+      demand: ((sim.realty?.idx ?? 1) - 1) * LV.demandShare,
+      environment: (p.resources.water ? LV.water : 0) + (p.resources.trees >= 4 ? LV.trees : 0) - Math.min(LV.noiseMax, pr.industry * LV.perNoise),
+      development: dev * LV.perDev,
+    };
+    for (const k of Object.keys(parts)) parts[k] = Math.round(parts[k] * 1000) / 1000;
+    const mult = Math.max(LV.min, Math.min(LV.max, 1 + Object.values(parts).reduce((a, b) => a + b, 0)));
+    return { mult, parts };
+  }
+
+  /** Something that happened to a plot, kept with it (its history). */
+  event(id, k, params = {}) {
+    const r = this.rec(id);
+    if (!r) return;
+    r.events ??= [];
+    r.events.push({ day: this.sim.time.day, k, ...params });
+    if (r.events.length > TT.keepEvents) r.events.shift();
+  }
+
+  /**
+   * Land-use pressure around a spot: what nearby buildings call for.
+   *   housing — work nearby with few homes (worker housing)
+   *   shops   — homes nearby with no shop
+   *   room    — how crowded with homes it is (workshops want distance from dense housing)
+   */
+  pressure(tx, ty) {
+    const sim = this.sim;
+    const near = (b, r) => Math.abs(b.door.tx - tx) + Math.abs(b.door.ty - ty) <= r;
+    let homes = 0;
+    let homesClose = 0;
+    let shops = 0;
+    let jobs = 0;
+    let industry = 0;
+    let farms = 0;
+    let schools = 0;
+    let activity = 0;
+    for (const b of this.world.buildingList) {
+      const k = sim.growth?.kindOf(b);
+      if (!k) continue;
+      if (near(b, TT.pressureRadius)) {
+        if (k === 'home') homes++;
+        if (k === 'shop' || k === 'leisure') shops++;
+        if (k === 'industry') industry++;
+        if (k === 'farm') farms++;
+        if (k === 'school' || k === 'research') schools++;
+        const biz = sim.economy.businessAtBuilding(b.id);
+        if (biz) {
+          jobs += sim.npcs.staffOf(biz).length;
+          activity += sim.enterprise?.books(biz, 7).rev || 0;
+        }
+      }
+      if (k === 'home' && near(b, TT.closeRadius)) homesClose++;
+    }
+    return { homes, homesClose, shops, jobs, industry, farms, schools, activity, housing: Math.max(0, jobs - homes * 2), wantsShop: homes >= 3 && !shops };
+  }
+
+  /**
+   * How well a spot suits a new building of this kind (−1 … 1): homes like homes, shops, a school
+   * and work nearby without enough houses for it; shops like people and no rival next door;
+   * workshops like the road, their materials, and distance from dense housing; farms like open
+   * fields and water. A preference, never a rule.
+   */
+  suitability(kind, tx, ty) {
+    const pr = this.pressure(tx, ty);
+    const q = this.parcelAt(tx, ty);
+    const p = q ? this.profile(q.id) : null;
+    const type = p?.type || 'undeveloped';
+    let s = 0;
+    if (kind === 'home') {
+      s += ['residential', 'mixed'].includes(type) ? 0.3 : ['industrial', 'mining'].includes(type) ? -0.3 : 0;
+      s += Math.min(0.3, pr.housing * 0.06) + (pr.shops ? 0.15 : 0) + (pr.schools ? 0.1 : 0) - Math.min(0.4, pr.industry * 0.15);
+    } else if (kind === 'shop' || kind === 'leisure') {
+      s += Math.min(0.5, pr.homes * 0.08) + (pr.wantsShop ? 0.3 : 0) - Math.min(0.4, pr.shops * 0.2) + (['commercial', 'mixed'].includes(type) ? 0.2 : 0);
+    } else if (kind === 'industry') {
+      s += (p?.infra.road ? 0.2 : 0) + Math.min(0.3, ((p?.resources.trees || 0) + (p?.resources.rocks || 0)) * 0.03) + Math.min(0.2, pr.industry * 0.1) - Math.min(0.6, pr.homesClose * 0.2);
+    } else if (kind === 'farm') {
+      s += (type === 'agricultural' ? 0.4 : 0) + (p?.resources.water ? 0.2 : 0) - Math.min(0.5, pr.homesClose * 0.15);
+    } else if (kind === 'school' || kind === 'public' || kind === 'research') {
+      s += Math.min(0.6, pr.homes * 0.06) + (pr.schools ? -0.2 : 0);
+    }
+    return Math.max(-1, Math.min(1, s));
   }
 
   // ------------------------------------------------------------------ buying and selling

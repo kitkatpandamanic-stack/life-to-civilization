@@ -130,6 +130,11 @@ export function resolveParams(sim, params = {}) {
     else if (k === 'renown') out[k] = t(`renown.${v}`);
     else if (k === 'deed') out[k] = deedText(sim, v);
     else if (k === 'letting') out[k] = t(`reason.letting_${v}`);
+    else if (k === 'hwhy') out[k] = t(`housing_why.${v}`);
+    else if (k === 'ttype' || k === 'tfrom' || k === 'dev') {
+      const s = t(k === 'dev' ? `dev_level.${v}` : `territory_type.${v}`); // inside a sentence
+      out[k] = s.charAt(0).toLowerCase() + s.slice(1);
+    }
     else if (k === 'interest') out[k] = t(`interest_obj.${v}`);
     else if (k === 'field') out[k] = t(`knowledge.${v}`);
     else if (k === 'edu_level') out[k] = t(`edu_level.${v}`);
