@@ -36,6 +36,7 @@ export class ConstructionViews {
       sim.bus.on('construction:removed', (c) => this.removeSite(c.id)),
       sim.bus.on('building:added', (id) => this.removeSite(id)),
       sim.bus.on('road:built', ({ tx, ty }) => this.road(tx, ty)),
+      sim.bus.on('decor:added', (d) => this.scene.buildings?.createDecor(d)),
     ];
   }
 
@@ -186,7 +187,7 @@ export class ConstructionViews {
   }
 
   road(tx, ty) {
-    this.scene.terrain.layer.putTileAt(T.ROAD, tx, ty);
+    this.scene.terrain.layer.putTileAt(this.sim.world.tileAt(tx, ty), tx, ty); // a road, cobbles or a bridge
     this.dust.explode(6, tx * TS + TS / 2, ty * TS + TS / 2);
   }
 

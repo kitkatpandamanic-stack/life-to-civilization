@@ -18,15 +18,15 @@
 import { VILLAGE_BUILDINGS, GROWTH as G } from '../data/villageBuildings.js';
 import { AREAS } from '../data/villageLayout.js';
 import { TERRITORY } from '../data/territory.js';
-import { RENTAL } from '../data/housing.js';
+import { RENTAL, FLATS } from '../data/housing.js';
+import { NPC_DEV } from '../data/development.js';
 import { ITEMS } from '../data/items.js';
 import { T } from '../world/WorldGenerator.js';
-import { rand, hashStr } from '../core/rng.js';
+import { rand } from '../core/rng.js';
 import { TRAITS } from '../data/traits.js';
 import { randomLook } from '../core/GameState.js';
 
 const PLAZA_C = { tx: Math.round((AREAS.plaza.x1 + AREAS.plaza.x2) / 2), ty: Math.round((AREAS.plaza.y1 + AREAS.plaza.y2) / 2) };
-const DISTRICT_CELL = 10;
 export const ENTRY_POINT = { tx: 6, ty: 46 }; // newcomers walk in along the west road
 
 export class GrowthSystem {
@@ -127,7 +127,13 @@ export class GrowthSystem {
     // what it is (TerritorySystem): homes by work and shops, workshops away from houses, shops among people.
     const kind = this.kindOfType(def);
     const suit = kind && this.sim.territory ? this.sim.territory.suitability(kind, door.tx, door.ty) : 0;
-    take({ tx, ty, score: Math.hypot(tx - near.tx, ty - near.ty) + road * 1.5 - suit * TERRITORY.suitWeight });
+    // Where the roads link up, the street is paved and lit, and there's water, is where people want to build.
+    const cov = this.sim.infra?.coverage(door.tx, door.ty);
+    // A builder builds on their own land if they have some; homes are drawn to where people already live.
+    const T2 = this.sim.territory;
+    const own = by !== 'village' && T2?.ownerAt(tx + Math.floor(def.w / 2), ty + Math.floor(def.h / 2)) === by ? NPC_DEV.ownLand : 0;
+    const hood = kind === 'home' && this.sim.places?.hoodAt(door.tx, door.ty) ? NPC_DEV.hoodPull : 0;
+    take({ tx, ty, score: Math.hypot(tx - near.tx, ty - near.ty) + road * 1.5 - suit * TERRITORY.suitWeight - (cov ? cov.score * TERRITORY.infraWeight : 0) - own - hood });
   }
 
   // ------------------------------------------------------------------ materials & money
@@ -232,6 +238,7 @@ export class GrowthSystem {
     this.buyLot(owner, type, lot, cost); // after the building's budget is put by: the land never starves the build
     const c = this.cons.startProject({ owner: owner === 'village' ? 'village' : owner.id, type, tx: lot.tx, ty: lot.ty, purpose, budget, ...extra });
     this.clearLot(c);
+    if (owner !== 'village' && owner.landPlan?.k === 'home' && purpose === 'home') owner.landPlan.site = c.id; // the home they bought land for (DevelopmentSystem)
     if (owner !== 'village') {
       this.sim.memory.remember(owner, 'started_building', { params: { vbuilding: type } });
       this.sim.chronicle('chronicle.npc_building', { npc: owner.id, gender: owner.gender, vbuilding: type, purpose });
@@ -272,7 +279,8 @@ export class GrowthSystem {
   buildToLet(n, { need = false } = {}) {
     const sim = this.sim;
     if (this.projectOf(n)) return false;
-    const type = n.money >= this.estimate('house') * RENTAL.buildReserve ? 'house' : 'small_house';
+    // Once the village is big enough, a block of flats pays better than a house (if there's the money for it).
+    const type = this.statusAtLeast(FLATS.developerFrom) && n.money >= this.estimate('apartment_house') * RENTAL.buildReserve ? 'apartment_house' : n.money >= this.estimate('house') * RENTAL.buildReserve ? 'house' : 'small_house';
     const cost = this.estimate(type);
     const rent = sim.realty?.S.weeks.at(-1)?.avgRent || 8;
     const pays = (sim.realty?.idx ?? 1) >= RENTAL.buildIdx && cost / Math.max(1, rent) <= RENTAL.buildPaybackWeeks;
@@ -282,6 +290,12 @@ export class GrowthSystem {
     if (!c) return false;
     if (!need) sim.chronicle('chronicle.npc_builds_to_let', { npc: n.id, gender: n.gender });
     return true;
+  }
+
+  /** Is the village at least this big (village · large_village · town · city — CivicSystem)? */
+  statusAtLeast(status) {
+    const C = this.sim.civic;
+    return !!C && C.statusIndex() >= C.statusIndex(status);
   }
 
   /** Weekly: who needs to build, and who can? */
@@ -308,7 +322,9 @@ export class GrowthSystem {
       if (funds < homeCost * (earning ? 0.7 : 1)) continue;
       const fam = (n.kin?.children || []).filter((id) => sim.npcs.byId(id)?.homeId === n.homeId).length + (n.kin?.spouse ? 2 : 1);
       const type = funds >= this.estimate('house') * 0.7 && fam >= 3 ? 'house' : 'small_house';
-      const near = n.employer ? sim.economy.buildingOf(n.employer)?.door : null;
+      // On the land they bought for it (DevelopmentSystem), else near work.
+      const plot = n.landPlan?.k === 'home' && sim.territory?.owner(n.landPlan.plot) === n.id ? sim.territory.parcel(n.landPlan.plot) : null;
+      const near = plot ? { tx: Math.round(plot.cx), ty: Math.round(plot.cy) } : n.employer ? sim.economy.buildingOf(n.employer)?.door : null;
       if (this.start(n, type, 'home', near || PLAZA_C)) {
         started++;
         busy.add(n.id);
@@ -328,7 +344,9 @@ export class GrowthSystem {
     const V = sim.state.village;
     const civic = sim.tech?.civicWanted();
     if (pressure >= (civic ? 3 : 2) && vacant === 0 && V.treasury >= this.estimate('small_house') * 0.6 && !this.projects().some((c) => c.owner === 'village' && c.type !== 'well')) {
-      this.start('village', 'small_house', 'rental', PLAZA_C);
+      // Once it's a large village: a block of flats — homes for several households at once, at low rents (FlatSystem).
+      const flats = this.statusAtLeast(FLATS.villageFrom) && V.treasury >= this.estimate('apartment_house') * 0.6;
+      this.start('village', flats ? 'apartment_house' : 'small_house', 'rental', PLAZA_C);
     }
     const street = this.streetWithoutWell();
     if (street && V.treasury >= this.estimate('well') + 30 && !this.projects().some((c) => c.type === 'well')) this.start('village', 'well', 'public', street);
@@ -377,8 +395,10 @@ export class GrowthSystem {
   /** An entrepreneur with no premises puts up a shopfront (the business opens when it's done). */
   buildPremises(n, bizType, kind = 'shopfront') {
     if (this.projectOf(n)) return null;
-    // Warehouses go near the producers (by the main road); shops near the plaza.
-    const near = kind === 'warehouse' ? { tx: 20, ty: 44 } : PLAZA_C;
+    // Warehouses go near the producers (by the main road); shops where people live with no shop near
+    // (a neighbourhood without one — PlaceSystem), else by the plaza.
+    const hood = kind !== 'warehouse' && this.sim.places?.hoods().filter((h) => h.homes.length >= NPC_DEV.shopHoodHomes && !(h.stats?.services || []).includes('shop')).sort((a, b) => b.homes.length - a.homes.length)[0];
+    const near = kind === 'warehouse' ? { tx: 20, ty: 44 } : hood ? { tx: hood.tx, ty: hood.ty } : PLAZA_C;
     return this.start(n, kind, 'shop', near, { bizType });
   }
 
@@ -692,61 +712,9 @@ export class GrowthSystem {
 
   // ------------------------------------------------------------------ districts
 
-  /** Classify the village into districts from what's actually built where. */
+  /** Districts are PlaceSystem's now (with neighbourhoods): these stay for the callers. */
   updateDistricts() {
-    const sim = this.sim;
-    const E = sim.economy;
-    const P = sim.property;
-    const cells = {};
-    const add = (tx, ty, kind) => {
-      const k = `${Math.floor(tx / DISTRICT_CELL)},${Math.floor(ty / DISTRICT_CELL)}`;
-      cells[k] ??= { home: 0, shop: 0, industry: 0, farm: 0, public: 0, school: 0, leisure: 0, trade: 0 };
-      cells[k][kind === 'research' ? 'school' : kind]++;
-    };
-    for (const b of sim.world.buildingList) {
-      const kind = this.kindOf(b);
-      if (kind) add(b.door.tx, b.door.ty, kind);
-    }
-    const types = {};
-    for (const [k, c] of Object.entries(cells)) {
-      const total = Object.values(c).reduce((a, n) => a + n, 0);
-      const [top, n] = Object.entries(c).sort((a, b) => b[1] - a[1])[0];
-      const type = { home: 'residential', shop: 'commercial', industry: 'industrial', farm: 'agricultural', public: 'civic', school: 'education', leisure: 'entertainment', trade: 'transport' }[top];
-      types[k] = total >= 2 && n / total < 0.55 ? 'mixed' : type;
-    }
-    const D = sim.state.districts;
-    // Changes over time become part of the village's story.
-    for (const [k, type] of Object.entries(types)) {
-      const before = D.cells[k];
-      if (before && before !== type && sim.time.day - (D.lastChangeDay || -99) > 20) {
-        D.lastChangeDay = sim.time.day;
-        D.changes.push({ day: sim.time.day, cell: k, from: before, to: type });
-        sim.chronicle('chronicle.district_changed', { district: k, from: before, to: type });
-      }
-    }
-    D.cells = types;
-    // Group neighbouring cells of the same kind into named districts.
-    const seen = new Set();
-    D.list = [];
-    for (const k of Object.keys(types)) {
-      if (seen.has(k)) continue;
-      const type = types[k];
-      const group = [];
-      const stack = [k];
-      while (stack.length) {
-        const cur = stack.pop();
-        if (seen.has(cur) || types[cur] !== type) continue;
-        seen.add(cur);
-        group.push(cur);
-        const [cx, cy] = cur.split(',').map(Number);
-        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) stack.push(`${cx + dx},${cy + dy}`);
-      }
-      const cx = group.reduce((s, g) => s + Number(g.split(',')[0]), 0) / group.length;
-      const cy = group.reduce((s, g) => s + Number(g.split(',')[1]), 0) / group.length;
-      const tx = (cx + 0.5) * DISTRICT_CELL;
-      const ty = (cy + 0.5) * DISTRICT_CELL;
-      D.list.push({ id: group.sort()[0], type, cells: group, tx, ty, name: this.districtName(type, tx, ty, group.sort()[0]) });
-    }
+    this.sim.places?.updateDistricts();
   }
 
   /** What a kind of village building will be (before it stands): home, shop, industry, farm, public… */
@@ -779,38 +747,19 @@ export class GrowthSystem {
     if (d?.type === 'tavern') return 'leisure';
     if (d?.kind === 'depot' || d?.type === 'carters') return 'trade';
     if (d?.output === 'farm' || b.type === 'farmhouse') return 'farm';
-    if (d?.kind === 'producer' || ['smithy', 'carpentry', 'workshop'].includes(d?.type || b.type) || ['lumberyard', 'quarry_hut', 'workshop', 'storage_shed', 'mining_camp', 'forge'].includes(b.type)) return 'industry';
+    if (d?.kind === 'producer' || ['smithy', 'carpentry', 'workshop'].includes(d?.type || b.type) || ['lumberyard', 'quarry_hut', 'workshop', 'storage_shed', 'warehouse_bld', 'mining_camp', 'forge'].includes(b.type)) return 'industry';
     if (d?.kind === 'shop') return 'shop';
     if (this.sim.property.isHome(b.id)) return 'home';
     return null;
   }
 
-  /** Names come from where the district is: by the river, the plaza, north, south… */
-  districtName(type, tx, ty, id) {
-    const dx = tx - PLAZA_C.tx;
-    const dy = ty - PLAZA_C.ty;
-    const near = Math.hypot(dx, dy) < 9 ? 'center' : Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'east' : 'west') : dy > 0 ? 'south' : 'north';
-    const river = Math.abs(tx - AREAS.river.baseX) < 10 ? 'river' : null;
-    const variant = Math.floor(hashStr(id, this.sim.state.seed) * 3);
-    return { type, where: river || near, variant };
-  }
-
   districtAt(tx, ty) {
-    const k = `${Math.floor(tx / DISTRICT_CELL)},${Math.floor(ty / DISTRICT_CELL)}`;
-    return this.sim.state.districts.list.find((d) => d.cells.includes(k)) || null;
+    return this.sim.places?.districtAt(tx, ty) ?? null;
   }
 
-  /** District effect on a building's value: homes in quiet streets, shops in busy ones. */
+  /** District (and neighbourhood) effect on a building's value: homes in quiet streets, shops in busy ones. */
   valueFactor(buildingId) {
-    const b = this.sim.world.buildings[buildingId];
-    if (!b) return 1;
-    const d = this.districtAt(b.door.tx, b.door.ty);
-    if (!d) return 1;
-    const isShop = !!this.sim.economy.businessAtBuilding(buildingId);
-    const table = isShop
-      ? { commercial: 1.2, mixed: 1.1, civic: 1.1, entertainment: 1.15, transport: 1.05, education: 1.0, residential: 0.95, industrial: 0.9, agricultural: 0.85 }
-      : { residential: 1.08, mixed: 1.04, civic: 1.05, education: 1.08, entertainment: 0.98, commercial: 1.0, transport: 0.92, industrial: 0.85, agricultural: 0.95 };
-    return table[d.type] ?? 1;
+    return this.sim.places?.valueFactor(buildingId) ?? 1;
   }
 
   // ------------------------------------------------------------------ daily
@@ -841,7 +790,6 @@ export class GrowthSystem {
         sim.chronicle('chronicle.population_milestone', { n: m });
       }
     }
-    if (sim.time.day % 14 === 5 || !sim.state.districts.list.length) this.updateDistricts();
   }
 
   abandonProject(c) {

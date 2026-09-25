@@ -27,6 +27,8 @@
  */
 import { HOUSING_CHOICE as HC, HOUSING } from '../data/housing.js';
 import { AREAS } from '../data/villageLayout.js';
+import { HOODS } from '../data/places.js';
+import { INFRA } from '../data/infra.js';
 import { hashStr } from '../core/rng.js';
 import { BALANCE } from '../config/balance.js';
 
@@ -84,11 +86,15 @@ export class HousingSystem {
       if (HC.industry.includes(type) && near(o, HC.industryRadius)) industry++;
     }
     for (const d of sim.world.decor) if (d.type === 'well' && Math.abs(d.tx - door.tx) + Math.abs(d.ty - door.ty) <= HC.servicesRadius) services++;
-    const area = clamp((homes ? (conds / homes - 70) / 60 : 0) + Math.min(0.5, services * 0.15) - Math.min(0.8, industry * 0.3), -1, 1);
-    const safety = clamp((sim.civic?.has('watch') ? 0.4 : 0) - Math.min(0.9, ruins * 0.3), -1, 1);
+    // …and the neighbourhood's standing (PlaceSystem): what people say about living there.
+    const hood = (sim.places?.standing(id) ?? 0) * HOODS.areaShare;
+    // …a paved street, and a lamp that lights it at night (InfrastructureSystem).
+    const cov = sim.infra?.coverage(door.tx, door.ty);
+    const area = clamp((homes ? (conds / homes - 70) / 60 : 0) + Math.min(0.5, services * 0.15) - Math.min(0.8, industry * 0.3) + hood + (cov?.paved ? INFRA.area.paved : 0), -1, 1);
+    const safety = clamp((sim.civic?.has('watch') ? 0.4 : 0) + (cov?.light ? INFRA.safety.lamps : 0) - Math.min(0.9, ruins * 0.3), -1, 1);
     const Pz = AREAS.plaza;
     const f = {
-      cap: P.capacity(id),
+      cap: P.homeCap(id), // (a flat's worth, in a block of flats)
       quality: sim.structures?.rec(id) ? sim.structures.quality(id) : 50,
       condition: r?.condition ?? 100,
       plazaDist: Math.abs(door.tx - (Pz.x1 + Pz.x2) / 2) + Math.abs(door.ty - (Pz.y1 + Pz.y2) / 2),

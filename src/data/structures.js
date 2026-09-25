@@ -92,7 +92,7 @@ export const FAMILIES = {
       { cap: 16, units: 6, floors: 3, minW: 7, minH: 4, value: 2.2, slots: 4, look: { wall: 'stone', roof: 'slate' }, cost: M(900, { stone: 90, planks: 60, bricks: 70, glass: 18, iron_ingot: 8 }, 52, { minSkill: 7, tech: ['masonry'] }) },
       { cap: 24, units: 8, floors: 4, minW: 8, minH: 5, value: 3.2, slots: 5, look: { wall: 'stone', roof: 'slate', flag: true }, cost: M(1600, { stone: 120, planks: 80, bricks: 110, glass: 30, iron_ingot: 16 }, 70, { minSkill: 8, tech: ['masonry'], anyTech: ['lime_mortar', 'surveying'] }) },
     ],
-    modules: ['shop_floor', 'courtyard', 'washroom', 'cellar', 'lift'],
+    modules: ['shop_floor', 'courtyard', 'washroom', 'cellar', 'lift', 'cart_shed'],
     specs: ['workers', 'family', 'fine'],
     specFrom: 1,
   },
@@ -214,7 +214,7 @@ export const MODULES = {
   parlour: { fams: ['house'], from: 3, comfort: 8, appeal: 0.8, quality: 3, value: 1.06, cost: M(60, { planks: 16, wood: 8, glass: 2 }, 8) },
   washroom: { fams: ['house', 'apartment'], from: 3, comfort: 5, quality: 5, appeal: 0.8, health: true, value: 1.06, needs: { water: true }, cost: M(70, { stone: 12, bricks: 6, planks: 6, iron_ingot: 1 }, 8) },
   upper_floor: { fams: ['house'], from: 3, floors: 1, cap: 3, value: 1.2, cost: M(140, { wood: 30, planks: 28, stone: 10, bricks: 10, glass: 2 }, 20) },
-  cart_shed: { fams: ['house'], from: 3, space: 1, appeal: 0.4, value: 1.05, needs: { tech: 'handcart', road: true }, cost: M(30, { wood: 20, planks: 8 }, 6) },
+  cart_shed: { fams: ['house', 'apartment'], from: 3, space: 1, appeal: 0.4, value: 1.05, needs: { tech: 'handcart', road: true }, cost: M(30, { wood: 20, planks: 8 }, 6) },
   garden: { fams: ['house', 'farm', 'inn', 'school', 'civic'], from: 1, space: 2, comfort: 5, appeal: 0.6, food: 1, value: 1.05, cost: M(15, { wood: 10 }, 5) },
   // Work premises
   extra_bench: { fams: ['workshop', 'yard'], from: 2, staff: 1, value: 1.05, cost: M(40, { planks: 16, iron_ingot: 1 }, 6) },
@@ -296,3 +296,30 @@ export function levelDef(fam, lvl) {
 export function maxLevel(fam) {
   return (FAMILIES[fam]?.levels.length || 1) - 1;
 }
+
+/**
+ * Changing what a building is (Phase 13): conversions — building by building, not everything into
+ * everything. A house can become a shop or a workshop; a shop a small house or a workshop; a workshop
+ * a warehouse or a shop; a warehouse a workshop; a shed a workshop. (A large house can become a block
+ * of flats — Phase 14.) It stays the same size; its quality comes with it.
+ */
+export const CONVERSIONS = {
+  shack: ['storage_shed'],
+  small_house: ['shopfront', 'workshop'],
+  house: ['shopfront', 'workshop'],
+  rental_house: ['shopfront', 'workshop'],
+  player_house: ['shopfront', 'workshop'],
+  player_large_house: ['shopfront', 'workshop'],
+  shopfront: ['small_house', 'workshop'],
+  trading_post: ['shopfront'],
+  workshop: ['warehouse_bld', 'shopfront'],
+  warehouse_bld: ['workshop'],
+  storage_shed: ['workshop'],
+};
+
+/** What it takes: converting, pulling down (and what's salvaged), joining two buildings into one. */
+export const REBUILD = {
+  convert: { money: 30, moneyPerTile: 6, perTile: { planks: 1, wood: 0.5, stone: 0.4 }, labor: 4, laborPerTile: 0.5, minSkill: 1 },
+  demolish: { money: 5, moneyPerTile: 4, labor: 2, laborPerTile: 0.4, salvage: 0.35, perTile: { planks: 1.2, wood: 1, stone: 1 } },
+  merge: { money: 60, moneyPerTile: 8, perTile: { planks: 1, stone: 0.8 }, extra: { bricks: 4 }, labor: 10, laborPerTile: 0.6, minSkill: 2, maxGap: 3, maxW: 12, maxH: 5 },
+};

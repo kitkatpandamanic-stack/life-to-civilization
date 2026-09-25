@@ -576,7 +576,7 @@ export class EnterpriseSystem {
     // Premises they already own (a shopfront they built, an old shop they bought).
     for (const [id, r] of Object.entries(P.all)) {
       if (r.owner !== n.id || id === n.homeId || E.businessAtBuilding(id) || r.ruined) continue;
-      if (P.type(id) === 'shopfront' || r.formerBusiness) return { building: id, how: 'own' };
+      if (P.type(id) === 'shopfront' || P.type(id) === 'workshop' || r.formerBusiness) return { building: id, how: 'own' };
     }
     const needs = BUSINESS_TYPES[type].premises;
     if (needs) {
@@ -584,7 +584,7 @@ export class EnterpriseSystem {
       for (const [id, r] of Object.entries(P.all)) {
         if (E.businessAtBuilding(id) || this.sim.businesses.atBuilding(id) || P.occupants(id) > 0 || r.ruined || r.owner === 'player') continue;
         const t = P.type(id);
-        const fits = needs === 'warehouse' ? t === 'warehouse_bld' : !P.isHome(id) && (t === 'shopfront' || r.formerBusiness);
+        const fits = needs === 'warehouse' ? t === 'warehouse_bld' : !P.isHome(id) && (t === 'shopfront' || t === 'workshop' || r.formerBusiness);
         if (!fits) continue;
         const price = P.value(id);
         if ((r.forSale || r.abandoned || r.owner === 'village' || r.owner === n.id) && n.money >= price * (r.owner === n.id ? 0 : 1)) return { building: id, how: r.owner === n.id ? 'own' : 'buy', price };

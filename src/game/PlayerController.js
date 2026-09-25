@@ -4,6 +4,8 @@
  */
 import { BALANCE } from '../config/balance.js';
 import { Mod } from '../systems/Modifiers.js';
+import { INFRA } from '../data/infra.js';
+import { T } from '../world/WorldGenerator.js';
 import { ensureCharacter, idleFrame, CHAR_ORIGIN_Y } from './characters.js';
 import { DEPTH } from './depth.js';
 
@@ -114,7 +116,7 @@ export class PlayerController {
       const len = Math.hypot(vx, vy);
       const tile = this.sim.world.toTile(this.sprite.x, this.sprite.y);
       let speed = Mod.moveSpeed(p) * this.sim.weather.mods().move;
-      if (this.sim.world.isRoad(tile.tx, tile.ty)) speed *= 1 + BALANCE.player.roadSpeedBonus;
+      if (this.sim.world.isRoad(tile.tx, tile.ty)) speed *= 1 + BALANCE.player.roadSpeedBonus + (this.sim.world.tileAt(tile.tx, tile.ty) === T.PLAZA ? INFRA.pavedSpeedBonus : 0); // cobbles are quicker still
       if (p.energy < BALANCE.needs.lowThreshold) speed *= 0.8;
       this.sprite.setVelocity((vx / len) * speed, (vy / len) * speed);
       if (Math.abs(vx) >= Math.abs(vy) && vx !== 0) this.facing = vx > 0 ? 'right' : 'left';

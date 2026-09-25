@@ -5,7 +5,7 @@
  */
 import { Panel } from '../Panel.js';
 import { t, fmtMoney } from '../../i18n/i18n.js';
-import { tr, escapeHtml, buildingLabel, parcelName, dateString } from '../format.js';
+import { tr, escapeHtml, buildingLabel, parcelName, dateString, districtLabel, hoodLabel } from '../format.js';
 import { button, stat, statGrid, notice } from '../widgets.js';
 import { ownerLabel } from '../land.js';
 import { T } from '../../world/WorldGenerator.js';
@@ -77,6 +77,8 @@ export class LandPanel extends Panel {
           ])}
         </div>
       </div>
+      ${this.placeHtml()}
+      ${this.planHtml()}
       <h3>${escapeHtml(t('ui.land_features'))}</h3>
       ${features}
       ${this.becomeHtml()}
@@ -84,6 +86,7 @@ export class LandPanel extends Panel {
       ${on.length ? `<h3>${escapeHtml(t('ui.on_this_land'))}</h3>${on.join('')}` : ''}
       ${this.eventsHtml()}
       ${hist ? `<h3>${escapeHtml(t('land_ui.history'))}</h3>${hist}` : ''}
+      ${owned ? this.joinSplitHtml() : ''}
       ${owned ? this.nextDoorHtml() : ''}
       <div class="btn-row">${action}</div>
       ${check && !check.ok && check.reason !== 'already_owned' ? `<div class="warn small">${escapeHtml(tr(sim, `reason.${check.reason}`, check.params || {}))}</div>` : ''}
@@ -136,6 +139,27 @@ export class LandPanel extends Panel {
     }
   }
 
+  /** A villager's plans for this land (DevelopmentSystem): a home to build, land held to sell on. */
+  planHtml() {
+    const n = this.sim.development?.plannerOf(this.plotId);
+    return n ? `<div class="muted small">🏗️ ${escapeHtml(tr(this.sim, `dev_plan.${n.landPlan.k}`, { npc: n.id, gender: n.gender }))}</div>` : '';
+  }
+
+  /** The neighbourhood and district this land is part of (click to see them). */
+  placeHtml() {
+    const sim = this.sim;
+    const q = sim.territory.parcel(this.plotId);
+    if (!q || !sim.places) return '';
+    const tx = Math.round(q.cx);
+    const ty = Math.round(q.cy);
+    const h = sim.places.hoodAt(tx, ty);
+    const d = sim.places.districtAt(tx, ty);
+    const parts = [];
+    if (h) parts.push(`<span class="clickable" data-action="place" data-hood="${h.id}">🏘️ ${escapeHtml(hoodLabel(sim, h))}</span>`);
+    if (d) parts.push(`<span class="clickable" data-action="place" data-district="${d.id}">🗺️ ${escapeHtml(districtLabel(d))}</span>`);
+    return parts.length ? `<div class="kv"><span>${escapeHtml(t('place_ui.part_of'))}</span><b>${parts.join(' · ')}</b></div>` : '';
+  }
+
   /** What the land has become: its type (from what's on it), people, work, trade, resources — and what's wanted around it. */
   becomeHtml() {
     const sim = this.sim;
@@ -148,7 +172,7 @@ export class LandPanel extends Panel {
     if (p.resources.rocks) res.push(t('land_ui.res_rocks', { n: p.resources.rocks }));
     if (p.resources.farmland) res.push(t('land_ui.res_fields', { n: p.resources.farmland }));
     if (p.resources.water) res.push(t('land_ui.res_water'));
-    const infra = [p.infra.road ? t('land_ui.infra_road') : t('land_ui.infra_no_road'), p.infra.well ? t('land_ui.infra_well') : null, p.roads ? t('land_ui.road_tiles', { n: p.roads }) : null].filter(Boolean);
+    const infra = [p.infra.road ? t('land_ui.infra_road') : t('land_ui.infra_no_road'), p.infra.road && p.infra.linked === false ? t('land_ui.infra_unlinked') : null, p.infra.paved ? t('land_ui.infra_paved') : null, p.infra.light ? t('land_ui.infra_lamp') : null, p.infra.well ? t('land_ui.infra_well') : null, p.infra.transport ? t('land_ui.infra_carting') : null, p.roads ? t('land_ui.road_tiles', { n: p.roads }) : null].filter(Boolean);
     const q = T2.parcel(this.plotId);
     const pr = T2.pressure(Math.round(q.cx), Math.round(q.cy));
     const calls = [];
@@ -201,7 +225,20 @@ export class LandPanel extends Panel {
     const sim = this.sim;
     const ev = (sim.territory.rec(this.plotId)?.events || []).slice(-5).reverse();
     if (!ev.length) return '';
-    return `<h3>${escapeHtml(t('land_ui.story'))}</h3>${ev.map((e) => `<div class="small"><span class="muted">${escapeHtml(dateString(e.day))}</span> ${escapeHtml(tr(sim, `land_event.${e.k}`, e.k === 'dev' ? { dev: e.to } : { tfrom: e.from, ttype: e.to }))}</div>`).join('')}`;
+    return `<h3>${escapeHtml(t('land_ui.story'))}</h3>${ev.map((e) => `<div class="small"><span class="muted">${escapeHtml(dateString(e.day))}</span> ${escapeHtml(tr(sim, `land_event.${e.k}`, e.k === 'dev' ? { dev: e.to } : e.plot2 ? { plot: e.plot2 } : { tfrom: e.from, ttype: e.to }))}</div>`).join('')}`;
+  }
+
+  /** Your land: join it with a plot of yours next door, or split it in two. */
+  joinSplitHtml() {
+    const sim = this.sim;
+    const T2 = sim.territory;
+    const joins = T2.neighbours(this.plotId)
+      .filter((id) => T2.owner(id) === 'player')
+      .map((id) => button(t('land_ui.join_with', { plot: parcelName(sim, id) }), 'join', { id }))
+      .join('');
+    const split = T2.canSplit(this.plotId);
+    const btns = joins + (split.ok ? button(t('land_ui.split'), 'split') : '');
+    return btns ? `<h3>${escapeHtml(t('land_ui.reshape'))}</h3><div class="btn-row">${btns}</div><div class="muted small">${escapeHtml(t('land_ui.reshape_hint'))}</div>` : '';
   }
 
   /** Land next to yours: grow your holding a plot at a time (walk over to buy). */
@@ -220,6 +257,20 @@ export class LandPanel extends Panel {
   onAction(action, data) {
     if (action === 'land') {
       this.ui.openLand(data.id);
+      return;
+    }
+    if (action === 'place') {
+      this.ui.openPlace(data.hood ? { hood: data.hood } : { district: data.district });
+      return;
+    }
+    if (action === 'join') {
+      const r = this.sim.territory.join(this.plotId, data.id);
+      if (!r.ok) this.sim.toast(`reason.${r.reason}`, {}, 'warn');
+      return;
+    }
+    if (action === 'split') {
+      const r = this.sim.territory.split(this.plotId);
+      if (!r.ok) this.sim.toast(`reason.${r.reason}`, {}, 'warn');
       return;
     }
     if (action === 'buy') this.sim.land.buy(this.plotId);

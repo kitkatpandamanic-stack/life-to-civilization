@@ -53,7 +53,9 @@ export function worthBreakdown(sim, id, { rent = true } = {}) {
   if (rent) {
     const r = R.rentParts(id);
     const coins = (v) => fmtMoney(Math.round(v * 10) / 10);
-    html += `<div><div class="wb-head">${escapeHtml(t('worth.rent'))}</div>${r.parts.map((p) => row(p, coins)).join('')}<div class="wb-row wb-total"><span>${escapeHtml(t('worth.total_week'))}</span><b>${escapeHtml(fmtMoney(r.total))}</b></div></div>`;
+    // (A block of flats: that's the whole building's — and a flat's share of it.)
+    const flat = sim.flats?.isBlock(id) ? `<div class="wb-row"><span>${escapeHtml(t('worth.a_flat', { n: sim.flats.units(id) }))}</span><b>${escapeHtml(fmtMoney(sim.property.marketRent(id)))}</b></div>` : '';
+    html += `<div><div class="wb-head">${escapeHtml(t('worth.rent'))}</div>${r.parts.map((p) => row(p, coins)).join('')}<div class="wb-row wb-total"><span>${escapeHtml(t('worth.total_week'))}</span><b>${escapeHtml(fmtMoney(r.total))}</b></div>${flat}</div>`;
   }
   return html + '</div>';
 }

@@ -162,7 +162,8 @@ const HEADLINES = {
   district_changed: 2, shortage: 2, forest_thinning: 2, fish_scarce: 2, deer_scarce: 2, npc_retired: 2, business_inherited: 2,
   business_taken_over: 2, business_handed_over: 2, npc_building: 1, village_building: 2, new_rental: 1, building_repaired: 1,
   building_abandoned: 2, building_ruined: 2, npc_evicted: 1, business_partners: 1, npc_manager: 1, business_expanding: 1,
-  village_well: 1, replanting: 2, iron_running_out: 2, player_built: 2, player_land: 1, business_opened: 2,
+  village_well: 1, hood_formed: 2, hood_grew: 1, hood_faded: 1, district_character: 2, npc_development: 1, npc_development_done: 2, npc_bought_lot: 1, npc_land_for_sale: 1,
+  village_lane: 1, village_paved: 2, village_lamp: 1, village_bridge: 2, npc_converted: 1, building_demolished: 1, village_demolished: 1, replanting: 2, iron_running_out: 2, player_built: 2, player_land: 1, business_opened: 2,
 };
 export function headlineWeight(key) {
   const k = key.replace('chronicle.', '');

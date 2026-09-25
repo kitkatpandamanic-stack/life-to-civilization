@@ -12,13 +12,14 @@
  */
 import { EnterprisePanel } from './panels/EnterprisePanel.js';
 import { t, fmtMoney, onLanguageChange, npcName, itemName } from '../i18n/i18n.js';
-import { tr, escapeHtml } from './format.js';
+import { tr, escapeHtml, hoodLabel, districtLabel } from './format.js';
 import { WEATHER_ICONS } from '../systems/WeatherSystem.js';
 import { BALANCE } from '../config/balance.js';
 import { InventoryPanel } from './panels/InventoryPanel.js';
 import { CharacterPanel } from './panels/CharacterPanel.js';
 import { JournalPanel } from './panels/JournalPanel.js';
 import { MapPanel } from './panels/MapPanel.js';
+import { PlacePanel } from './panels/PlacePanel.js';
 import { DialoguePanel } from './panels/DialoguePanel.js';
 import { ShopPanel } from './panels/ShopPanel.js';
 import { JobBoardPanel } from './panels/JobBoardPanel.js';
@@ -92,6 +93,7 @@ export class UIManager {
       sim.bus.on('player:levelup', (d) => this.showLevelUp(d)),
       onLanguageChange(() => this.onLanguage()),
       sim.bus.on('land:changed', () => (this.landKey = null)),
+      sim.bus.on('places:changed', () => (this.landKey = null)),
       ...REFRESH_EVENTS.map((ev) => sim.bus.on(ev, () => this.queueRefresh())),
     ];
     this.updateHud();
@@ -118,6 +120,7 @@ export class UIManager {
     this.hotkeysEl = el('hotkeys');
     this.toastsEl = el('toasts');
     this.levelUpEl = el('levelup hidden');
+    this.placeEl = el('place-banner hidden');
     this.statusEl = el('status-overlay hidden');
     this.contextEl = el('context-menu hidden');
     this.buildHintEl = el('build-hint hidden');
@@ -238,7 +241,10 @@ export class UIManager {
     const sim = this.sim;
     const me = sim.world.toTile(sim.state.player.x, sim.state.player.y);
     const id = sim.territory?.idAt(me.tx, me.ty) ?? null;
-    const key = `${id}|${id && sim.territory.owner(id)}`;
+    // The neighbourhood you're in (PlaceSystem) — walking into one, its name comes up.
+    const hood = sim.places?.hoodAt(me.tx, me.ty) || null;
+    this.enterPlace(hood);
+    const key = `${id}|${id && sim.territory.owner(id)}|${hood?.id}`;
     if (key === this.landKey) return;
     this.landKey = key;
     this.landId = id;
@@ -247,8 +253,26 @@ export class UIManager {
     if (!here) return;
     this.q.land.classList.toggle('mine', here.owner === 'player');
     this.q.land.classList.toggle('sale', here.forSale);
-    this.q.land.innerHTML = `<span class="lc-name">🏞️ ${escapeHtml(here.name)}</span><span class="lc-owner">${escapeHtml(here.text)}${here.forSale ? ` · ${escapeHtml(t('land_ui.for_sale_short'))}` : ''}</span>`;
+    this.q.land.innerHTML = `<span class="lc-name">🏞️ ${escapeHtml(here.name)}</span><span class="lc-owner">${escapeHtml(here.text)}${here.forSale ? ` · ${escapeHtml(t('land_ui.for_sale_short'))}` : ''}</span>${hood ? `<span class="lc-place">🏘️ ${escapeHtml(hoodLabel(sim, hood))}</span>` : ''}`;
     this.q.land.dataset.tip = `<div class='tip-title'>${escapeHtml(here.name)}</div><div class='tip-sub'>${escapeHtml(t('land_ui.chip_tip'))}</div>`;
+  }
+
+  /** Walking into a neighbourhood: its name comes up on the screen for a moment (not again for the one you just left). */
+  enterPlace(hood) {
+    const id = hood?.id || null;
+    if (id === this.placeHere) return;
+    this.placeHere = id;
+    if (!hood || id === this.placeShown) return;
+    this.placeShown = id;
+    const sim = this.sim;
+    const b = sim.world.buildings[hood.homes[0]];
+    const d = b ? sim.places.districtAt(b.door.tx, b.door.ty) : null;
+    this.placeEl.innerHTML = `<div class="pb-name">${escapeHtml(hoodLabel(sim, hood))}</div><div class="pb-sub">${escapeHtml(t(`hood_kind.${hood.kind}`))}${d ? ` · ${escapeHtml(districtLabel(d))}` : ''}</div>`;
+    this.placeEl.classList.remove('hidden', 'show');
+    void this.placeEl.offsetWidth;
+    this.placeEl.classList.add('show');
+    clearTimeout(this.placeTimer);
+    this.placeTimer = setTimeout(() => this.placeEl.classList.add('hidden'), 3200);
   }
 
   updateHud() {
@@ -696,6 +720,10 @@ export class UIManager {
   openLand(plotId) {
     this.openPanel(new LandPanel(this, plotId));
   }
+  /** A neighbourhood ({ hood }) or a district ({ district }). */
+  openPlace(place) {
+    this.openPanel(new PlacePanel(this, place));
+  }
   openBuild(tab = null) {
     this.openPanel(new BuildPanel(this, tab));
   }
@@ -730,8 +758,9 @@ export class UIManager {
   }
 
   showBuildHint(type) {
-    const name = type === 'road' ? t('buildable.road.name') : t(`buildable.${type}.name`);
-    this.buildHintEl.innerHTML = `🔨 ${escapeHtml(t('ui.placing', { name }))} <span class="muted">${escapeHtml(t(type === 'road' ? 'ui.road_hint' : 'ui.place_hint'))}</span> <button class="btn" data-cancel-build>${escapeHtml(t('ui.cancel'))}</button>`;
+    const tile = ['road', 'pave', 'bridge', 'lamp'].includes(type);
+    const name = t(`buildable.${type}.name`);
+    this.buildHintEl.innerHTML = `🔨 ${escapeHtml(t('ui.placing', { name }))} <span class="muted">${escapeHtml(t(type === 'road' ? 'ui.road_hint' : tile ? 'ui.tile_tool_hint' : 'ui.place_hint'))}</span> <button class="btn" data-cancel-build>${escapeHtml(t('ui.cancel'))}</button>`;
     this.buildHintEl.classList.remove('hidden');
   }
 

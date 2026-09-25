@@ -15,6 +15,7 @@ export const HOME_CAPACITY = {
   player_house: 4,
   player_large_house: 6,
   player_estate: 8,
+  apartment_house: 8, // (a block of flats: StructureSystem gives its real size — several households, a flat each)
   shack: 2,
   tavern: 3, // rooms upstairs
   hall: 2, // the caretaker's quarters
@@ -28,6 +29,7 @@ export const PROPERTY_VALUE = {
   player_house: 380,
   player_large_house: 620,
   player_estate: 1100,
+  apartment_house: 900,
   forge: 180,
   mining_camp: 220,
   hunting_cabin: 160,
@@ -49,6 +51,19 @@ export const PROPERTY_VALUE = {
   clinic: 0,
   guild_hall: 0,
   bank: 0,
+};
+
+/**
+ * Flats (Phase 14): a block of flats (StructureSystem family 'apartment') houses several households,
+ * each in a flat of its own, each with its own tenancy (FlatSystem).
+ */
+export const FLATS = {
+  rentShare: 0.65, // all its flats together let for this share of what the whole building would (a flat: ÷ the number of flats)
+  minCap: 2, // people to a flat, at least
+  shopFloorRent: 12, // a week, from the trader renting the shop on the ground floor (with a shop floor)
+  upkeepShare: 0.5, // a landlord's upkeep for each flat let, against a whole house's (RENTAL.upkeepPerDay)
+  villageFrom: 'large_village', // the village puts up a block of flats (not another small house) once it's this big
+  developerFrom: 'large_village', // …and so do villagers who build to let
 };
 
 /** Buildings that belong to the whole village and are never sold. */

@@ -20,6 +20,8 @@ import { BALANCE } from '../config/balance.js';
 import { OCCUPATIONS } from '../data/occupations.js';
 import { FOOD } from './EconomySystem.js';
 import { AREAS } from '../data/villageLayout.js';
+import { INFRA } from '../data/infra.js';
+import { T } from '../world/WorldGenerator.js';
 import { traitValue } from '../data/traits.js';
 import { GOALS } from '../data/goals.js';
 import { SKILLED } from '../data/careers.js';
@@ -222,7 +224,7 @@ export class NPCSystem {
         continue;
       }
       const ageMult = npc.age < 14 ? 1.15 : npc.age > 60 ? 0.85 : 1;
-      const road = this.world.isRoad(path[0].tx, path[0].ty) ? 1 + NB.roadSpeedBonus : 1;
+      const road = this.world.isRoad(path[0].tx, path[0].ty) ? 1 + NB.roadSpeedBonus + (this.world.tileAt(path[0].tx, path[0].ty) === T.PLAZA ? INFRA.pavedSpeedBonus : 0) : 1;
       let step = NB.walkSpeed * weatherMove * ageMult * road * (deltaMs / 1000);
       while (step > 0 && path.length) {
         const c = this.world.tileCenter(path[0].tx, path[0].ty);

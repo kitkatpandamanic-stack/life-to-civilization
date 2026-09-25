@@ -10,6 +10,7 @@
 export const VILLAGE_BUILDINGS = {
   house: { visual: 'house', w: 4, h: 3, materials: { wood: 28, stone: 14, planks: 10 }, labor: 16, purposes: ['home', 'rental'] },
   small_house: { visual: 'small_house', w: 4, h: 3, materials: { wood: 22, stone: 6, planks: 8 }, labor: 11, purposes: ['home', 'rental'] },
+  apartment_house: { visual: 'apartment_house', w: 5, h: 4, materials: { wood: 40, stone: 44, planks: 30, bricks: 16 }, labor: 30, purposes: ['rental'] },
   shopfront: { visual: 'shopfront', w: 4, h: 3, materials: { wood: 24, stone: 12, planks: 12 }, labor: 14, purposes: ['shop'] },
   well: { visual: 'well', w: 1, h: 1, materials: { stone: 16 }, labor: 5, purposes: ['public'] },
   warehouse: { visual: 'warehouse_bld', w: 6, h: 4, materials: { wood: 40, stone: 20, planks: 16 }, labor: 20, purposes: ['shop'] },

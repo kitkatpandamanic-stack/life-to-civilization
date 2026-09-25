@@ -21,7 +21,7 @@
  * too (with cause — rent owing — or after a first fortnight, at some cost to their name). Houses
  * let out cost their landlord upkeep; well-off villagers buy houses to let.
  */
-import { HOME_CAPACITY, PROPERTY_VALUE, PUBLIC_BUILDINGS, PUBLIC_TYPES, HOUSING as H, RENTAL as RT } from '../data/housing.js';
+import { HOME_CAPACITY, PROPERTY_VALUE, PUBLIC_BUILDINGS, PUBLIC_TYPES, HOUSING as H, RENTAL as RT, FLATS } from '../data/housing.js';
 import { AREAS } from '../data/villageLayout.js';
 import { GOALS } from '../data/goals.js';
 import { rand } from '../core/rng.js';
@@ -53,6 +53,9 @@ export class PropertySystem {
   type(id) {
     const b = this.building(id);
     if (!b) return null;
+    // Converted into something else (StructureSystem): that's what it is now.
+    const v = this.sim.structures?.all?.[id]?.visual;
+    if (v && !this.sim.structures.all[id].gone) return v;
     if (b.player) return this.sim.construction.byId(id)?.type || b.type;
     return b.type;
   }
@@ -99,6 +102,11 @@ export class PropertySystem {
     return this.sim.structures?.capacity(id) ?? HOME_CAPACITY[this.type(id)] ?? 0;
   }
 
+  /** People one household can have here: a house holds one household; a block of flats, a flat's worth each (FlatSystem). */
+  homeCap(id) {
+    return this.sim.flats?.isBlock(id) ? this.sim.flats.flatCap(id) : this.capacity(id);
+  }
+
   occupants(id) {
     return this.sim.npcs.residentsOf(id).length + (this.sim.state.player.homeId === id ? 1 : 0);
   }
@@ -109,6 +117,7 @@ export class PropertySystem {
     if (!r || !this.isHome(id) || r.abandoned || r.condition < 35) return false;
     if (id === this.sim.state.player.homeId || PUBLIC_BUILDINGS.includes(id)) return false;
     if (this.sim.economy.businessAtBuilding(id)) return false; // the tavern's rooms belong to the innkeeper
+    if (this.sim.flats?.isBlock(id)) return this.sim.flats.free(id) > 0; // a block of flats: a flat free
     return this.occupants(id) === 0;
   }
 
@@ -159,6 +168,8 @@ export class PropertySystem {
 
   /** The going rent for a home like this, where it is, as things are (before the landlord's own pricing). */
   marketRent(id) {
+    // (A block of flats: the rent of one flat — the building's, shared out.)
+    if (this.sim.flats?.isBlock(id)) return this.sim.flats.flatRent(this.sim.realty ? this.sim.realty.rentParts(id).total : Math.round(this.value(id) * H.rentPerWeekShare), id);
     if (this.sim.realty) return this.sim.realty.rentParts(id).total;
     return Math.max(3, Math.round(this.value(id) * H.rentPerWeekShare));
   }
@@ -216,7 +227,8 @@ export class PropertySystem {
     if (r.owner !== 'player' && r.owner !== 'village') {
       const owner = this.sim.npcs.byId(r.owner);
       if (!owner || npc.family.includes(owner.id)) return null; // family doesn't charge family
-      if (owner.homeId === npc.homeId && !npc.lodger) return null; // living with the owner as a guest
+      // Living with the owner as a guest (in a block of flats: only if it's the owner's own flat).
+      if (owner.homeId === npc.homeId && !npc.lodger && !(this.sim.flats?.isBlock(npc.homeId) && owner.flat !== npc.flat)) return null;
     }
     if (PUBLIC_BUILDINGS.includes(npc.homeId)) return null;
     return r.owner;
@@ -265,6 +277,7 @@ export class PropertySystem {
       n.homeId = id;
       n.homeSince = this.sim.time.day;
       n.lodger = false;
+      n.flat = null;
       n.plan = null;
       if (n.task && ['home', 'sleep', 'rest', 'sick'].includes(n.task.type)) n.task = null;
       if (from) this.sim.memory.remember(n, reason === 'evicted' ? 'evicted' : 'moved_home', { params: { building: id } });
@@ -278,7 +291,8 @@ export class PropertySystem {
     for (const n of npcs) this.sim.habits.derive(n);
     // Taking a whole house from a landlord: a lease, at the rent asked.
     const head = npcs.filter((n) => n.age >= 18).sort((a, b) => b.money - a.money)[0];
-    if (wasEmpty && head && this.landlord(head)) this.startLease(id, head);
+    if (this.sim.flats?.isBlock(id)) this.sim.flats.moveIn(id, npcs); // a flat of their own (and its tenancy)
+    else if (wasEmpty && head && this.landlord(head)) this.startLease(id, head);
     this.sim.structures?.movedIn(id, npcs);
     this.sim.bus.emit('property:changed', id);
   }
@@ -552,9 +566,11 @@ export class PropertySystem {
             repaired = true;
           } else if (r.owner === 'player') {
             // You keep your own buildings up; a house you let out costs you its upkeep.
+            // (A block of flats: for each flat let.)
+            const upkeep = this.sim.flats?.isBlock(id) ? RT.upkeepPerDay * Math.max(1, this.sim.flats.leases(id).length) * FLATS.upkeepShare : RT.upkeepPerDay;
             if (!this.rentedOut(id)) repaired = true;
-            else if (sim.state.player.money >= RT.upkeepPerDay) {
-              sim.state.player.money -= RT.upkeepPerDay;
+            else if (sim.state.player.money >= upkeep) {
+              sim.state.player.money -= upkeep;
               repaired = true;
             }
           }
@@ -631,6 +647,15 @@ export class PropertySystem {
     }
     for (const [id, { landlord, payers }] of byHome) {
       const r = this.rec(id);
+      // A block of flats: each flat pays its own rent (FlatSystem).
+      if (this.sim.flats?.isBlock(id)) {
+        const paid = this.sim.flats.collect(id, payers, landlord);
+        if (landlord === 'player') {
+          toPlayer += paid;
+          if (paid > 0) sim.toast('toast.rent_received', { money: paid, building: id }, 'gain');
+        }
+        continue;
+      }
       const lodgers = payers.every((p) => p.lodger);
       // A household renting the whole house pays what was agreed (a new rent from the week after it's set).
       if (!lodgers && !r.lease) this.startLease(id, payers.filter((p) => p.age >= 18).sort((a, b) => b.money - a.money)[0] || payers[0]);
@@ -646,7 +671,7 @@ export class PropertySystem {
       const share = Math.ceil(rent / payers.length);
       let paid = 0;
       for (const n of payers) {
-        const x = Math.min(share, Math.max(0, Math.floor(n.money)));
+        const x = Math.min(share, rent - paid, Math.max(0, Math.floor(n.money))); // (split between them — never more than the rent)
         n.money -= x;
         paid += x;
       }
@@ -722,7 +747,7 @@ export class PropertySystem {
     const out = [];
     const day = this.sim.time.day;
     for (const id of this.homes()) {
-      if (!this.isVacant(id) || this.capacity(id) < size) continue;
+      if (!this.isVacant(id) || this.homeCap(id) < size || (npc && id === npc.homeId)) continue;
       // Your houses are taken only when you're letting them (the sign up, or a manager seeing to it).
       if (this.rec(id).owner === 'player' && !this.sim.letting?.listed(id)) continue;
       // A landlord won't take back a tenant they evicted (for a good while).
@@ -747,7 +772,7 @@ export class PropertySystem {
     let best = null;
     for (const id of this.homes()) {
       const r = this.rec(id);
-      if (!r || r.abandoned || r.condition < 40 || id === 'hall' || id === this.sim.state.player.homeId) continue;
+      if (!r || r.abandoned || r.condition < 40 || id === 'hall' || id === this.sim.state.player.homeId || this.sim.flats?.isBlock(id)) continue;
       if (this.sim.economy.businessAtBuilding(id) || this.occupants(id) === 0 || this.occupants(id) >= this.capacity(id)) continue;
       if (n.evictedFrom?.[id] !== undefined) continue;
       const share = Math.ceil(this.weeklyRent(id) / 2);

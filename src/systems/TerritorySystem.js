@@ -42,6 +42,7 @@ import { LAND_PRICING } from '../data/land.js';
 import { AREAS } from '../data/villageLayout.js';
 import { T } from '../world/WorldGenerator.js';
 import { TERRITORY as TT, LAND_VALUE as LV, DEVELOPMENT as DV, DEV_LEVELS } from '../data/territory.js';
+import { INFRA } from '../data/infra.js';
 
 export class TerritorySystem {
   constructor(sim) {
@@ -55,7 +56,11 @@ export class TerritorySystem {
     this.syncPlayerLand();
     this.profiles = new Map();
     this.rev = 0;
-    sim.bus.on('building:added', () => this.rev++);
+    sim.bus.on('building:added', (id) => {
+      this.rev++;
+      const lot = this.lotOf(id);
+      if (lot && this.rec(lot)) this.rec(lot).touched = true; // (a new building: its land is looked at this week, wherever it is)
+    });
     sim.bus.on('time:day', () => sim.time.weekday === 4 && this.weekly());
   }
 
@@ -177,6 +182,7 @@ export class TerritorySystem {
     r.how = how;
     r.price = price || undefined;
     r.forSale = false;
+    r.touched = true;
     this.cache.delete(id);
     if (owner === 'player' || r.hist.at(-1)?.owner === 'player') this.syncPlayerLand();
     this.sim.bus.emit('land:changed', id);
@@ -337,12 +343,9 @@ export class TerritorySystem {
         if (t !== T.WATER && t !== T.DEEP && t !== T.CLIFF && t !== T.MOUNTAIN) buildable++;
       }
     }
-    let trees = 0;
-    for (const o of Object.values(this.sim.state.objects)) {
-      if (o.tx < p.x1 || o.tx > p.x2 || o.ty < p.y1 || o.ty > p.y2 || this.P.map[o.ty * this.P.W + o.tx] !== i) continue;
-      if (o.kind === 'tree' && o.state === 'grown') trees++;
-      if (o.kind === 'rock' && o.state !== 'depleted') rock++;
-    }
+    const counts = this.objectCounts().get(i);
+    const trees = counts?.trees || 0;
+    rock += counts?.rocks || 0;
     const P = AREAS.plaza;
     const plazaDist = Math.abs(p.cx - (P.x1 + P.x2) / 2) + Math.abs(p.cy - (P.y1 + P.y2) / 2);
     const features = [];
@@ -355,6 +358,36 @@ export class TerritorySystem {
     const info = { plot: p, w: p.x2 - p.x1 + 1, h: p.y2 - p.y1 + 1, area: p.n, buildable, trees, rocks: rock, water, roadDist, plazaDist, features, kind };
     this.cache.set(id, { day: this.sim.time.day, info });
     return info;
+  }
+
+  /** Trees and rocks on each plot, counted once a day for all of them (not plot by plot over every object). */
+  objectCounts() {
+    const day = this.sim.time.day;
+    if (this.objCounts?.day === day) return this.objCounts.map;
+    const map = new Map();
+    for (const o of Object.values(this.sim.state.objects)) {
+      if (o.kind !== 'tree' && o.kind !== 'rock') continue;
+      const i = this.indexAt(o.tx, o.ty);
+      if (i < 0) continue;
+      let c = map.get(i);
+      if (!c) map.set(i, (c = { trees: 0, rocks: 0 }));
+      if (o.kind === 'tree' && o.state === 'grown') c.trees++;
+      if (o.kind === 'rock' && o.state !== 'depleted') c.rocks++;
+    }
+    this.objCounts = { day, map };
+    return map;
+  }
+
+  /**
+   * How often a plot is looked at afresh (simulation levels): near the village or you, every week; a
+   * middling way out, every other week; far out in the wilds, once a month. (Land out there changes
+   * slowly — and a building going up, or the land changing hands, brings it back to full attention.)
+   */
+  cadence(q) {
+    const P = AREAS.plaza;
+    const me = this.world.toTile(this.sim.state.player.x ?? 0, this.sim.state.player.y ?? 0);
+    const d = Math.min(Math.abs(q.cx - (P.x1 + P.x2) / 2) + Math.abs(q.cy - (P.y1 + P.y2) / 2), Math.abs(q.cx - me.tx) + Math.abs(q.cy - me.ty));
+    return d <= TT.nearDist ? 1 : d <= TT.midDist ? 2 : 4;
   }
 
   nearParcel(i, x, y, r) {
@@ -438,10 +471,15 @@ export class TerritorySystem {
     let farmland = 0;
     for (const [x, y] of this.tiles(id)) if (this.world.tileAt(x, y) === T.FARMLAND || sim.state.fields[`${x},${y}`]) farmland++;
     const resources = { trees: info.trees, rocks: info.rocks, farmland, water: info.water };
-    const infra = { road: info.roadDist <= 2, well: this.wellNear(q.cx, q.cy) };
+    // What reaches it (InfrastructureSystem): measured at the door of what stands on it, else where it meets
+    // the road (a cobbled stretch first), else at its middle.
+    const at = buildings[0]?.door || this.roadEdge(id) || { tx: Math.round(q.cx), ty: Math.round(q.cy) };
+    const cov = sim.infra?.coverage(at.tx, at.ty);
+    const infra = { road: info.roadDist <= 2, well: this.wellNear(q.cx, q.cy), paved: !!cov?.paved, light: !!cov?.light, linked: cov ? cov.linked : true, transport: !!cov?.transport };
     const roads = this.roadTiles(id);
     const p = { id, n: q.n, buildings: buildings.map((b) => b.id), kinds, population, jobs, activity: Math.round(activity), sites, resources, roads, infra };
-    p.type = this.typeOf(p);
+    // (A type pinned by the developer tools — dev.bt.setType — else what's really there.)
+    p.type = this.rec(id)?.pin || this.typeOf(p);
     return p;
   }
 
@@ -460,6 +498,19 @@ export class TerritorySystem {
     if (r.rocks >= TT.mineRocks || this.nearSite(p.id, ['cave', 'mine_shaft', 'quarry'])) return 'mining';
     if (r.trees >= Math.max(6, p.n * TT.forestShare)) return 'forest';
     return 'undeveloped';
+  }
+
+  /** A tile of the plot beside a road — beside cobbles, if any (null when no road touches it). */
+  roadEdge(id) {
+    let best = null;
+    for (const [x, y] of this.tiles(id)) {
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const t = this.world.tileAt(x + dx, y + dy);
+        if (t === T.PLAZA) return { tx: x, ty: y };
+        if (!best && this.world.isRoad(x + dx, y + dy)) best = { tx: x, ty: y };
+      }
+    }
+    return best;
   }
 
   /** Road tiles along the plot's edge (roads aren't part of any plot — they run between them). */
@@ -496,10 +547,16 @@ export class TerritorySystem {
     this.rev = (this.rev || 0) + 1;
     let told = 0;
     let toldDev = 0;
+    const week = Math.floor(sim.time.day / 7);
     for (const q of this.all()) {
-      const p = this.profile(q.id);
       const r = this.rec(q.id);
-      if (!p || !r) continue;
+      if (!r) continue;
+      // Far-off, quiet land is looked at less often (its turn comes round; anything happening there brings it back).
+      const every = r.lv === undefined || r.touched ? 1 : this.cadence(q);
+      if (every > 1 && (week + (this.P.byId.get(q.id) || 0)) % every !== 0) continue;
+      delete r.touched;
+      const p = this.profile(q.id);
+      if (!p) continue;
       // Its worth moves a step toward what it's now worth; its price is kept week by week.
       const tv = this.valueTarget(q.id).mult;
       r.lv = r.lv === undefined ? tv : r.lv + Math.max(-LV.maxStep, Math.min(LV.maxStep, tv - r.lv));
@@ -549,7 +606,7 @@ export class TerritorySystem {
       population: Math.min(DV.popMax, p.population * DV.perPerson),
       jobs: Math.min(DV.jobsMax, p.jobs * DV.perJob),
       roads: (p.infra.road ? DV.road : 0) + Math.min(DV.roadTilesMax, p.roads * DV.perRoadTile),
-      infrastructure: p.infra.well ? DV.well : 0,
+      infrastructure: (p.infra.well ? DV.well : 0) + (p.infra.paved ? INFRA.dev.paved : 0) + (p.infra.light ? INFRA.dev.lamps : 0),
       services: Math.min(DV.servicesMax, pr.shops * DV.perService),
       activity: Math.min(DV.activityMax, p.activity / DV.activityPer),
     };
@@ -578,7 +635,7 @@ export class TerritorySystem {
     const dev = DEV_LEVELS.indexOf(this.development(id).level);
     const parts = {
       road: p.infra.road ? LV.road : LV.noRoad,
-      infrastructure: p.infra.well ? LV.well : 0,
+      infrastructure: (p.infra.well ? LV.well : 0) + (p.infra.paved ? INFRA.value.paved : 0) + (p.infra.light ? INFRA.value.lamps : 0) + (p.infra.transport ? INFRA.value.transport : 0) + (p.infra.road && p.infra.linked === false ? INFRA.value.unlinked : 0),
       jobs: Math.min(LV.jobsMax, pr.jobs * LV.perJob),
       population: Math.min(LV.popMax, pr.homes * LV.perHome),
       services: Math.min(LV.servicesMax, pr.shops * LV.perService),
@@ -724,6 +781,81 @@ export class TerritorySystem {
       sim.chronicle('chronicle.npc_bought_land', { npc: n.id, gender: n.gender, plot: id });
     }
     return { ok: true, price: chk.price };
+  }
+
+  // ------------------------------------------------------------------ joining and splitting (Phase 13)
+
+  /** Can these two plots be joined into one: both the owner's, side by side? */
+  canJoin(a, b, by = 'player') {
+    if (!this.parcel(a) || !this.parcel(b) || a === b) return { ok: false, reason: 'cant_join' };
+    if (this.owner(a) !== by || this.owner(b) !== by) return { ok: false, reason: 'not_your_land' };
+    if (!this.neighbours(a).includes(b)) return { ok: false, reason: 'not_next_door' };
+    return { ok: true };
+  }
+
+  /** Two plots of yours side by side become one (the first keeps its name and story; the other's is added to it). */
+  join(a, b, by = 'player') {
+    const chk = this.canJoin(a, b, by);
+    if (!chk.ok) return chk;
+    const op = { op: 'merge', a, b };
+    if (!applyOp(this.P, op)) return { ok: false, reason: 'cant_join' };
+    this.S.ops.push(op);
+    const ra = this.rec(a);
+    const rb = this.rec(b);
+    if (ra && rb) {
+      ra.events = [...(ra.events || []), ...(rb.events || [])].slice(-TT.keepEvents);
+      ra.hist = [...ra.hist, ...rb.hist].slice(-10);
+    }
+    delete this.S.plots[b];
+    this.event(a, 'joined', { plot2: b });
+    this.cache.delete(a);
+    this.profiles.delete(a);
+    this.rev++;
+    if (by === 'player') this.syncPlayerLand();
+    this.sim.bus.emit('land:changed', a);
+    return { ok: true, id: a };
+  }
+
+  /** Where a plot would be split in two: across its longer side, halfway — not through a building. */
+  splitLine(id) {
+    const p = this.parcel(id);
+    if (!p || p.n < LAND.minSplit * 2) return null;
+    const axis = p.x2 - p.x1 >= p.y2 - p.y1 ? 'x' : 'y';
+    const at = axis === 'x' ? Math.round((p.x1 + p.x2 + 1) / 2) : Math.round((p.y1 + p.y2 + 1) / 2);
+    for (const b of this.buildingsOn(id)) {
+      const lo = axis === 'x' ? b.tx - 1 : b.ty - 1;
+      const hi = axis === 'x' ? b.tx + b.w : b.ty + b.h;
+      if (at > lo && at <= hi) return null;
+    }
+    return { axis, at };
+  }
+
+  canSplit(id, by = 'player') {
+    if (this.owner(id) !== by) return { ok: false, reason: 'not_your_land' };
+    const line = this.splitLine(id);
+    if (!line) return { ok: false, reason: 'cant_split' };
+    return { ok: true, ...line };
+  }
+
+  /** A plot of yours split in two (sell half, keep half — or build on one and hold the other). */
+  split(id, by = 'player') {
+    const chk = this.canSplit(id, by);
+    if (!chk.ok) return chk;
+    const nid = `l${this.S.next++}`;
+    const op = { op: 'split', id, nid, axis: chk.axis, at: chk.at };
+    if (!applyOp(this.P, op)) return { ok: false, reason: 'cant_split' };
+    this.S.ops.push(op);
+    const r = this.rec(id);
+    this.S.plots[nid] = { owner: r.owner, since: this.sim.time.day, how: 'split', forSale: false, hist: [{ owner: r.owner, from: r.since, how: 'split' }], lv: r.lv, dev: r.dev, type: r.type };
+    this.event(id, 'split', { plot2: nid });
+    for (const k of [id, nid]) {
+      this.cache.delete(k);
+      this.profiles.delete(k);
+    }
+    this.rev++;
+    if (by === 'player') this.syncPlayerLand();
+    this.sim.bus.emit('land:changed', id);
+    return { ok: true, id: nid };
   }
 
   /** Put land of yours up for sale (villagers with money may buy it) — or take it off. */

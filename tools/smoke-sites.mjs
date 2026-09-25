@@ -79,6 +79,8 @@ if (h.ok) {
   const lodge = sim.economy.businessAtBuilding(h.site.id);
   sim.holdings.setWageLevel(lodge, 1.6);
   sim.holdings.deposit(lodge, 500);
+  // (someone looking for work — the mine may have taken everyone who was)
+  if (!sim.state.npcs.some((n) => n.occupation === 'unemployed' && n.age >= 16)) sim.growth.arrive();
   run(16 * 1440);
   const meat = sim.economy.stock(lodge, 'meat') + sim.enterprise.books(lodge, 7).rev;
   check('hunters bring in game', sim.npcs.staffOf(lodge).length >= 1 && meat > 0, `${sim.npcs.staffOf(lodge).length} hunters, ${meat}`);

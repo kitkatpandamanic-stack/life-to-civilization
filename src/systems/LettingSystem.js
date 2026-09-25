@@ -251,7 +251,7 @@ export class LettingSystem {
     const rent = this.P.weeklyRent(id);
     sim.property.moveIn(hh, id, 'moved');
     for (const n of hh) delete n.viewing;
-    delete this.S.listings[id];
+    if (!sim.flats?.isBlock(id) || !sim.flats.free(id)) delete this.S.listings[id]; // (a block: the sign stays while flats are free)
     sim.memory.remember(npc, 'rented_from_player', { who: 'player', params: { building: id } });
     sim.chronicle('chronicle.npc_rented_player', { npc: npc.id, gender: npc.gender, building: id, n: hh.length });
     sim.toast('toast.new_tenant', { npc: npc.id, building: id, money: rent, n: hh.length }, 'good');

@@ -112,7 +112,7 @@ check('writing becomes possible once there is a school', T.ready('writing'));
 
 // 8. Save / load.
 const sim2 = new Simulation(JSON.parse(JSON.stringify(sim.state)));
-check('know-how survives save / load', sim2.tech.has('better_tools') && sim2.tech.has('masonry') && sim2.tech.civic('school') && sim2.schools.teachersOf(sim2.schools.list()[0]).length === sim.schools.teachersOf(sim.schools.list()[0]).length);
+check('know-how survives save / load', sim2.tech.has('better_tools') && sim2.tech.has('masonry') && sim2.tech.civic('school') && sim2.schools.list().reduce((n, s) => n + sim2.schools.teachersOf(s).length, 0) === sim.schools.list().reduce((n, s) => n + sim.schools.teachersOf(s).length, 0)); // (every school's teachers — the list's order can differ after loading)
 runOn(sim2)(3 * 1440);
 check('the world runs on', sim2.time.day > sim.time.day);
 

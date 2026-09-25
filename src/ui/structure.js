@@ -3,7 +3,7 @@
  * (StructureSystem). Used by PropertyPanel's "Building" tab and the Build panel's home tab.
  */
 import { t, fmtMoney, itemName } from '../i18n/i18n.js';
-import { tr, escapeHtml } from './format.js';
+import { tr, escapeHtml, buildingLabel } from './format.js';
 import { bar, button, condBar, status, stat, statGrid, reqList, emptyState, notice, tipAttr } from './widgets.js';
 import { drawStructure, lookKey } from '../render/TextureFactory.js';
 import { MODULES } from '../data/structures.js';
@@ -20,6 +20,8 @@ export function jobLabel(sim, id, job) {
   if (job.type === 'level') return t('works.level', { name: levelName(sim, id, job.to) });
   if (job.type === 'module') return t('works.module', { m: t(`module.${job.m}.name`) });
   if (job.type === 'spec') return t('works.spec', { s: t(`spec.${job.s}.name`) });
+  if (job.type === 'convert') return t('works.convert', { to: t(`btype.${job.to}`) });
+  if (job.type === 'merge') return job.with ? t('works.merge_with', { building: buildingLabel(sim, job.with) }) : t('works.merge');
   return t(`works.${job.type}`);
 }
 
@@ -28,6 +30,11 @@ export function jobEffects(sim, id, job, asList = false) {
   const S = sim.structures;
   const r = S.rec(id);
   if (!r) return asList ? [] : '';
+  // Changing what it is (Phase 13): said plainly.
+  if (job.type === 'convert' || job.type === 'merge' || job.type === 'demolish') {
+    const out = rebuildEffects(sim, id, job);
+    return asList ? out : out.join(' · ');
+  }
   const after = { ...r, mods: { ...r.mods } };
   if (job.type === 'level') after.lvl = job.to;
   if (job.type === 'module') after.mods[job.m] = (after.mods[job.m] || 0) + 1;
@@ -59,6 +66,29 @@ export function jobEffects(sim, id, job, asList = false) {
   if (job.type === 'module' && MODULES[job.m]?.health) out.push(t('works_fx.health'));
   if (job.type === 'module' && MODULES[job.m]?.warm) out.push(t('works_fx.warm'));
   return asList ? out : out.join(' · ');
+}
+
+/** Converting, joining, pulling down: what it means for the building. */
+function rebuildEffects(sim, id, job) {
+  const S = sim.structures;
+  const P = sim.property;
+  const out = [];
+  if (job.type === 'convert') {
+    out.push(t('works_fx.becomes', { to: t(`btype.${job.to}`) }));
+    if (P.isHome(id)) out.push(t('works_fx.not_a_home'));
+    out.push(t('works_fx.keeps_quality'));
+  } else if (job.type === 'merge') {
+    const box = S.mergeBox(id, job.with);
+    out.push(t('works_fx.one_building', { building: buildingLabel(sim, job.with) }));
+    if (box) out.push(t('works_fx.size', { w: box.w, h: box.h }));
+    if (S.rec(id).lvl < S.maxLevel(id)) out.push(t('works_fx.level_up'));
+  } else if (job.type === 'demolish') {
+    const sal = S.salvage(id);
+    const list = Object.entries(sal).map(([item, n]) => `${itemName(item)} ×${n}`).join(', ');
+    out.push(t('works_fx.salvage', { list: list || '—' }));
+    out.push(t('works_fx.ground_freed'));
+  }
+  return out;
 }
 
 const previewCache = new Map();
@@ -198,8 +228,12 @@ export function structureParts(sim, id, { compact = false } = {}) {
   const info = html;
   html = `<h3>${escapeHtml(t('structure.could_do'))}</h3>`;
   if (level) html += upgradeCard(sim, id, level);
-  const rest = opts.filter((o) => o !== level).sort((a, b) => (b.check.ok ? 1 : 0) - (a.check.ok ? 1 : 0));
+  const change = (o) => ['convert', 'merge', 'demolish'].includes(o.job.type);
+  const rest = opts.filter((o) => o !== level && !change(o)).sort((a, b) => (b.check.ok ? 1 : 0) - (a.check.ok ? 1 : 0));
   if (rest.length) html += `<div class="stat-label" style="margin-top:10px">${escapeHtml(t('works_req.smaller'))}</div>${rest.map((o) => worksRow(sim, id, o)).join('')}`;
+  // Changing what it is: convert it, join it with a neighbour, pull it down (Phase 13).
+  const re = opts.filter(change);
+  if (re.length) html += `<div class="stat-label" style="margin-top:10px">${escapeHtml(t('works_req.change'))}</div>${re.map((o) => worksRow(sim, id, o)).join('')}<div class="hint">${escapeHtml(t('works_req.change_hint'))}</div>`;
   html += `<div class="hint" style="margin-top:8px">${escapeHtml(t('structure.works_hint'))}</div>`;
   return { info, actions: html };
 }
@@ -213,7 +247,15 @@ export function structureAction(ui, id, action, data) {
     return true;
   }
   if (action === 'start_works') {
-    const r = sim.structures.start(id, JSON.parse(data.job), 'player');
+    const job = JSON.parse(data.job);
+    // Pulling a building down: click once more to be sure.
+    if (job.type === 'demolish' && ui.demolishArmed !== id) {
+      ui.demolishArmed = id;
+      sim.toast('toast.demolish_confirm', { building: id }, 'warn');
+      return true;
+    }
+    ui.demolishArmed = null;
+    const r = sim.structures.start(id, job, 'player');
     if (!r.ok) sim.toast(`reason.${r.reason}`, r.params || {}, 'warn');
     return true;
   }

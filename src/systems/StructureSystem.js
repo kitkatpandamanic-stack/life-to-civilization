@@ -25,7 +25,8 @@
  *   capacity (PropertySystem) · staff, output, stock, customers (NPCSystem, EconomySystem)
  *   seats (SchoolSystem) · comfort, storage, home tier (HomeSystem) · value (PropertySystem)
  */
-import { TYPE_FAMILY, FAMILIES, MODULES, SPECS, QUALITY as QL, WORKS, HOME_TIER_OF_LEVEL, LOOK_COLORS, levelDef, maxLevel } from '../data/structures.js';
+import { TYPE_FAMILY, FAMILIES, MODULES, SPECS, QUALITY as QL, WORKS, HOME_TIER_OF_LEVEL, LOOK_COLORS, CONVERSIONS, REBUILD, levelDef, maxLevel } from '../data/structures.js';
+import { PUBLIC_BUILDINGS } from '../data/housing.js';
 import { BUILDING_TYPES } from '../data/buildings.js';
 import { ITEMS } from '../data/items.js';
 import { HOME_TIERS } from '../data/homes.js';
@@ -335,6 +336,10 @@ export class StructureSystem {
     }
     if (F.specs?.length && r.lvl >= (F.specFrom ?? 99)) for (const s of F.specs) if (r.spec !== s) add({ type: 'spec', s });
     if (this.quality(id) < this.qualityCap(id) - 3) add({ type: 'renovate' });
+    // Changing what it is (Phase 13): turn it into something else, join it with a neighbour, pull it down.
+    for (const to of this.conversions(id)) add({ type: 'convert', to });
+    for (const other of this.mergeable(id, by)) add({ type: 'merge', with: other });
+    add({ type: 'demolish' });
     return out;
   }
 
@@ -351,6 +356,7 @@ export class StructureSystem {
       return { money: d.cost.money, materials: { ...d.cost.materials }, labor: d.cost.labor, minSkill: 0, tech: d.needs?.tech ? [d.needs.tech] : [] };
     }
     if (job.type === 'spec') return { money: 40, materials: { planks: 8, wood: 6 }, labor: 4, minSkill: 1, tech: [] };
+    if (job.type === 'convert' || job.type === 'demolish' || job.type === 'merge') return this.rebuildCost(id, job);
     if (job.type === 'renovate') {
       const R = WORKS.renovate;
       const pts = Math.max(1, Math.min(QL.renovateGain, this.qualityCap(id) - r.q));
@@ -383,7 +389,11 @@ export class StructureSystem {
     if (this.owner(id) !== by) return { ok: false, reason: 'not_yours' };
     if (this.works(id)) return { ok: false, reason: 'works_underway' };
     const pr = sim.property.rec(id);
-    if (pr?.ruined) return { ok: false, reason: 'restore_first' };
+    // Converting, joining and pulling down have rules of their own (and ruins can only be pulled down).
+    if (REBUILD[job.type]) {
+      const why = this.rebuildBlock(id, job, by);
+      if (why) return why;
+    } else if (pr?.ruined) return { ok: false, reason: 'restore_first' };
     let cost = this.cost(id, job);
     if (!cost) return { ok: false, reason: 'cant_improve' };
     for (const tech of cost.tech || []) if (!sim.tech?.has(tech)) return { ok: false, reason: 'need_tech', params: { tech } };
@@ -411,10 +421,11 @@ export class StructureSystem {
       if (s.minQuality && this.quality(id) < s.minQuality) return { ok: false, reason: 'need_quality', params: { n: s.minQuality } };
     }
     if (job.type === 'renovate' && this.quality(id) >= this.qualityCap(id) - 3) return { ok: false, reason: 'no_renovation_needed' };
-    // Room to grow: the new footprint must fit on free ground its owner may use.
+    // Room to grow: the new footprint must fit on free ground its owner may use (two joined: the ground between them too).
     const grow = this.growthOf(id, job);
-    const fp = grow ? this.newFootprint(id, grow, by) : null;
+    const fp = this.jobFootprint(id, job, by);
     if (grow && !fp) return { ok: false, reason: 'no_room', params: { n: grow.cols || grow.rows } };
+    if (job.type === 'merge' && !fp) return { ok: false, reason: 'merge_no_room' };
     // Growing onto ground that isn't yours yet: the strip is bought from the village with the work.
     const land = fp ? this.landPrice(fp, by) : 0;
     if (land) cost = { ...cost, land };
@@ -558,8 +569,7 @@ export class StructureSystem {
     const chk = this.check(id, job, by);
     if (!chk.ok) return chk;
     const cost = chk.cost;
-    const grow = this.growthOf(id, job);
-    const fp = grow ? this.newFootprint(id, grow, by) : null;
+    const fp = this.jobFootprint(id, job, by);
     // The ground it grows onto becomes the owner's (paid to the village).
     if (fp && sim.territory && cost.land && sim.territory.acquireLot(by === 'village' ? 'village' : by, fp.tx, fp.ty, fp.tx + fp.w - 1, fp.ty + fp.h - 1, { pay: false }) >= 0) {
       if (by === 'player') sim.state.player.money -= cost.land;
@@ -580,6 +590,7 @@ export class StructureSystem {
     const c = sim.construction.startWorks({ owner: by, target: id, job, required, laborNeeded, budget, fp });
     const r = this.rec(id);
     r.work = c.id;
+    if (job.type === 'merge' && this.rec(job.with)) this.rec(job.with).work = c.id; // (both buildings are under the one site)
     // Trees where it's growing are felled (the timber goes into the work).
     if (fp) this.clearTrees(c, fp);
     this.note(id, 'works_started', { job: this.jobKey(job), who: by });
@@ -600,7 +611,7 @@ export class StructureSystem {
 
   /** 'level_4', 'module_bedroom', 'spec_boarding', 'renovate' — resolved to words by the UI ('works' param). */
   jobKey(job) {
-    return job.type === 'level' ? `level_${job.to}` : job.type === 'module' ? `module_${job.m}` : job.type === 'spec' ? `spec_${job.s}` : job.type;
+    return job.type === 'level' ? `level_${job.to}` : job.type === 'module' ? `module_${job.m}` : job.type === 'spec' ? `spec_${job.s}` : job.type === 'convert' ? `convert_${job.to}` : job.type;
   }
   /** How good the work is: the builder's skill and the materials that went into it. */
   workQuality(c) {
@@ -651,6 +662,13 @@ export class StructureSystem {
       if (c.fp && MODULES[job.m]?.space) r.annex.push({ m: job.m, side: c.fp.side, cols: MODULES[job.m].space });
     } else if (job.type === 'spec') {
       r.spec = job.s;
+    } else if (job.type === 'convert') {
+      this.convert(id, job.to);
+    } else if (job.type === 'demolish') {
+      this.demolish(id, c);
+      return; // (nothing left standing to update)
+    } else if (job.type === 'merge') {
+      this.mergeIn(id, job.with);
     } else if (job.type === 'renovate') {
       const pts = this.cost(id, job)?.points || QL.renovateGain;
       r.q = Math.round(Math.max(r.q, Math.min(this.qualityCap(id), r.q + pts * (0.6 + wq / 250))));
@@ -684,6 +702,8 @@ export class StructureSystem {
   ended(c) {
     const r = this.rec(c.target);
     if (r && r.work === c.id) r.work = null;
+    const o = c.job?.with && this.rec(c.job.with);
+    if (o && o.work === c.id) o.work = null;
     this.sim.bus.emit('building:changed', c.target);
   }
 
@@ -696,6 +716,237 @@ export class StructureSystem {
     // Buildings you or villagers put up keep their construction record in step (it's what's re-added on load).
     const c = this.sim.construction.byId(id);
     if (c) Object.assign(c, { tx: fp.tx, ty: fp.ty, w: fp.w, h: fp.h });
+  }
+
+  // ------------------------------------------------------------------ changing what it is (Phase 13)
+
+  /** What this building could be turned into (building by building — not everything into everything). */
+  conversions(id) {
+    const b = this.world.buildings[id];
+    const r = this.rec(id);
+    if (!b || !r) return [];
+    const out = [...(CONVERSIONS[b.type] || [])];
+    // A big house can become a block of flats (Phase 14).
+    if (r.fam === 'house' && r.lvl >= 4 && BUILDING_TYPES.apartment_house) out.push('apartment_house');
+    return out.filter((to) => to !== b.type && BUILDING_TYPES[to] && TYPE_FAMILY[to]);
+  }
+
+  /** Neighbouring buildings of the same owner and kind that this one could be joined with. */
+  mergeable(id, by = this.owner(id)) {
+    const b = this.world.buildings[id];
+    const r = this.rec(id);
+    if (!b || !r || !by) return [];
+    const P = this.sim.property;
+    const out = [];
+    for (const o of this.world.buildingList) {
+      if (o.id === id || Math.abs(o.tx - b.tx) + Math.abs(o.ty - b.ty) > REBUILD.merge.maxW + 2) continue;
+      if (P.rec(o.id)?.owner !== by || this.rec(o.id)?.fam !== r.fam) continue;
+      if (this.mergeBox(id, o.id, by)) out.push(o.id);
+    }
+    return out;
+  }
+
+  /**
+   * The footprint two buildings joined into one would have: the box around both — close enough
+   * (at most a few tiles apart), not too big, the ground between them free and theirs to build on,
+   * the door where the first one's is. Null when it can't be done.
+   */
+  mergeBox(id, other, by = this.owner(id)) {
+    const a = this.world.buildings[id];
+    const b = this.world.buildings[other];
+    const M = REBUILD.merge;
+    if (!a || !b) return null;
+    const x1 = Math.min(a.tx, b.tx);
+    const y1 = Math.min(a.ty, b.ty);
+    const x2 = Math.max(a.tx + a.w, b.tx + b.w) - 1;
+    const y2 = Math.max(a.ty + a.h, b.ty + b.h) - 1;
+    const w = x2 - x1 + 1;
+    const h = y2 - y1 + 1;
+    if (w > M.maxW || h > M.maxH) return null;
+    const gapX = Math.max(0, Math.max(a.tx, b.tx) - Math.min(a.tx + a.w, b.tx + b.w));
+    const gapY = Math.max(0, Math.max(a.ty, b.ty) - Math.min(a.ty + a.h, b.ty + b.h));
+    if (gapX > M.maxGap || gapY > M.maxGap) return null;
+    const inside = (o, x, y) => x >= o.tx && x < o.tx + o.w && y >= o.ty && y < o.ty + o.h;
+    for (let y = y1; y <= y2; y++) {
+      for (let x = x1; x <= x2; x++) {
+        if (inside(a, x, y) || inside(b, x, y)) continue;
+        if (!this.groundOk(x, y, by) || this.rockAt(x, y)) return null;
+      }
+    }
+    const door = { tx: a.door.tx, ty: y2 + 1 };
+    if (this.world.isBlocked(door.tx, door.ty) && !(door.tx === a.door.tx && door.ty === a.door.ty)) return null;
+    return { tx: x1, ty: y1, w, h, dx: a.door.tx - x1, side: null };
+  }
+
+  /** The footprint a job leaves the building with (null: it stays as it is). */
+  jobFootprint(id, job, by) {
+    if (job.type === 'merge') return this.mergeBox(id, job.with, by);
+    const grow = this.growthOf(id, job);
+    return grow ? this.newFootprint(id, grow, by) : null;
+  }
+
+  /** Money, materials and hours to convert, pull down or join (by size; a pull-down also says what it salvages). */
+  rebuildCost(id, job) {
+    const b = this.world.buildings[id];
+    const R = REBUILD[job.type];
+    if (!b || !R) return null;
+    let tiles = b.w * b.h;
+    if (job.type === 'merge') {
+      const o = this.world.buildings[job.with];
+      if (!o) return null;
+      const box = this.mergeBox(id, job.with) || { w: b.w + o.w, h: Math.max(b.h, o.h) };
+      tiles = box.w * box.h;
+    }
+    const materials = {};
+    if (job.type !== 'demolish') {
+      for (const [item, per] of Object.entries(R.perTile)) materials[item] = Math.ceil(tiles * per);
+      for (const [item, n] of Object.entries(R.extra || {})) materials[item] = (materials[item] || 0) + n;
+    }
+    return { money: R.money + Math.round(tiles * R.moneyPerTile), materials, labor: Math.round(R.labor + tiles * R.laborPerTile), minSkill: R.minSkill || 0, tech: [], salvage: job.type === 'demolish' ? this.salvage(id) : undefined };
+  }
+
+  /** What pulling it down gives back: some of the timber, planks and stone that went into it. */
+  salvage(id) {
+    const b = this.world.buildings[id];
+    const r = this.rec(id);
+    if (!b) return {};
+    const D = REBUILD.demolish;
+    const k = D.salvage * (0.6 + 0.2 * (r?.lvl || 1)) * (this.sim.property.rec(id)?.ruined ? 0.4 : 1);
+    const out = {};
+    for (const [item, per] of Object.entries(D.perTile)) {
+      const n = Math.floor(b.w * b.h * per * k);
+      if (n > 0) out[item] = n;
+    }
+    return out;
+  }
+
+  /** Why a building can't be converted, joined or pulled down right now (null if it can). */
+  rebuildBlock(id, job, by) {
+    const sim = this.sim;
+    const P = sim.property;
+    const E = sim.economy;
+    const pr = P.rec(id);
+    const publicB = PUBLIC_BUILDINGS.includes(id) || !!sim.schools?.rec?.(id) || P.housingState(id) === 'public';
+    if (publicB && !(job.type === 'demolish' && pr?.ruined)) return { ok: false, reason: 'cant_improve' };
+    if (E.businessAtBuilding(id) || sim.businesses?.atBuilding(id)) return { ok: false, reason: 'premises_in_use' };
+    if (job.type !== 'merge' && id === sim.state.player.homeId) return { ok: false, reason: 'your_home_first' };
+    if (job.type !== 'merge' && P.occupants(id) > 0) return { ok: false, reason: P.lease(id) ? 'tenants_first' : 'people_live_here' };
+    if (job.type === 'convert' && !this.conversions(id).includes(job.to)) return { ok: false, reason: 'cant_improve' };
+    if (job.type === 'merge') {
+      const o = job.with;
+      if (!this.world.buildings[o] || P.rec(o)?.owner !== by || this.rec(o)?.fam !== this.rec(id)?.fam) return { ok: false, reason: 'cant_improve' };
+      if (this.works(o)) return { ok: false, reason: 'works_underway' };
+      if (P.occupants(o) > 0 || o === sim.state.player.homeId) return { ok: false, reason: 'merge_empty_first' };
+      if (E.businessAtBuilding(o) || sim.businesses?.atBuilding(o) || PUBLIC_BUILDINGS.includes(o)) return { ok: false, reason: 'premises_in_use' };
+      if (pr?.ruined || P.rec(o)?.ruined) return { ok: false, reason: 'restore_first' };
+    }
+    return null;
+  }
+
+  /** Turn the building into something else: same walls and ground, a new use (and a new look). */
+  convert(id, to) {
+    const sim = this.sim;
+    const b = this.world.buildings[id];
+    const r = this.rec(id);
+    const [fam, base] = TYPE_FAMILY[to];
+    const above = Math.max(0, r.lvl - r.base);
+    r.was = [...(r.was || []), b.type].slice(-6);
+    r.fam = fam;
+    r.base = base;
+    r.lvl = Math.max(1, Math.min(maxLevel(fam), base + above));
+    for (const m of Object.keys(r.mods)) if (!MODULES[m]?.fams.includes(fam)) delete r.mods[m];
+    r.annex = r.annex.filter((a) => r.mods[a.m]);
+    r.spec = null;
+    r.visual = to;
+    r.conv = (r.conv || 0) + 1;
+    b.type = to;
+    const pr = sim.property.rec(id);
+    if (pr) {
+      pr.forRent = false;
+      if (sim.property.isHome(id)) pr.formerBusiness = null;
+      else if (to === 'shopfront') pr.formerBusiness ??= 'general_store';
+      if (!sim.property.isHome(id)) sim.letting?.list?.(id, false);
+    }
+    this.fxCache.delete(id);
+    sim.bus.emit('building:converted', id);
+  }
+
+  /** Pull it down: what can be saved goes to the owner, the ground is free — ready to build on again. */
+  demolish(id, c) {
+    const sim = this.sim;
+    const by = c?.owner || this.owner(id);
+    const sal = this.salvage(id);
+    const b = this.world.buildings[id];
+    const was = b?.type;
+    let worth = 0;
+    for (const [item, n] of Object.entries(sal)) worth += n * (ITEMS[item]?.basePrice || 2);
+    if (by === 'player') {
+      for (const [item, n] of Object.entries(sal)) {
+        const got = sim.inventory.add(item, n);
+        if (got < n) sim.home.store?.(item, n - got, { force: true });
+      }
+      sim.toast('toast.demolished', { btype: was }, 'good');
+      sim.chronicle('chronicle.player_demolished', { btype: was });
+    } else {
+      // A villager (or the village) sells what's salvaged.
+      const n = sim.npcs.byId(by);
+      if (n) n.money += Math.round(worth * 0.6);
+      else if (by === 'village') sim.state.village.treasury += Math.round(worth * 0.6);
+      if (n) sim.chronicle('chronicle.building_demolished', { npc: n.id, gender: n.gender, btype: was });
+      else sim.chronicle('chronicle.village_demolished', { btype: was });
+    }
+    this.pullDown(id, 'demolished');
+  }
+
+  /** Two become one: the other building is taken into this one (its rooms come with it; one level up). */
+  mergeIn(id, other) {
+    const r = this.rec(id);
+    const o = this.rec(other);
+    if (!r) return;
+    if (o) {
+      // The other's rooms come with it (a home: its bedrooms — the people it held can live here now).
+      const capB = this.sim.property.capacity(other) || 0;
+      for (const [m, n] of Object.entries(o.mods)) r.mods[m] = Math.min(MODULES[m]?.max || 1, (r.mods[m] || 0) + n);
+      if (MODULES.bedroom.fams.includes(r.fam)) r.mods.bedroom = Math.min(MODULES.bedroom.max, (r.mods.bedroom || 0) + Math.ceil(capB / 2));
+      const aw = this.world.buildings[id].w * this.world.buildings[id].h;
+      const bw = (this.world.buildings[other]?.w || 1) * (this.world.buildings[other]?.h || 1);
+      r.q = Math.round((r.q * aw + o.q * bw) / (aw + bw));
+      r.hh = (r.hh || 0) + (o.hh || 0);
+      r.joined = [...(r.joined || []), other];
+    }
+    r.lvl = Math.min(maxLevel(r.fam), Math.max(r.lvl, o?.lvl || 0) + 1);
+    r.ups = (r.ups || 0) + 1;
+    r.annex = [];
+    this.pullDown(other, 'merged', id);
+  }
+
+  /** Take a building off the ground for good (pulled down, or joined into another). Its story is kept. */
+  pullDown(id, how, into = null) {
+    const sim = this.sim;
+    const r = this.all[id];
+    const pr = sim.property.rec(id);
+    if (r) {
+      r.gone = true;
+      r.goneDay = sim.time.day;
+      r.goneHow = how;
+      r.into = into || undefined;
+      r.work = null;
+      r.lastOwner = pr?.owner ?? null;
+      r.hist.push({ d: sim.time.day, k: how, p: into ? { building: into } : {} });
+    }
+    if (pr?.lease) sim.property.endLease?.(id, 'gone');
+    sim.letting?.list?.(id, false);
+    this.world.removeBuilding(id);
+    // A building put up in play isn't put back when the game is loaded.
+    const c = sim.construction.byId(id);
+    if (c) sim.construction.list.splice(sim.construction.list.indexOf(c), 1);
+    delete sim.property.all[id];
+    sim.property.valueCache?.delete(id);
+    this.fxCache.delete(id);
+    sim.npcs.invalidateHouseholds?.();
+    if (sim.territory) sim.territory.rev = (sim.territory.rev || 0) + 1;
+    sim.bus.emit('building:removed', id);
+    sim.bus.emit('building:changed', id);
   }
 
   // ------------------------------------------------------------------ what it looks like

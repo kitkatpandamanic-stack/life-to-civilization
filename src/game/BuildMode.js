@@ -13,12 +13,14 @@ import { BUILDING_TYPES } from '../data/buildings.js';
 import { DEPTH } from './depth.js';
 
 const TS = BALANCE.tileSize;
+/** One-tile tools: lay a road, pave it, bridge the stream, put up a street lamp (InfrastructureSystem). */
+const TILE_TOOLS = ['road', 'pave', 'bridge', 'lamp'];
 
 export class BuildMode {
   constructor(scene) {
     this.scene = scene;
     this.sim = scene.sim;
-    this.active = null; // building type, 'road', or null
+    this.active = null; // building type, a tile tool ('road', 'pave', 'bridge', 'lamp'), or null
     this.g = scene.add.graphics().setDepth(DEPTH.PROMPT - 2);
     this.ghost = null;
     this.hint = scene.add
@@ -34,7 +36,7 @@ export class BuildMode {
   start(type) {
     this.cancel();
     this.active = type;
-    if (type !== 'road') {
+    if (!TILE_TOOLS.includes(type)) {
       const def = BUILDABLES[type];
       const preview = { id: `ghost_${type}`, type, variant: 0, tx: 0, ty: 0, w: def.w, h: def.h, player: true };
       const decor = BUILDING_TYPES[type]?.decorTexture;
@@ -57,13 +59,18 @@ export class BuildMode {
   footprintAt(ptr) {
     const wx = ptr.worldX;
     const wy = ptr.worldY;
-    if (this.active === 'road') return { tx: Math.floor(wx / TS), ty: Math.floor(wy / TS), w: 1, h: 1 };
+    if (TILE_TOOLS.includes(this.active)) return { tx: Math.floor(wx / TS), ty: Math.floor(wy / TS), w: 1, h: 1 };
     const def = BUILDABLES[this.active];
     return { tx: Math.floor(wx / TS) - Math.floor(def.w / 2), ty: Math.floor(wy / TS) - (def.h - 1), w: def.w, h: def.h };
   }
 
   check(f) {
-    return this.active === 'road' ? this.sim.construction.canRoad(f.tx, f.ty) : this.sim.construction.canPlace(this.active, f.tx, f.ty);
+    const I = this.sim.infra;
+    if (this.active === 'road') return this.sim.construction.canRoad(f.tx, f.ty);
+    if (this.active === 'pave') return I.canPave(f.tx, f.ty);
+    if (this.active === 'bridge') return I.canBridge(f.tx, f.ty);
+    if (this.active === 'lamp') return I.canLamp(f.tx, f.ty);
+    return this.sim.construction.canPlace(this.active, f.tx, f.ty);
   }
 
   update() {
@@ -78,7 +85,7 @@ export class BuildMode {
     g.clear();
     g.fillStyle(color, 0.28).fillRect(f.tx * TS, f.ty * TS, f.w * TS, f.h * TS);
     g.lineStyle(2, color, 0.95).strokeRect(f.tx * TS, f.ty * TS, f.w * TS, f.h * TS);
-    if (this.active !== 'road') {
+    if (!TILE_TOOLS.includes(this.active)) {
       // Door marker
       const dx = (f.tx + Math.floor(f.w / 2)) * TS;
       g.fillStyle(0xffe08a, 0.8).fillRect(dx + 8, (f.ty + f.h) * TS + 2, TS - 16, 6);
@@ -88,7 +95,7 @@ export class BuildMode {
       }
     }
     const reason = res.ok ? this.scene.ui.tr('ui.build_click') : this.scene.ui.tr(`reason.${res.reason}`, res.params || {});
-    this.hint.setText(reason).setPosition((f.tx + f.w / 2) * TS, f.ty * TS - (this.active === 'road' ? 4 : f.h * TS * 0.6 + 20)).setVisible(true);
+    this.hint.setText(reason).setPosition((f.tx + f.w / 2) * TS, f.ty * TS - (TILE_TOOLS.includes(this.active) ? 4 : f.h * TS * 0.6 + 20)).setVisible(true);
     this.hint.setColor(res.ok ? '#c8ffcc' : '#ffc0b0');
   }
 
@@ -102,6 +109,12 @@ export class BuildMode {
     if (this.active === 'road') {
       if (this.sim.construction.buildRoad(f.tx, f.ty)) this.scene.player.faceTowards(f.tx * TS, f.ty * TS);
       return; // stay in road mode to lay the next tile
+    }
+    if (TILE_TOOLS.includes(this.active)) {
+      const res = this.sim.infra[this.active](f.tx, f.ty);
+      if (res.ok) this.scene.player.faceTowards(f.tx * TS, f.ty * TS);
+      else this.sim.toast(`reason.${res.reason}`, res.params || {}, 'warn');
+      return; // stay in the tool to do the next tile
     }
     const c = this.sim.construction.place(this.active, f.tx, f.ty);
     if (c) this.cancel();

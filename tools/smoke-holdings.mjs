@@ -52,7 +52,9 @@ check('cutting staff lays people off', sim.npcs.staffOf(tavern).length === 0);
 H.setStaffTarget(tavern, 1);
 
 // 3. Opening a business in premises you own.
-const vacant = sim.property.homes().find((id) => sim.property.isVacant(id)) || 'house_4';
+// (an empty house — or any house nobody runs a business from, emptied)
+const free = (id) => !E.businessAtBuilding(id) && !sim.businesses.atBuilding(id) && id !== sim.state.player.homeId && id !== 'hall';
+const vacant = sim.property.homes().find((id) => sim.property.isVacant(id) && free(id)) || sim.property.homes().find((id) => id.startsWith('house_') && free(id));
 for (const n of sim.npcs.residentsOf(vacant)) n.homeId = null;
 sim.npcs.invalidateHouseholds();
 sim.property.transfer(vacant, 'player', 'bought', 0);

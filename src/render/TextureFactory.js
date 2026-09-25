@@ -1510,7 +1510,8 @@ function drawAnnex(ctx, m, x0, w, H, footH, def) {
 /** Builds (or reuses) the texture for a specific building instance. */
 export function ensureBuildingTexture(scene, building) {
   // Buildings change look when upgraded or built out, so the key includes the type and the look.
-  const key = building.player || building.look ? `bld_${building.id}_${building.type}${building.look ? `_${lookKey(building.look)}` : ''}` : `bld_${building.id}`;
+  // (…and a building converted to something else is drawn as what it is now.)
+  const key = `bld_${building.id}_${building.type}${building.look ? `_${lookKey(building.look)}` : ''}`;
   if (!scene.textures.exists(key)) {
     const { canvas, windows, chimney } = drawStructure(building.type, building.variant, building.look || null);
     addCanvas(scene, key, canvas);

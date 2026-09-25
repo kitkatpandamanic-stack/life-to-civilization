@@ -22,6 +22,7 @@
  */
 import { PROPERTY_VALUE, HOUSING as H, REALTY as R } from '../data/housing.js';
 import { AREAS } from '../data/villageLayout.js';
+import { INFRA } from '../data/infra.js';
 
 export class RealtySystem {
   constructor(sim) {
@@ -47,6 +48,13 @@ export class RealtySystem {
       }
     };
     sim.bus.on('building:changed', forget);
+    // The land's worth moved (TerritorySystem's week), or the neighbourhoods were counted afresh: prices with it.
+    const all = () => {
+      forget(null);
+      sim.property?.valueCache?.clear();
+    };
+    sim.bus.on('territory:week', all);
+    sim.bus.on('places:changed', all);
     sim.bus.on('property:changed', forget);
     sim.bus.on('construction:changed', (c) => c.status === 'done' && c.kind === 'building' && this.sim.property.isHome(c.id) && (this.built = (this.built || 0) + 1));
   }
@@ -164,7 +172,9 @@ export class RealtySystem {
     const d = b ? Math.hypot(b.door.tx - (Pz.x1 + Pz.x2) / 2, b.door.ty - (Pz.y1 + Pz.y2) / 2) : 30;
     const loc = sub * (0.2 - Math.min(0.45, d / 90));
     add('location', loc);
-    const infra = b ? sub * ((P.nearRoad(b) ? R.roadBonus : 0) + (this.wellNear(b) ? R.wellBonus : 0)) : 0;
+    // …and a paved street, a lamp by the door (InfrastructureSystem).
+    const cov = b && sim.infra?.coverage(b.door.tx, b.door.ty);
+    const infra = b ? sub * ((P.nearRoad(b) ? R.roadBonus : 0) + (this.wellNear(b) ? R.wellBonus : 0) + (cov?.paved ? INFRA.price.paved : 0) + (cov?.light ? INFRA.price.lamps : 0)) : 0;
     add('infrastructure', infra);
     sub += loc + infra;
     // The street it's on (GrowthSystem districts: homes in quiet streets, shops in busy ones).
@@ -181,7 +191,8 @@ export class RealtySystem {
     sub += demand;
     // A house let out brings rent: a buyer pays for the income too.
     const L = r?.lease;
-    if (L && L.rent) add('income', Math.max(0, L.rent * R.incomeWeeks - sub) * R.incomeShare);
+    const rentIn = sim.flats?.isBlock(id) ? sim.flats.income(id) : L?.rent;
+    if (rentIn) add('income', Math.max(0, rentIn * R.incomeWeeks - sub) * R.incomeShare);
     for (const p of parts) p.v = Math.round(p.v);
     const out = { parts, total: Math.max(0, parts.reduce((s, p) => s + p.v, 0)) };
     this.priceCache.set(id, out);

@@ -22,6 +22,11 @@ export const BUILDABLES = {
     materials: { wood: 30, stone: 16, planks: 12 }, labor: 14,
     unlock: 'construction', minSkill: 1, effect: { rental: 3 }, // houses up to 3 villagers who pay rent
   },
+  apartment_house: {
+    category: 'residential', w: 5, h: 4, money: 300,
+    materials: { wood: 40, stone: 44, planks: 30, bricks: 16 }, labor: 30,
+    unlock: 'construction', minSkill: 4, effect: { flats: 3 }, // a block of flats: several households, each paying rent for its own
+  },
   storage_shed: {
     category: 'storage', w: 3, h: 2, money: 25,
     materials: { wood: 20, planks: 6 }, labor: 6,

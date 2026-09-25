@@ -147,6 +147,8 @@ check('you can put money down for builders (and for them to buy the materials)',
 for (let i = 0; i < 6; i++) sim.npcs.spawn({ age: 30, occupation: 'unemployed', look, money: 5 });
 const pm = p.money;
 runOn(sim)(14 * 1440);
+// (day labourers come when they're free: give them a few more days if they're nearly there)
+for (let i = 0; i < 7 && S.works(id); i++) runOn(sim)(1440);
 check('…and they get it done without you lifting a finger', !S.works(id) && S.rec(id).mods.pantry === 1, `labor ${Math.round(pantry.site.labor)}/${pantry.site.laborNeeded}, mats ${Math.round(sim.construction.materialsFraction(pantry.site) * 100)}%`);
 check("…what's left of the money comes back", p.money > pm, `${pm} → ${p.money}`);
 

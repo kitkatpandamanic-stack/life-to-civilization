@@ -53,6 +53,10 @@
  *    ├── territory    TerritorySystem (the valley in plots of land, and who owns each)
  *    ├── housing      HousingSystem (how villagers choose where to live)
  *    ├── realty       RealtySystem (the housing market: supply, demand, what homes are worth)
+ *    ├── places       PlaceSystem (neighbourhoods and districts: named, with their numbers and story)
+ *    ├── infra        InfrastructureSystem (roads and how they link up, cobbles, bridges, wells, lamps; public works)
+ *    ├── development  DevelopmentSystem (villagers buy land, build on it, develop rows; ruins cleared, empty houses made shops)
+ *    ├── flats        FlatSystem (blocks of flats: a household in each flat, each with its own tenancy)
  *    ├── nature       NatureSystem (forests grow and thin, finite ore, fish and game populations)
  *    ├── construction ConstructionSystem (sites, buildings, roads, home upgrades)
  *    ├── farming      FarmingSystem (till, plant, water, grow, harvest)
@@ -121,6 +125,10 @@ import { StructureSystem, restoreStructures } from '../systems/StructureSystem.j
 import { TerritorySystem } from '../systems/TerritorySystem.js';
 import { HousingSystem } from '../systems/HousingSystem.js';
 import { RealtySystem } from '../systems/RealtySystem.js';
+import { PlaceSystem } from '../systems/PlaceSystem.js';
+import { InfrastructureSystem } from '../systems/InfrastructureSystem.js';
+import { DevelopmentSystem } from '../systems/DevelopmentSystem.js';
+import { FlatSystem } from '../systems/FlatSystem.js';
 import { buildParcels } from '../world/Parcels.js';
 import { rand } from './rng.js';
 
@@ -193,6 +201,10 @@ export class Simulation {
     this.letting = new LettingSystem(this);
     this.housing = new HousingSystem(this); // how villagers choose where to live
     this.realty = new RealtySystem(this); // the housing market: rents and prices from supply and demand
+    this.places = new PlaceSystem(this); // neighbourhoods and districts: the village as places with names
+    this.infra = new InfrastructureSystem(this); // roads and how they link up, paving, bridges, water, lamps
+    this.development = new DevelopmentSystem(this); // villagers buy land, build on it, develop rows of houses
+    this.flats = new FlatSystem(this); // blocks of flats: a household in each flat, each with its own tenancy
     this.ledger = new LedgerSystem(this); // last: it watches the others handle your money
     this.jobs.ensureOpenings();
     this.bus.on('time:day', () => this.onNewDay());

@@ -6,12 +6,13 @@
 import { FINANCE } from '../../systems/FinanceSystem.js';
 import { Panel } from '../Panel.js';
 import { t, npcName, fmtMoney, itemName } from '../../i18n/i18n.js';
-import { tr, escapeHtml, buildingLabel, dateString, npcRole, districtLabel, agoText } from '../format.js';
+import { tr, escapeHtml, buildingLabel, dateString, npcRole, districtLabel, districtKindLabel, hoodLabel, agoText } from '../format.js';
 import { bar, button, portrait, tabs, stat, statGrid, status, condBar, emptyState, notice } from '../widgets.js';
 import { propBadges, rentMarket, worthBreakdown } from '../property.js';
 import { structureHtml, structureParts, structureAction, jobLabel, levelName } from '../structure.js';
 import { RENT_LEVELS } from '../../systems/PropertySystem.js';
 import { LETTING } from '../../systems/LettingSystem.js';
+import { FLATS } from '../../data/housing.js';
 
 export class PropertyPanel extends Panel {
   constructor(ui, buildingId, tab = 'overview') {
@@ -96,6 +97,10 @@ export class PropertyPanel extends Panel {
       left += kv(t('bhist.renovations'), String(s.ren || 0));
       left += kv(t('bhist.households'), String(s.hh || 0));
       if (s.uses.length) left += kv(t('bhist.uses'), escapeHtml(s.uses.map((u) => t(`use.${u.u}`)).filter((x, i, a) => a.indexOf(x) === i).join(' → ')));
+      // What it was before it was converted (Phase 13), and the buildings joined into it.
+      if (s.was?.length) left += kv(t('bhist.was'), escapeHtml([...s.was, sim.world.buildings[this.bid]?.type].map((x) => t(`btype.${x}`)).join(' → ')));
+      if (s.joined?.length) left += kv(t('bhist.joined'), escapeHtml(t('bhist.joined_n', { n: s.joined.length + 1 })));
+      if (r.tenancies?.length) left += kv(t('bhist.tenants'), String(r.tenancies.length + (r.lease ? 1 : 0) + (sim.flats?.leases(this.bid).length || 0)));
       const events = s.hist
         .slice()
         .reverse()
@@ -119,6 +124,7 @@ export class PropertyPanel extends Panel {
     if (key.startsWith('level_')) return { type: 'level', to: Number(key.slice(6)) };
     if (key.startsWith('module_')) return { type: 'module', m: key.slice(7) };
     if (key.startsWith('spec_')) return { type: 'spec', s: key.slice(5) };
+    if (key.startsWith('convert_')) return { type: 'convert', to: key.slice(8) };
     return { type: key };
   }
 
@@ -220,6 +226,7 @@ export class PropertyPanel extends Panel {
         </div>
         <div class="col">
           ${r.owner === 'player' && isHome && this.bid !== sim.state.player.homeId && !bizId ? this.rentHtml(kv) + this.lettingHtml(kv) : r.lease ? this.tenancyHtml(kv) : ''}
+          ${sim.flats?.isBlock(this.bid) ? this.flatsHtml(kv) : ''}
           ${isHome && r.tenancies?.length ? this.pastTenantsHtml() : ''}
           ${sim.structures.works(this.bid) ? structureHtml(sim, this.bid, { compact: true }) : ''}
           <h3>${escapeHtml(t('ui.ownership_history'))}</h3>
@@ -262,7 +269,9 @@ export class PropertyPanel extends Panel {
     const occupants = P.occupants(id);
     const mgr = Lt.manager;
     if (mgr) html += `<div class="muted small">🧑‍💼 ${escapeHtml(tr(sim, 'manager.looks_after', { npc: mgr.npc }))}</div>`;
-    if (occupants > 0) return html + (P.lease(id) ? this.tenancyHtml(kv, true) : kv(t('letting.tenants'), escapeHtml(t('letting.tenants_line', { n: occupants, money: fmtMoney(P.weeklyRent(id)) }))));
+    // (A block of flats: the flats are shown on their own — and while one's free, it can be let.)
+    const block = sim.flats?.isBlock(id);
+    if (occupants > 0 && !(block && sim.flats.free(id) > 0)) return html + (block ? '' : P.lease(id) ? this.tenancyHtml(kv, true) : kv(t('letting.tenants'), escapeHtml(t('letting.tenants_line', { n: occupants, money: fmtMoney(P.weeklyRent(id)) }))));
     if (!Lt.lettable(id)) return html + `<div class="muted small">${escapeHtml(t('letting.not_fit'))}</div>`;
     const listed = Lt.listed(id);
     const it = Lt.interest(id);
@@ -320,6 +329,46 @@ export class PropertyPanel extends Panel {
     return html;
   }
 
+  /** A block of flats: each flat — who lives there, the rent, since when — and the shop on the ground floor. */
+  flatsHtml(kv) {
+    const sim = this.sim;
+    const F = sim.flats;
+    const P = sim.property;
+    const id = this.bid;
+    const r = P.rec(id);
+    const units = F.units(id);
+    const mine = r.owner === 'player';
+    const leases = new Map(F.leases(id).map((x) => [x.n, x]));
+    const people = sim.npcs.residentsOf(id);
+    const rows = [];
+    for (let n = 0; n < units; n++) {
+      const here = people.filter((x) => x.flat === n);
+      const L = leases.get(n)?.lease;
+      const yours = sim.state.player.homeId === id && (r.playerFlat ?? 0) === n;
+      let text;
+      if (yours) text = t('flats.yours');
+      else if (!here.length) text = t('flats.free', { money: fmtMoney(P.weeklyRent(id)) });
+      else {
+        const head = sim.npcs.byId(L?.tenant) || here[0];
+        text = `<span class="clickable" data-action="inspect_npc" data-id="${head.id}">${escapeHtml(npcName(head))}</span>${here.length > 1 ? ` <span class="muted small">${escapeHtml(t('lease.household', { n: here.length }))}</span>` : ''}`;
+        if (L) text += ` <span class="muted small">· ${escapeHtml(fmtMoney(L.rent))} ${escapeHtml(t('rent_ui.per_week'))} · ${escapeHtml(agoText(sim.time.day - L.since))}${L.missed ? ` · ${escapeHtml(t('lease.missed_n', { n: L.missed }))}` : ''}</span>`;
+        if (L?.notice) text += ` <span class="warn small">${escapeHtml(tr(sim, L.notice.by === 'tenant' ? 'lease.leaving' : 'lease.notice_out', { npc: L.tenant, gender: head.gender, n: Math.max(0, L.notice.until - sim.time.day), letting: L.notice.why }))}</span>`;
+        else if (mine && L) {
+          const chk = F.canGiveNotice(id, n);
+          text += ' ' + button(t('lease.give_notice'), 'flat_notice', { n }, { cls: 'ghost sm', disabled: !chk.ok, title: chk.ok ? '' : tr(sim, `reason.${chk.reason}`, chk.params || {}) });
+        }
+        text = `<span>${text}</span>`;
+      }
+      rows.push(`<div class="kv"><span>${escapeHtml(t('flats.flat_n', { n: n + 1 }))}</span><b>${yours || !here.length ? escapeHtml(text) : text}</b></div>`);
+    }
+    const let_ = [...leases.keys()].length;
+    return `<h3>🏢 ${escapeHtml(t('flats.title'))} <span class="muted small">${escapeHtml(t('flats.summary', { let: let_, units, cap: F.flatCap(id) }))}</span></h3>
+      ${rows.join('')}
+      ${F.hasShopFloor(id) ? kv(t('flats.shop_floor'), escapeHtml(t('flats.shop_floor_rent', { money: fmtMoney(FLATS.shopFloorRent) }))) : ''}
+      ${mine ? kv(t('flats.income'), `${escapeHtml(fmtMoney(F.income(id)))} ${escapeHtml(t('rent_ui.per_week'))}`) : ''}
+      <div class="muted small">${escapeHtml(t('flats.hint'))}</div>`;
+  }
+
   /** Who rented it before, for how long, and how it ended. */
   pastTenantsHtml() {
     const sim = this.sim;
@@ -375,13 +424,19 @@ export class PropertyPanel extends Panel {
   districtRow(kv) {
     const b = this.sim.world.buildings[this.bid];
     const d = b && this.sim.growth.districtAt(b.door.tx, b.door.ty);
-    return d ? kv(t('ui.district'), `${escapeHtml(districtLabel(d))} <span class="muted small">(${escapeHtml(t(`district.kind.${d.type}`))})</span>`) : '';
+    const h = b && this.sim.places?.hoodOf(this.bid);
+    const hood = h ? kv(t('place_ui.hood'), `<span class="clickable" data-action="place" data-hood="${h.id}">🏘️ ${escapeHtml(hoodLabel(this.sim, h))}</span> <span class="muted small">(${escapeHtml(t(`hood_kind.${h.kind}`))})</span>`) : '';
+    return hood + (d ? kv(t('ui.district'), `<span class="clickable" data-action="place" data-district="${d.id}">${escapeHtml(districtLabel(d))}</span> <span class="muted small">(${escapeHtml(districtKindLabel(d))})</span>`) : '');
   }
 
   onAction(action, data) {
     const P = this.sim.property;
     if (action === 'tab') {
       this.tab = data.tab;
+      return;
+    }
+    if (action === 'place') {
+      this.ui.openPlace(data.hood ? { hood: data.hood } : { district: data.district });
       return;
     }
     if (structureAction(this.ui, this.bid, action, data)) return;
@@ -418,6 +473,11 @@ export class PropertyPanel extends Panel {
       case 'notice_no':
         this.confirmNotice = false;
         break;
+      case 'flat_notice': {
+        const r = this.sim.flats.giveNotice(this.bid, Number(data.n));
+        if (!r.ok) this.sim.toast(`reason.${r.reason}`, r.params || {}, 'warn');
+        break;
+      }
       case 'notice': {
         this.confirmNotice = false;
         const r = P.giveNotice(this.bid);

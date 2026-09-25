@@ -89,6 +89,7 @@ export class FinanceSystem {
     this.V.treasury += business + property - fund;
     sim.schools?.reserve(); // the teachers' (and doctor's…) pay is set aside first
     sim.growth?.putAside(business + property - fund); // …and some saved for the school (or library, mill) the village wants
+    sim.infra?.levy(business + property - fund); // …and a little for roads, lamps and the like (public works)
     this.V.taxLog.push({ day: sim.time.day, business, property, player });
     if (this.V.taxLog.length > 12) this.V.taxLog.shift();
     if (player > 0) sim.toast('toast.taxes_paid', { money: player }, 'info');

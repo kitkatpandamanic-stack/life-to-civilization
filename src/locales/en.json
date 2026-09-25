@@ -895,7 +895,20 @@
     "letting_moving": "they're moving on",
     "letting_arrears": "rent owed",
     "letting_landlord": "the landlord wants the house back",
-    "letting_better_home": "it suits them better"
+    "letting_better_home": "it suits them better",
+    "already_paved": "Already paved.",
+    "pave_road_only": "Only a road can be paved.",
+    "bridge_water_only": "A bridge goes over shallow water.",
+    "lamp_by_road": "A lamp goes beside a road.",
+    "lamp_too_close": "There's a lamp right here already.",
+    "merge_no_room": "The ground between them isn't free (or they're too far apart).",
+    "merge_empty_first": "The other building must stand empty first.",
+    "tenants_first": "Tenants live there — they'd have to leave first.",
+    "people_live_here": "People live there.",
+    "your_home_first": "It's your home — move out first.",
+    "cant_join": "These can't be joined.",
+    "not_next_door": "The plots aren't next to each other.",
+    "cant_split": "It can't be split (too small, or a building stands across the middle)."
   },
   "toast": {
     "hungry": "You're getting hungry. Press Q to eat.",
@@ -1061,7 +1074,9 @@
     "tenants_left": "{npc}'s household has moved out of {building}.",
     "manager_hired": "{npc} will look after your houses for {n}% of the rent.",
     "manager_quit": "{npc} has stopped looking after your houses — you couldn't pay.",
-    "manager_repaired": "{npc} had {building} repaired ({money})."
+    "manager_repaired": "{npc} had {building} repaired ({money}).",
+    "demolished": "Pulled down: {btype}. What could be saved is yours.",
+    "demolish_confirm": "Pull down {building}? Click again to be sure."
   },
   "objective": {
     "harvest": "Harvest ripe wheat in the farm fields ({have}/{qty})",
@@ -1446,7 +1461,24 @@
     "rents_falling": "Rents are falling — homes stand empty, and an ordinary one lets for {money} a week.",
     "npc_builds_to_let": "{npc} is building a house to let — homes are short and rents are high.",
     "land_became": "{plot} has changed: once {tfrom}, it is now {ttype}.",
-    "land_developed": "{plot} is now {dev} — the village is growing into it."
+    "land_developed": "{plot} is now {dev} — the village is growing into it.",
+    "hood_formed": "A new neighbourhood has grown up: {hood}, {n} homes along the lane.",
+    "hood_grew": "{hood} has grown to {n} homes.",
+    "hood_faded": "{hood} is no longer a neighbourhood — too few are left living there.",
+    "district_character": "{district}: it is now {dchar}.",
+    "player_bridge": "You bridged the water: the road now reaches the far bank.",
+    "village_bridge": "The village bridged the water: the road now reaches the far bank.",
+    "village_paved": "The village paved its busiest street with cobbles ({n} lengths of road).",
+    "village_lane": "The village laid a lane to {building} ({n} lengths of road).",
+    "village_lamp": "A street lamp now lights {hood}.",
+    "npc_bought_lot": "{npc} bought a lot to build a home on one day: {plot}.",
+    "npc_development": "{npc} means to build a row of {n} houses to let — homes are wanted.",
+    "npc_development_done": "{npc}'s row of {n} houses to let is finished, beginning with {building}.",
+    "npc_land_for_sale": "{npc} is selling land that has grown dearer: {plot}.",
+    "player_demolished": "You pulled down {btype} — the ground is free to build on again.",
+    "building_demolished": "{npc} pulled down {btype}.",
+    "village_demolished": "The village cleared away {btype} — the ground is free to build on again.",
+    "npc_converted": "{npc} turned {building} into a shop — the house had stood empty on a busy street."
   },
   "event": {
     "good_harvest": {
@@ -2086,7 +2118,11 @@
     "money": "Money",
     "improve": "Improve",
     "sell_confirm": "Put it up for sale (it's worth about {money})?",
-    "no_workers_title": "Hire your first worker"
+    "no_workers_title": "Hire your first worker",
+    "pave_tool": "Pave",
+    "bridge_tool": "Build a bridge",
+    "lamp_tool": "Put up a lamp",
+    "tile_tool_hint": "Click a tile near you · Right-click / Esc to stop"
   },
   "dialog": {
     "intro": [
@@ -2945,6 +2981,22 @@
     "trading_post": {
       "name": "Trading post",
       "desc": "On the road out of the valley: buys up the village's surplus and sells it to passing traders at good prices."
+    },
+    "pave": {
+      "name": "Cobbles",
+      "desc": "Pave a road with stones: quicker to walk than a dirt road, and the street is worth more to live and trade on."
+    },
+    "bridge": {
+      "name": "Bridge",
+      "desc": "Planks over shallow water, tile by tile from a road on the bank. Land across the water that a road reaches is worth more."
+    },
+    "lamp": {
+      "name": "Street lamp",
+      "desc": "A lamp beside a road lights the street at night: people feel safer, and houses near it fetch more."
+    },
+    "apartment_house": {
+      "name": "Block of flats",
+      "desc": "Several households under one roof, each in a flat of its own, each paying its own rent. Flats let for less than a house — for people who can't afford one."
     }
   },
   "build_cat": {
@@ -3214,7 +3266,8 @@
     "rent_lowered": "The rent on {building} came down to {money}.",
     "bought_rental": "Bought {building} to let.",
     "manages_player_houses": "Looks after your houses for you.",
-    "moved_for": "Moved to {building}: {hwhy}."
+    "moved_for": "Moved to {building}: {hwhy}.",
+    "developed_row": "Built a row of {n} houses to let."
   },
   "talk": {
     "deflect": [
@@ -4352,7 +4405,8 @@
     "bought": "bought it",
     "inherited": "inherited it",
     "escheat": "taken over by the village",
-    "gift": "given"
+    "gift": "given",
+    "reclaimed": "the village took it back"
   },
   "rent_level": {
     "cheap": "Cheap",
@@ -4549,7 +4603,8 @@
     "bank": "bank",
     "grammar_school": "upper school",
     "trade_school": "trade school",
-    "institute": "research institute"
+    "institute": "research institute",
+    "apartment_house": "block of flats"
   },
   "purpose": {
     "home": "a home for the family",
@@ -4626,6 +4681,23 @@
       "education": "learning",
       "entertainment": "entertainment",
       "transport": "trade & transport"
+    },
+    "plain": "{kind} district",
+    "char": {
+      "old": "Old {kind} district",
+      "new": "New development ({kind})",
+      "university": "University quarter"
+    },
+    "char_word": {
+      "old": "the old heart of the village",
+      "new": "a new development",
+      "university": "a university quarter"
+    },
+    "char_hint": {
+      "old": "Some of the valley's oldest houses stand here.",
+      "new": "Most of what's here has only just gone up — or is going up now.",
+      "university": "Learning is what this part of the village lives by.",
+      "none": "What's built here gives this part of the village its character."
     }
   },
   "village_names": [
@@ -5503,7 +5575,13 @@
     "lamps": "Street lamps",
     "people_hint": "People living there",
     "click_hint": "Click a building on the map to see it.",
-    "click_hint_land": "Click a building to see it, or a piece of land to look at it."
+    "click_hint_land": "Click a building to see it, or a piece of land to look at it.",
+    "layer_places": "Places",
+    "hoods": "Neighbourhoods",
+    "click_hint_places": "Click a neighbourhood or a district to see what it's like.",
+    "paved": "Cobbles",
+    "bridges": "Bridges",
+    "unlinked": "Roads that don't link up"
   },
   "institution": {
     "market": {
@@ -6244,7 +6322,11 @@
     "level": "Build up to: {name}",
     "module": "Add: {m}",
     "spec": "Make it: {s}",
-    "renovate": "Renovate"
+    "renovate": "Renovate",
+    "convert": "Turn it into {to}",
+    "merge_with": "Join it with {building}",
+    "merge": "Join two buildings into one",
+    "demolish": "Pull it down"
   },
   "works_fx": {
     "cap": "room for {sign}{n}",
@@ -6261,7 +6343,15 @@
     "wider": "{n} tile(s) wider — needs free ground beside it",
     "deeper": "{n} row(s) deeper at the back",
     "health": "healthier to live in",
-    "warm": "warmer in winter"
+    "warm": "warmer in winter",
+    "becomes": "It becomes {to}",
+    "not_a_home": "nobody can live in it any more",
+    "keeps_quality": "its walls and quality stay",
+    "one_building": "{building} becomes part of it — one building",
+    "size": "{w}×{h} tiles",
+    "level_up": "a level up",
+    "salvage": "Salvaged: {list}",
+    "ground_freed": "the ground is free to build on again"
   },
   "module": {
     "bedroom": {
@@ -6420,7 +6510,11 @@
     "no_works": "Nothing has been done to it yet.",
     "line_built": "Built ({who}).",
     "line_works_started": "Work started: {job} ({who}).",
-    "line_works_done": "Finished: {job}."
+    "line_works_done": "Finished: {job}.",
+    "was": "What it has been",
+    "joined": "Joined",
+    "joined_n": "made of {n} buildings",
+    "tenants": "Households that rented it"
   },
   "use": {
     "home": "a home",
@@ -6429,7 +6523,8 @@
     "workshop": "a workplace",
     "school": "a school",
     "public": "a public building",
-    "empty": "empty"
+    "empty": "empty",
+    "converted": "converted"
   },
   "cond": {
     "healthy": "Good",
@@ -6475,7 +6570,9 @@
     "changes": "What changes",
     "needs": "What it takes",
     "better": "A better building all round",
-    "smaller": "Rooms, fittings and repairs"
+    "smaller": "Rooms, fittings and repairs",
+    "change": "Change what it is",
+    "change_hint": "Not everything can become everything: a house can be a shop or a workshop, a workshop a warehouse… Joining needs a building of yours of the same kind close beside it, the ground between them free. Pulling down takes time too — and what's salvaged is yours."
   },
   "prop_state": {
     "works": "Work under way",
@@ -6642,7 +6739,15 @@
     "value_trend": "Its price, week by week",
     "value_why": "Against bare land",
     "development": "Development",
-    "dev_nothing": "nothing built here yet"
+    "dev_nothing": "nothing built here yet",
+    "infra_unlinked": "the road doesn't link up to the village",
+    "infra_paved": "cobbled street",
+    "infra_lamp": "a street lamp",
+    "infra_carting": "a carter",
+    "join_with": "Join with {plot}",
+    "split": "Split in two",
+    "reshape": "Reshape your land",
+    "reshape_hint": "Join plots of yours that lie side by side into one — or split one in two, to sell half or build on half."
   },
   "lease": {
     "title": "Tenancy",
@@ -6721,7 +6826,8 @@
     "income": "Rent it brings in",
     "jobs": "Work nearby",
     "services": "Shops and services near",
-    "neighbourhood": "The street"
+    "neighbourhood": "The street",
+    "a_flat": "One flat (of {n})"
   },
   "market_ui": {
     "title": "Housing market",
@@ -6778,11 +6884,13 @@
   },
   "land_event": {
     "type": "It became {ttype} (it was {tfrom}).",
-    "dev": "It became {dev}."
+    "dev": "It became {dev}.",
+    "joined": "{plot} was joined to it.",
+    "split": "Split in two: {plot} is the other half."
   },
   "land_value": {
     "road": "Road access",
-    "infrastructure": "A well near",
+    "infrastructure": "Well, cobbles, lamps",
     "jobs": "Work nearby",
     "population": "People nearby",
     "services": "Shops nearby",
@@ -6804,8 +6912,232 @@
     "population": "people living here",
     "jobs": "work",
     "roads": "roads",
-    "infrastructure": "a well",
+    "infrastructure": "a well, cobbles, lamps",
     "services": "shops near",
     "activity": "trade"
+  },
+  "hood_name": {
+    "river": [
+      "Riverside",
+      "Waterside Row",
+      "Ferry Lane",
+      "Willow Bank"
+    ],
+    "mill": [
+      "Mill Lane",
+      "Millrace Row",
+      "Millside",
+      "Grindstone Row"
+    ],
+    "plaza": [
+      "Old Town",
+      "Market Lanes",
+      "Hall Row",
+      "Old Lanes"
+    ],
+    "forge": [
+      "Anvil Row",
+      "Smiths' End",
+      "Cinder Lane",
+      "Hammer Row"
+    ],
+    "well": [
+      "Well Street",
+      "Wellside",
+      "Bucket Lane",
+      "Spring Row"
+    ],
+    "fields": [
+      "Harvest Row",
+      "Hayfield End",
+      "Barley Lane",
+      "Furrow Row"
+    ],
+    "woods": [
+      "Oak Row",
+      "Pine End",
+      "Woodside",
+      "Birch Lane"
+    ],
+    "hill": [
+      "Hillside",
+      "Stony Rise",
+      "High Lane",
+      "Ridge Row"
+    ],
+    "north": [
+      "North Row",
+      "Upper Lanes",
+      "Northfold",
+      "Frost Lane"
+    ],
+    "south": [
+      "South Row",
+      "Lower Lanes",
+      "Southfold",
+      "Sunny Lane"
+    ],
+    "east": [
+      "East Row",
+      "Dawn Lane",
+      "Eastfold",
+      "Sunrise End"
+    ],
+    "west": [
+      "West Row",
+      "Dusk Lane",
+      "Westfold",
+      "Sunset End"
+    ]
+  },
+  "hood": {
+    "unnamed": "a neighbourhood",
+    "nth": "{name} ({n})"
+  },
+  "hood_kind": {
+    "residential": "Residential neighbourhood",
+    "mixed": "Mixed neighbourhood",
+    "workers": "Workers' quarter"
+  },
+  "hood_service": {
+    "well": "Well",
+    "shop": "Shop",
+    "tavern": "Tavern",
+    "school": "School",
+    "clinic": "Clinic",
+    "watch": "Watch"
+  },
+  "place_home": {
+    "under_construction": "being built",
+    "abandoned": "abandoned",
+    "under_renovation": "work under way",
+    "public": "public",
+    "business": "business",
+    "other": "—",
+    "owner_occupied": "owner lives here",
+    "rented": "rented",
+    "for_rent": "to let",
+    "vacant": "empty"
+  },
+  "place_ui": {
+    "faded": "This neighbourhood no longer holds together — too few are left living there.",
+    "gone": "This part of the village has changed beyond recognition.",
+    "founded": "Grew up {when}",
+    "long_ago": "long ago",
+    "in_district": "in {name}",
+    "population": "People",
+    "homes": "Homes",
+    "buildings": "Buildings",
+    "businesses_n": "Businesses",
+    "avg_value": "Average house",
+    "avg_rent": "Average rent",
+    "per_week": "{money}/wk",
+    "quality": "Build quality",
+    "condition": "Repair",
+    "standing": "Standing",
+    "standing_hint": "Kept houses, a shop, a well and quiet streets make a place people want to live — its houses fetch more, and villagers choosing a home rate it higher.",
+    "land": "Land",
+    "land_mult": "×{x} of bare land",
+    "development": "Development",
+    "let_out": "Houses let out",
+    "infra": "What's near",
+    "road": "Road",
+    "businesses": "Businesses among its homes",
+    "its_homes": "Its homes",
+    "road_share": "Buildings on a road",
+    "well_share": "Buildings near a well",
+    "hoods_here": "Neighbourhoods here",
+    "story": "Its story",
+    "part_of": "Part of",
+    "hood": "Neighbourhood",
+    "paved": "Cobbles",
+    "lamps": "Lamps"
+  },
+  "place_rep": {
+    "good": "Sought after",
+    "decent": "Well thought of",
+    "plain": "Ordinary",
+    "poor": "Run down"
+  },
+  "hood_event": {
+    "founded": "The houses here grew into a neighbourhood.",
+    "founded_old": "One of the valley's first neighbourhoods.",
+    "grew": "It has grown to {n} homes.",
+    "kind": "It changed: {hkfrom} → {hkind}.",
+    "service": "Now with a {service} nearby.",
+    "joined": "{hood} became part of it.",
+    "decline": "People are leaving: {n} still live here."
+  },
+  "district_event": {
+    "formed": "This part of the village took shape ({to}).",
+    "formed_old": "Part of the village from its first days ({to}).",
+    "type": "What it's used for changed: {from} → {to}.",
+    "char": "It is now {dchar}."
+  },
+  "infra_ui": {
+    "summary": "Road tiles {roads} · cobbled {paved} · bridges {bridges} · lamps {lamps} · homes on the road network {linked} / {homes}",
+    "works": "Public works",
+    "fund": "Public works fund",
+    "network": "Roads",
+    "wells": "Wells",
+    "carting": "Carting",
+    "nothing_yet": "The village hasn't built any roads or lamps of its own yet.",
+    "give": "Give {money} to the works",
+    "works_hint": "A share of the taxes goes into the fund. Each week the village spends it on what's most needed: a lane to a house cut off from the roads, cobbles on the busiest street (once it's a large village, or knows masonry), a lamp for a neighbourhood left in the dark."
+  },
+  "infra_log": {
+    "lane": "Laid a lane ({n} tiles).",
+    "pave": "Paved the busiest street ({n} tiles).",
+    "lamp": "Put up a street lamp.",
+    "bridge": "Bridged the water."
+  },
+  "dev_plan": {
+    "home": "{npc} bought it to build a home on.",
+    "hold": "{npc} is holding it while land grows dearer.",
+    "develop": "{npc} is building a row of houses here."
+  },
+  "dev_ui": {
+    "plans": "Plans for it",
+    "villagers_building": "Villagers developing the valley",
+    "none": "Nobody is buying land to build on just now.",
+    "row": "{npc}: a row of houses to let ({built} of {n} built)",
+    "lot": "{npc}: a lot for a home of their own",
+    "hold": "{npc}: land held to sell on ({plot})"
+  },
+  "btype": {
+    "shack": "a shack",
+    "small_house": "a small house",
+    "house": "a house",
+    "rental_house": "a house to let",
+    "player_house": "a house",
+    "player_large_house": "a large house",
+    "player_estate": "an estate",
+    "shopfront": "a shop",
+    "trading_post": "a trading post",
+    "workshop": "a workshop",
+    "warehouse_bld": "a warehouse",
+    "storage_shed": "a shed",
+    "apartment_house": "a block of flats",
+    "store": "a store",
+    "tavern": "a tavern",
+    "smithy": "a smithy",
+    "farmhouse": "a farmhouse",
+    "lumberyard": "a lumberyard",
+    "quarry_hut": "a quarry hut",
+    "forge": "a forge",
+    "mining_camp": "a mining camp",
+    "hunting_cabin": "a hunting cabin",
+    "well": "a well"
+  },
+  "flats": {
+    "title": "Flats",
+    "summary": "{let} of {units} let · up to {cap} people each",
+    "flat_n": "Flat {n}",
+    "free": "free — {money} a week",
+    "yours": "you live here",
+    "shop_floor": "Shop on the ground floor",
+    "shop_floor_rent": "let to a trader: {money} a week",
+    "income": "The flats bring in",
+    "hint": "Each flat has its own tenancy: its own rent, its own notice. The sign stays up while a flat is free. Rooms added to the building — a courtyard, a washroom, a lift — are for everyone in it."
   }
 }

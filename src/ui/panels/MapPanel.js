@@ -5,12 +5,12 @@
 import { FOG } from '../../data/regions.js';
 import { Panel } from '../Panel.js';
 import { t } from '../../i18n/i18n.js';
-import { escapeHtml, buildingLabel, districtLabel, hamletName, villageName } from '../format.js';
+import { escapeHtml, buildingLabel, districtLabel, hoodLabel, hamletName, villageName } from '../format.js';
 import { button, filters } from '../widgets.js';
 import { PLOTS } from '../../data/land.js';
 
 /** Map layers — one at a time, only when you ask for it. */
-const LAYERS = ['normal', 'ownership', 'value', 'land_use', 'infrastructure', 'population'];
+const LAYERS = ['normal', 'ownership', 'value', 'land_use', 'places', 'infrastructure', 'population'];
 const OWNER_COLORS = { player: '#ffcf5a', village: '#60a0f0', npc: '#9ad07a', nobody: '#e06a5a' };
 import { T } from '../../world/WorldGenerator.js';
 import { BALANCE } from '../../config/balance.js';
@@ -77,7 +77,8 @@ export class MapPanel extends Panel {
     } else if (L === 'land_use') legend = Object.entries(DISTRICT_COLORS).map(([k, c]) => `<span><i class="lg" style="background:${c}"></i>${escapeHtml(t(`district.kind.${k}`))}</span>`).join('');
     else if (L === 'ownership') legend = Object.entries(OWNER_COLORS).map(([k, c]) => `<span><i class="lg" style="background:${c};border-radius:2px"></i>${escapeHtml(t(`map.owner_${k}`))}</span>`).join('') + `<span><i class="lg" style="border:1px dashed #fff;border-radius:2px"></i>${escapeHtml(t('map.for_sale'))}</span>`;
     else if (L === 'value') legend = `<span><i class="lg" style="background:#4a90d0;border-radius:2px"></i>${escapeHtml(t('map.value_low'))}</span><span><i class="lg" style="background:#f0c040;border-radius:2px"></i>${escapeHtml(t('map.value_high'))}</span>`;
-    else if (L === 'infrastructure') legend = `<span><i class="lg" style="background:#e8d4a8;border-radius:2px"></i>${escapeHtml(t('map.roads'))}</span><span><i class="lg" style="background:#60c0ff"></i>${escapeHtml(t('map.wells'))}</span><span><i class="lg" style="background:#ffd070"></i>${escapeHtml(t('map.lamps'))}</span>`;
+    else if (L === 'infrastructure') legend = `<span><i class="lg" style="background:#e8d4a8;border-radius:2px"></i>${escapeHtml(t('map.roads'))}</span><span><i class="lg" style="background:#b8b2a6;border-radius:2px"></i>${escapeHtml(t('map.paved'))}</span><span><i class="lg" style="background:#c08050;border-radius:2px"></i>${escapeHtml(t('map.bridges'))}</span><span><i class="lg" style="background:#e07050;border-radius:2px"></i>${escapeHtml(t('map.unlinked'))}</span><span><i class="lg" style="background:#60c0ff"></i>${escapeHtml(t('map.wells'))}</span><span><i class="lg" style="background:#ffd070"></i>${escapeHtml(t('map.lamps'))}</span>`;
+    else if (L === 'places') legend = Object.entries(DISTRICT_COLORS).filter(([k]) => this.sim.state.districts.list.some((d) => d.type === k)).map(([k, c]) => `<span><i class="lg" style="background:${c}"></i>${escapeHtml(t(`district.kind.${k}`))}</span>`).join('') + `<span><i class="lg" style="border:2px dashed #ffe7a8;border-radius:2px"></i>${escapeHtml(t('map.hoods'))}</span>`;
     else if (L === 'population') legend = `<span><i class="lg" style="background:#ff9a6a"></i>${escapeHtml(t('map.people_hint'))}</span>`;
     return `${filters(LAYERS.map((l) => [l, t(`map.layer_${l}`)]), L, 'layer')}
       <div class="map-wrap"><canvas class="map-canvas clickable" title="${escapeHtml(t('map.click_hint'))}"></canvas></div>
@@ -88,7 +89,7 @@ export class MapPanel extends Panel {
         <span><i class="lg home"></i>${escapeHtml(t('ui.map_home'))}</span>
       </div>
       ${legend ? `<div class="map-legend">${legend}</div>` : ''}
-      <div class="hint">${escapeHtml(t(['ownership', 'land_use', 'value'].includes(L) ? 'map.click_hint_land' : 'map.click_hint'))}</div>
+      <div class="hint">${escapeHtml(t(L === 'places' ? 'map.click_hint_places' : ['ownership', 'land_use', 'value'].includes(L) ? 'map.click_hint_land' : 'map.click_hint'))}</div>
       ${this.settlementsHtml()}`;
   }
 
@@ -129,6 +130,13 @@ export class MapPanel extends Panel {
       const r = this.canvas.getBoundingClientRect();
       const tx = ((e.clientX - r.left) / r.width) * this.sim.world.W;
       const ty = ((e.clientY - r.top) / r.height) * this.sim.world.H;
+      // On the places map: the neighbourhood (or district) there.
+      if (this.layer === 'places' && this.sim.places) {
+        const h = this.sim.places.hoodAt(Math.floor(tx), Math.floor(ty));
+        const d = this.sim.places.districtAt(Math.floor(tx), Math.floor(ty));
+        if (h || d) this.ui.openPlace(h ? { hood: h.id } : { district: d.id });
+        return;
+      }
       const b = this.sim.world.buildingList.find((o) => tx >= o.tx && tx < o.tx + o.w && ty >= o.ty - 0.5 && ty < o.ty + o.h + 0.5);
       if (b && this.sim.property.rec(b.id)) this.ui.openProperty(b.id);
       // …or a piece of land, on the ownership map.
@@ -219,8 +227,16 @@ export class MapPanel extends Panel {
     } else if (L === 'infrastructure') {
       ctx.fillStyle = 'rgba(10,8,5,0.55)';
       ctx.fillRect(0, 0, sim.world.W * SCALE, sim.world.H * SCALE);
-      ctx.fillStyle = '#e8d4a8';
-      for (let y = 0; y < sim.world.H; y++) for (let x = 0; x < sim.world.W; x++) if (sim.world.isRoad(x, y)) ctx.fillRect(x * SCALE, y * SCALE, SCALE, SCALE);
+      // Roads (cobbles grey, bridges brown) — and roads that don't link up to the plaza, in red.
+      const steps = sim.infra?.field();
+      for (let y = 0; y < sim.world.H; y++) {
+        for (let x = 0; x < sim.world.W; x++) {
+          if (!sim.world.isRoad(x, y)) continue;
+          const tile = sim.world.tileAt(x, y);
+          ctx.fillStyle = steps && steps[sim.world.idx(x, y)] < 0 ? '#e07050' : tile === T.PLAZA ? '#b8b2a6' : tile === T.BRIDGE ? '#c08050' : '#e8d4a8';
+          ctx.fillRect(x * SCALE, y * SCALE, SCALE, SCALE);
+        }
+      }
       const dot = (x, y, color) => {
         ctx.fillStyle = color;
         ctx.beginPath();
@@ -230,6 +246,47 @@ export class MapPanel extends Panel {
       for (const d of sim.world.decor) if (d.type === 'well') dot((d.tx + 0.5) * SCALE, (d.ty + 0.5) * SCALE, '#60c0ff');
       for (const b of sim.world.buildingList) if (b.type === 'well') dot((b.tx + 0.5) * SCALE, (b.ty + 0.5) * SCALE, '#60c0ff');
       for (const d of sim.world.decor) if (d.light) dot((d.tx + 0.5) * SCALE, (d.ty + 0.5) * SCALE, '#ffd070');
+    } else if (L === 'places') {
+      // Districts as tinted blocks; neighbourhoods as dashed outlines with their names.
+      for (const d of sim.state.districts.list) {
+        ctx.globalAlpha = 0.3;
+        ctx.fillStyle = DISTRICT_COLORS[d.type] || '#fff';
+        for (const cell of d.cells) {
+          const [cx, cy] = cell.split(',').map(Number);
+          ctx.fillRect(cx * 10 * SCALE, cy * 10 * SCALE, 10 * SCALE, 10 * SCALE);
+        }
+      }
+      ctx.globalAlpha = 1;
+      ctx.font = 'bold 11px Nunito, sans-serif';
+      const placed = [];
+      for (const d of sim.state.districts.list) {
+        const label = districtLabel(d);
+        // (Skip a label that would sit on top of another one.)
+        const lw = ctx.measureText(label).width;
+        const box = { x: d.tx * SCALE - lw / 2, y: d.ty * SCALE + 6, w: lw, h: 14 };
+        if (placed.some((o) => box.x < o.x + o.w && o.x < box.x + box.w && box.y < o.y + o.h && o.y < box.y + box.h)) continue;
+        placed.push(box);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'rgba(20,14,8,0.85)';
+        ctx.strokeText(label, d.tx * SCALE, d.ty * SCALE + 18);
+        ctx.fillStyle = DISTRICT_COLORS[d.type] || '#fff';
+        ctx.fillText(label, d.tx * SCALE, d.ty * SCALE + 18);
+      }
+      ctx.font = 'bold 12px Nunito, sans-serif';
+      for (const h of sim.places?.hoods() || []) {
+        ctx.strokeStyle = '#ffe7a8';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 3]);
+        ctx.strokeRect(h.x1 * SCALE, h.y1 * SCALE, (h.x2 - h.x1 + 1) * SCALE, (h.y2 - h.y1 + 1) * SCALE);
+        ctx.setLineDash([]);
+        const label = hoodLabel(sim, h);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'rgba(20,14,8,0.9)';
+        ctx.strokeText(label, ((h.x1 + h.x2) / 2) * SCALE, h.y1 * SCALE - 3);
+        ctx.fillStyle = '#ffe7a8';
+        ctx.fillText(label, ((h.x1 + h.x2) / 2) * SCALE, h.y1 * SCALE - 3);
+      }
+      ctx.font = 'bold 10px Nunito, sans-serif';
     } else if (L === 'population') {
       for (const b of sim.world.buildingList) {
         const n = sim.npcs.residentsOf(b.id).length;
@@ -339,7 +396,7 @@ export class MapPanel extends Panel {
       ctx.fillStyle = '#ffe7a8';
       ctx.fillText(label, h.tx * SCALE, (h.ty - 2) * SCALE);
     }
-    for (const id of LABELLED) {
+    for (const id of this.layer === 'places' ? [] : LABELLED) {
       const b = sim.world.buildings[id];
       const x = (b.tx + b.w / 2) * SCALE;
       const y = b.ty * SCALE - 3;

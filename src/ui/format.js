@@ -15,6 +15,10 @@ export function buildingLabel(sim, id) {
   const bizId = sim.economy?.businessAtBuilding(id);
   const b = bizId && sim.economy.biz(bizId);
   if (b && b.nameIdx !== undefined) return cap(t('ui.biz_label', { name: t(`biz_name.${b.type}.${b.nameIdx}`), type: t(`biz_type.${b.type}`) }));
+  // A block of flats, or a building turned into something else (StructureSystem): what it is now.
+  const now = sim.property?.type?.(id);
+  if (sim.flats?.isBlock(id) && id !== sim.state.player.homeId) return cap(t('vbuilding.apartment_house'));
+  if (now && sim.structures?.all?.[id]?.visual && !sim.property.isHome(id)) return cap(t(`btype.${now}`).replace(/^(a|an) /, ''));
   if (rec?.player) {
     if (id === sim.state.player.homeId) return t('building.your_home');
     const c = sim.construction.byId(id);
@@ -25,7 +29,7 @@ export function buildingLabel(sim, id) {
     const residents = sim.state.npcs.filter((n) => n.homeId === id && n.age >= 16);
     if (residents.length) return t('building.house_of', { name: npcName(residents[0]) });
     const c = sim.construction?.byId(id);
-    return cap(t(`vbuilding.${c?.type || 'house'}`));
+    return cap(t(`vbuilding.${(sim.structures?.all?.[id]?.visual && now) || c?.type || 'house'}`));
   }
   if (id && id.startsWith('house_')) {
     const residents = sim.state.npcs.filter((n) => n.homeId === id && n.age >= 16);
@@ -42,6 +46,7 @@ export function worksLabel(sim, building, key) {
   if (key.startsWith('level_')) return t('works.level', { name: r ? t(`structure.level.${r.fam}.${key.slice(6)}`) : key.slice(6) });
   if (key.startsWith('module_')) return t('works.module', { m: t(`module.${key.slice(7)}.name`) });
   if (key.startsWith('spec_')) return t('works.spec', { s: t(`spec.${key.slice(5)}.name`) });
+  if (key.startsWith('convert_')) return t('works.convert', { to: t(`btype.${key.slice(8)}`) });
   return t(`works.${key}`);
 }
 
@@ -49,6 +54,20 @@ export function worksLabel(sim, building, key) {
 export function districtLabel(d) {
   if (!d) return '';
   return t('district.name', { where: t(`district.where.${d.name.where}`), type: t(`district.type.${d.type}.${d.name.variant}`) });
+}
+
+/** "Old residential district", "New development (commercial)", "Residential district" — what a district is. */
+export function districtKindLabel(d) {
+  if (!d) return '';
+  return cap(d.char ? t(`district.char.${d.char}`, { kind: t(`district.kind.${d.type}`) }) : t('district.plain', { kind: t(`district.kind.${d.type}`) }));
+}
+
+/** A neighbourhood's name ("Mill Lane", "Заречье") — by the neighbourhood, or its id (names outlive it, for the chronicle). */
+export function hoodLabel(sim, h) {
+  const nm = typeof h === 'string' ? sim.places?.hood(h)?.name || sim.state.places?.names?.[h] : h?.name;
+  if (!nm) return t('hood.unnamed');
+  const base = t(`hood_name.${nm.f}.${nm.v}`);
+  return nm.n ? t('hood.nth', { name: base, n: typeof nm.n === 'number' ? nm.n + 1 : '' }) : base;
 }
 
 /** Where a villager works, as a label (their own business, an employer, you, or nothing). */
@@ -107,6 +126,14 @@ export function resolveParams(sim, params = {}) {
     else if (k === 'hamlet') out[k] = hamletName(v);
     else if (k === 'district') out[k] = districtLabel(sim.state.districts?.list.find((d) => d.cells.includes(v))) || t('district.unnamed');
     else if (k === 'from' || k === 'to') out[k] = t(`district.kind.${v}`);
+    else if (k === 'hood') out[k] = hoodLabel(sim, v);
+    else if (k === 'btype') out[k] = t(`btype.${v}`);
+    else if (k === 'dchar') out[k] = t(`district.char_word.${v}`);
+    else if (k === 'hkind' || k === 'hkfrom') {
+      const s = t(`hood_kind.${v}`);
+      out[k] = s.charAt(0).toLowerCase() + s.slice(1);
+    }
+    else if (k === 'service') out[k] = t(`hood_service.${v}`);
     else if (k === 'vbuilding') out[k] = t(`vbuilding.${v}`);
     else if (k === 'rumor') out[k] = rumorText(sim, v);
     else if (k === 'purpose') out[k] = t(`purpose.${v}`);

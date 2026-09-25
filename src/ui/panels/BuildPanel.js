@@ -8,6 +8,7 @@ import { t, itemName, fmtMoney } from '../../i18n/i18n.js';
 import { tr, escapeHtml } from '../format.js';
 import { button, icon, tabs } from '../widgets.js';
 import { BUILDABLES, BUILD_CATEGORIES, HOME_UPGRADES, ROAD_COST } from '../../data/buildables.js';
+import { INFRA } from '../../data/infra.js';
 import { skill } from '../../systems/Modifiers.js';
 import { structureHtml, structureAction } from '../structure.js';
 
@@ -61,12 +62,20 @@ export class BuildPanel extends Panel {
         .join('');
     } else if (this.tab === 'roads') {
       const unlocked = sim.progression.hasUnlock('construction');
-      body = `<div class="build-card">
-        <div class="job-name">${escapeHtml(t('buildable.road.name'))}</div>
-        <div class="desc">${escapeHtml(t('buildable.road.desc'))}</div>
-        <div class="craft-in">${this.materials({ stone: ROAD_COST.stone })} <span class="muted small">${escapeHtml(t('ui.per_tile'))}</span></div>
-        <div class="job-bottom"><span class="warn small">${unlocked ? '' : escapeHtml(tr(sim, 'reason.locked', { level: sim.progression.unlockLevel('construction') }))}</span>${button(t('ui.road_tool'), 'road', {}, { disabled: !unlocked, cls: 'primary' })}</div>
+      const lock = unlocked ? '' : escapeHtml(tr(sim, 'reason.locked', { level: sim.progression.unlockLevel('construction') }));
+      // Roads, paving, bridges and lamps (InfrastructureSystem): one tile at a time, where you stand.
+      const tool = (k, cost, perTile = true) => {
+        const mats = Object.fromEntries(Object.entries(cost).filter(([i]) => i !== 'money'));
+        return `<div class="build-card">
+        <div class="job-top"><div class="job-name">${escapeHtml(t(`buildable.${k}.name`))}</div>${cost.money ? `<div class="job-pay">${fmtMoney(cost.money)}</div>` : ''}</div>
+        <div class="desc">${escapeHtml(t(`buildable.${k}.desc`))}</div>
+        <div class="craft-in">${this.materials(mats)} ${perTile ? `<span class="muted small">${escapeHtml(t('ui.per_tile'))}</span>` : ''}</div>
+        <div class="job-bottom"><span class="warn small">${lock}</span>${button(t(`ui.${k}_tool`), 'tool', { tool: k }, { disabled: !unlocked, cls: 'primary' })}</div>
       </div>`;
+      };
+      const st = sim.infra.stats();
+      body = `<div class="muted small">${escapeHtml(t('infra_ui.summary', { roads: st.roads, paved: st.paved, bridges: st.bridges, lamps: st.lamps, linked: st.linked, homes: st.homes }))}</div>
+        ${tool('road', { stone: ROAD_COST.stone })}${tool('pave', INFRA.cost.pave)}${tool('bridge', INFRA.cost.bridge)}${tool('lamp', INFRA.cost.lamp, false)}`;
     } else if (this.tab === 'home') {
       const next = sim.home.nextTier();
       const up = next && HOME_UPGRADES[next];
@@ -93,9 +102,9 @@ export class BuildPanel extends Panel {
     else if (action === 'place') {
       this.ui.closePanel();
       this.ui.scene.buildMode.start(data.type);
-    } else if (action === 'road') {
+    } else if (action === 'road' || action === 'tool') {
       this.ui.closePanel();
-      this.ui.scene.buildMode.start('road');
+      this.ui.scene.buildMode.start(data.tool || 'road');
     } else if (action === 'upgrade') {
       if (this.sim.construction.startHomeUpgrade()) this.ui.closePanel();
     }

@@ -99,7 +99,8 @@ export class HallPanel extends Panel {
       ${tax ? kv(t('hall.taxes_week'), fmtMoney(tax.business + tax.property)) : ''}
       ${kv(t('hall.saving_for'), projectLine)}
       ${projectPick}
-      <div class="muted small">${escapeHtml(t(mine ? 'hall.headman_hint' : 'hall.policy_hint'))}</div>`;
+      <div class="muted small">${escapeHtml(t(mine ? 'hall.headman_hint' : 'hall.policy_hint'))}</div>
+      ${this.worksHtml()}`;
 
     // Institutions: have, could found, not yet.
     const inst = INSTITUTION_ORDER.map((id) => {
@@ -156,9 +157,49 @@ export class HallPanel extends Panel {
     return `<div class="char-cols"><div class="col">${status}${government}${affairs}</div><div class="col"><h3>${escapeHtml(t('hall.institutions'))}</h3>${inst}${learned}${bank}${legacy}</div></div>`;
   }
 
+  /** Public works: the fund, what it did last, the village's roads, cobbles, bridges, lamps and wells (InfrastructureSystem). */
+  worksHtml() {
+    const sim = this.sim;
+    const I = sim.infra;
+    if (!I) return '';
+    const st = I.stats();
+    const kv = (k, v) => `<div class="kv"><span>${escapeHtml(k)}</span><b>${v}</b></div>`;
+    const last = I.S.log.filter((l) => l.by === 'village').slice(-3).reverse().map((l) => `<div class="small"><span class="muted">${escapeHtml(dateString(l.day))}</span> ${escapeHtml(tr(sim, `infra_log.${l.k}`, { n: l.n }))}</div>`).join('');
+    return `<h3>${escapeHtml(t('infra_ui.works'))}</h3>
+      ${kv(t('infra_ui.fund'), fmtMoney(I.S.fund))}
+      ${kv(t('infra_ui.network'), escapeHtml(t('infra_ui.summary', { roads: st.roads, paved: st.paved, bridges: st.bridges, lamps: st.lamps, linked: st.linked, homes: st.homes })))}
+      ${kv(t('infra_ui.wells'), st.wells)}${st.carting ? kv(t('infra_ui.carting'), '✓') : ''}
+      ${last || `<div class="muted small">${escapeHtml(t('infra_ui.nothing_yet'))}</div>`}
+      <div class="row">${button(t('infra_ui.give', { money: fmtMoney(50) }), 'give_works', { n: 50 }, { disabled: sim.state.player.money < 50 })}</div>
+      <div class="muted small">${escapeHtml(t('infra_ui.works_hint'))}</div>
+      ${this.developersHtml()}`;
+  }
+
+  /** Villagers developing the valley themselves (DevelopmentSystem): lots bought for homes, rows of houses, land held. */
+  developersHtml() {
+    const sim = this.sim;
+    const rows = sim.state.npcs
+      .filter((n) => n.landPlan)
+      .map((n) => {
+        const p = n.landPlan;
+        const text = p.k === 'develop' ? tr(sim, 'dev_ui.row', { npc: n.id, built: (p.built || []).length, n: p.n }) : p.k === 'home' ? tr(sim, 'dev_ui.lot', { npc: n.id }) : tr(sim, 'dev_ui.hold', { npc: n.id, plot: p.plot });
+        return `<div class="small">🏗️ ${escapeHtml(text)}</div>`;
+      })
+      .join('');
+    return `<h3>${escapeHtml(t('dev_ui.villagers_building'))}</h3>${rows || `<div class="muted small">${escapeHtml(t('dev_ui.none'))}</div>`}`;
+  }
+
   onAction(action, data) {
     const C = this.sim.civic;
     switch (action) {
+      case 'give_works':
+        if (this.sim.state.player.money >= data.n) {
+          this.sim.state.player.money -= Number(data.n);
+          this.sim.infra.S.fund += Number(data.n);
+          this.sim.progression.addReputation(1);
+          this.sim.bus.emit('player:changed');
+        }
+        break;
       case 'found':
         this.sim.study.found(data.type);
         break;

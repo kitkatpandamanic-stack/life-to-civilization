@@ -240,7 +240,9 @@ export class AffairsPanel extends Panel {
     // Your properties: what they bring in, what they cost, and each one's state at a glance.
     const mine = Object.entries(P.all).filter(([, r]) => r.owner === 'player').map(([id]) => id);
     const rented = mine.filter((id) => id !== sim.state.player.homeId && P.rentedOut(id));
-    const income = rented.reduce((s, id) => s + (P.lease(id)?.rent ?? P.weeklyRent(id)), 0);
+    // (A block of flats: what all its flats let bring in.)
+    const rentOf = (id) => (sim.flats?.isBlock(id) ? sim.flats.income(id) : (P.lease(id)?.rent ?? P.weeklyRent(id)));
+    const income = rented.reduce((s, id) => s + rentOf(id), 0);
     // Taxes, the upkeep of houses let out, and the manager's share.
     const Lt = sim.letting;
     const fee = Lt.manager ? Math.max(RENTAL.managerMinFee, Math.round(income * RENTAL.managerFee)) : 0;
@@ -254,7 +256,7 @@ export class AffairsPanel extends Panel {
     const buildings = mine
       .map((id) => {
         const lvl = sim.structures?.rec(id) ? ` · ${t('structure.level_short', { n: sim.structures.level(id) })}` : '';
-        const rent = rented.includes(id) ? `${fmtMoney(P.lease(id)?.rent ?? P.weeklyRent(id))} ${t('rent_ui.per_week')}` : '';
+        const rent = rented.includes(id) ? `${fmtMoney(rentOf(id))} ${t('rent_ui.per_week')}` : '';
         return `<div class="prop-row" data-action="building" data-id="${id}"><div><div class="prop-name">${escapeHtml(buildingLabel(sim, id))}<span class="muted small">${escapeHtml(lvl)}</span></div><div>${propBadges(sim, id)}</div></div><span class="muted small">${escapeHtml(rent)}</span><b>${escapeHtml(fmtMoney(P.value(id)))}</b></div>`;
       })
       .join('');

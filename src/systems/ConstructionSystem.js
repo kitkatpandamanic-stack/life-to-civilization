@@ -60,13 +60,17 @@ export class ConstructionSystem {
       const [x, y] = key.split(',').map(Number);
       world.setRoad(x, y);
     }
+    const done = [];
     for (const c of this.list) {
       // Work on a building that's growing: the ground it's growing onto is taken.
       if (c.kind === 'works' && c.status === 'site' && c.fp) this.blockExtra(c, 1);
       if (c.kind !== 'building') continue;
-      if (c.status === 'done') world.addBuilding(this.buildingRecord(c));
+      if (c.status === 'done') done.push(c);
       else world.blockRect(c.tx, c.ty, c.w, c.h, 1);
     }
+    // In the order they were finished — as they stood before saving (so the game goes on exactly as it would have).
+    done.sort((a, b) => (a.builtSeq ?? 0) - (b.builtSeq ?? 0) || (a.builtDay ?? 0) - (b.builtDay ?? 0));
+    for (const c of done) world.addBuilding(this.buildingRecord(c));
   }
 
   buildingRecord(c) {
@@ -144,9 +148,11 @@ export class ConstructionSystem {
     const b = this.sim.world.buildings[c.target];
     const out = [];
     if (!c.fp) return out;
+    const o = c.job?.with ? this.sim.world.buildings[c.job.with] : null; // (two joined into one: the other one's ground is its own)
     for (let y = c.fp.ty; y < c.fp.ty + c.fp.h; y++) {
       for (let x = c.fp.tx; x < c.fp.tx + c.fp.w; x++) {
         if (b && x >= b.tx && x < b.tx + b.w && y >= b.ty && y < b.ty + b.h) continue;
+        if (o && x >= o.tx && x < o.tx + o.w && y >= o.ty && y < o.ty + o.h) continue;
         out.push([x, y]);
       }
     }
@@ -436,6 +442,7 @@ export class ConstructionSystem {
   complete(c) {
     c.status = 'done';
     c.builtDay = this.sim.time.day;
+    c.builtSeq = this.sim.state.settlement.builtSeq = (this.sim.state.settlement.builtSeq || 0) + 1;
     const sim = this.sim;
     this.refund(c);
     if (c.kind === 'repair') {
@@ -538,7 +545,9 @@ export class ConstructionSystem {
     if (c && c.status === 'done' && c.type === 'small_house') return true;
     const P = this.sim.property;
     const r = P.rec(id);
-    return !!r && r.owner === 'player' && P.isHome(id) && !r.ruined && id !== 'hall' && !this.sim.economy.businessAtBuilding(id) && P.occupants(id) === 0;
+    // (A block of flats of yours: a free flat is enough.)
+    const room = this.sim.flats?.isBlock(id) ? this.sim.flats.free(id) > 0 : P.occupants(id) === 0;
+    return !!r && r.owner === 'player' && P.isHome(id) && !r.ruined && id !== 'hall' && !this.sim.economy.businessAtBuilding(id) && room;
   }
 
   moveIn(id) {
@@ -546,6 +555,7 @@ export class ConstructionSystem {
     const p = this.sim.state.player;
     const c = this.byId(id);
     const old = p.homeId;
+    if (this.sim.flats?.isBlock(id)) this.sim.flats.playerMoveIn(id); // a flat of your own in it
     p.homeId = id;
     p.homeTier = c?.visual ? c.visual.replace('player_', '') : c ? 'small_house' : p.homeTier;
     p.rent.amount = 0;

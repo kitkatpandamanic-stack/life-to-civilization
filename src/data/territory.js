@@ -8,6 +8,7 @@ export const LAND = {
   perTile: 3, // bare land, far from anything
   lotMargin: 1, // a new building's lot: its footprint and this much around it
   lotPremium: 1.25, // a lot carved out of village land costs a little more than raw land
+  minSplit: 12, // a plot splits only if each half would have at least this many tiles
   buyReach: 2, // you must be standing on the land, or this close to it, to buy it
   npcSellFactor: 1.15, // villagers want a bit more than it's worth
   offerAccept: 1.35, // …and will sell land they don't use for this much over its value
@@ -20,6 +21,9 @@ export const LAND = {
  * the kind of buildings there (GrowthSystem.kindOf), or — with none — its fields, rocks and trees.
  */
 export const TERRITORY = {
+  nearDist: 34, // simulation levels: land this close to the village (or you) is looked at every week …
+  midDist: 64, // … this close, every other week — further out, once a month
+  infraWeight: 3, // how much new buildings are drawn to well-served spots (InfrastructureSystem coverage 0–1, in tiles of distance)
   kindType: { home: 'residential', shop: 'commercial', trade: 'commercial', industry: 'industrial', farm: 'agricultural', public: 'government', school: 'education', research: 'research', leisure: 'recreation' },
   mixedBelow: 0.55, // several kinds of building, none this dominant: mixed
   fieldShare: 0.25, // this much of it fields: agricultural

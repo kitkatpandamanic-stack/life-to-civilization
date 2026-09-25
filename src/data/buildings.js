@@ -28,6 +28,7 @@ export const BUILDING_TYPES = {
   well: { w: 1, h: 1, decorTexture: 'decor_well' },
 
   // Built by villagers as the settlement grows (V3)
+  apartment_house: { w: 5, h: 4, wall: 'plaster', wallColor: '#e2d6bc', roof: 'tile', roofColor: '#8f3b2e', chimney: true, wideDoor: true, floors: 2 },
   shopfront: { w: 4, h: 3, wall: 'plaster', wallColor: '#ede0c4', roof: 'slate', roofColor: '#4a7a6e', chimney: false, wideDoor: true },
   mining_camp: { w: 3, h: 2, wall: 'wood', wallColor: '#8a6a44', roof: 'plank', roofColor: '#5a4a3a', sign: '⛏️' },
   hunting_cabin: { w: 3, h: 2, wall: 'wood', wallColor: '#7a5434', roof: 'thatch', roofColor: '#8a7a4a', sign: '🦌', chimney: true },

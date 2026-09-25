@@ -130,6 +130,7 @@ export const MEMORY_KINDS = {
   friend_left: { imp: 3, val: -2 },
   player_helped_build: { imp: 3, val: 3, bond: { f: 6, t: 10, r: 6 }, merge: 14, share: true },
   bought_land: { imp: 4, val: 3 },
+  developed_row: { imp: 5, val: 4 },
   // ---- renting
   given_notice: { imp: 5, val: -4, bond: { f: -5, t: -10 } }, // put out of a home they paid for
   notice_for_arrears: { imp: 3, val: -2, bond: { t: -2 } },
