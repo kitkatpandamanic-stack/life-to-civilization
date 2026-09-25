@@ -140,9 +140,13 @@ if (extra) {
   sim.contracts.accept(extra.id);
   const rep = p.reputation;
   const failed = sim.state.contracts.failed;
+  // (Past the deadline a job is late for a couple of days — docked pay — and then it's fallen through.)
   extra.deadline = sim.time.day - 1;
   sim.contracts.daily();
-  check('a missed deadline costs reputation', sim.state.contracts.failed === failed + 1 && p.reputation < rep);
+  check('a missed deadline: late — and it costs reputation', extra.late && sim.state.contracts.failed === failed && p.reputation < rep);
+  extra.deadline = sim.time.day - 3;
+  sim.contracts.daily();
+  check('…still not done days later: it falls through', sim.state.contracts.failed === failed + 1);
 }
 
 // 8. Ambitions.

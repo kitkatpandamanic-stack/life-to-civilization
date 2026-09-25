@@ -19,10 +19,12 @@ export const FOCUS = {
   gather_stone: { construction: 'off', hauling: 'low', gathering: 'high', farming: 'off', workshop: 'off', maintenance: 'off' },
   farm: { construction: 'off', hauling: 'low', gathering: 'off', farming: 'high', workshop: 'off', maintenance: 'off' },
   workshop: { construction: 'off', hauling: 'medium', gathering: 'low', farming: 'off', workshop: 'high', maintenance: 'off' },
+  haul: { construction: 'low', hauling: 'high', gathering: 'medium', farming: 'off', workshop: 'off', maintenance: 'low' }, // a carrier
+  repair: { construction: 'medium', hauling: 'medium', gathering: 'off', farming: 'off', workshop: 'off', maintenance: 'high' }, // a repair hand
 };
 
 /** The trade each kind of work trains (education fields — see data/education.js). */
-export const WORK_FIELDS = { build: 'building', repair: 'building', gather_wood: 'forestry', gather_stone: 'mining', farm: 'farming', workshop: 'carpentry', haul: null, buy: 'trade', charvest: 'farming', crepair: 'building', chaul: 'trade' };
+export const WORK_FIELDS = { build: 'building', repair: 'building', gather_wood: 'forestry', gather_stone: 'mining', farm: 'farming', workshop: 'carpentry', haul: null, buy: 'trade', charvest: 'farming', crepair: 'building', chaul: 'trade', cfetch: 'trade', cbuy: 'trade', corder: 'trade', cpost: 'trade', csite: 'trade', cshift: null, gather_berries: 'farming', cwater: 'farming', csaw: 'carpentry' };
 
 /** What a worker is called from what they're best at. */
 export const PROFESSIONS = { building: 'builder', forestry: 'woodcutter', mining: 'miner', farming: 'farmer', carpentry: 'carpenter', trade: 'carrier' };

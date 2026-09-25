@@ -910,7 +910,12 @@
     "your_home_first": "It's your home — move out first.",
     "cant_join": "These can't be joined.",
     "not_next_door": "The plots aren't next to each other.",
-    "cant_split": "It can't be split (too small, or a building stands across the middle)."
+    "cant_split": "It can't be split (too small, or a building stands across the middle).",
+    "no_workers": "You have no workers — hire someone first.",
+    "job_started": "You've already started on it — finish it yourself.",
+    "need_skilled_hand": "It needs someone with {field} {n}+ — you or one of your workers.",
+    "need_standing": "You need to be a {crank} first.",
+    "have_company": "You have a company already."
   },
   "toast": {
     "hungry": "You're getting hungry. Press Q to eat.",
@@ -1089,7 +1094,15 @@
     },
     "crew_cleared": "Nobody's on that job now.",
     "contractor_rank": "Your name as a contractor grows: {crank}.",
-    "repaired_for": "An hour's repairs: +{n} to {building}."
+    "repaired_for": "An hour's repairs: +{n} to {building}.",
+    "contract_late": "A contract is past its deadline — finish it soon: the pay is docked each day.",
+    "contract_called_off": "Called off by the client — you were paid {money} for the work done.",
+    "contract_graded": "The work was judged {grade} · speed {speed} · {dl}.",
+    "haggle_pay_yes": "Agreed: {money}.",
+    "haggle_time_yes": "Agreed: {n} days.",
+    "haggle_no": "They won't budge.",
+    "haggle_walked": "They'll find someone else.",
+    "company_founded": "Your contracting company is registered!"
   },
   "objective": {
     "harvest": "Harvest ripe wheat in the farm fields ({have}/{qty})",
@@ -1499,7 +1512,8 @@
     "building_demolished": "{npc} pulled down {btype}.",
     "village_demolished": "The village cleared away {btype} — the ground is free to build on again.",
     "npc_converted": "{npc} turned {building} into a shop — the house had stood empty on a busy street.",
-    "contractor_rank": "The contracts you've seen through earned you a new standing: {crank}."
+    "contractor_rank": "The contracts you've seen through earned you a new standing: {crank}.",
+    "company_founded": "{name} founded a contracting company."
   },
   "event": {
     "good_harvest": {
@@ -2557,7 +2571,12 @@
       "job_details": "Tell me more.",
       "job_decline": "Sorry, I can't.",
       "job_myself": "I'll see to it myself.",
-      "job_workers": "My workers will do it."
+      "job_workers": "My workers will do it.",
+      "job_accept_client": "I'll take it on — you buy the materials.",
+      "job_accept_included": "I'll take it on — give me {money} and I'll get the materials.",
+      "job_accept_player": "I'll bring the materials myself — pay me {money} for them at the end.",
+      "job_ask_pay": "Make it {money} and I'll do it.",
+      "job_ask_time": "I'd need more time than that."
     },
     "no_gifts": "You have nothing suitable to give.",
     "chat_again": [
@@ -2746,6 +2765,21 @@
       "haul": [
         "I'm short of {item}. Could you fetch {qty} from {building} for me? {money} for the carrying.",
         "Would you bring me {qty} × {item} from {building}? I'd pay {money} for your trouble."
+      ],
+      "water": [
+        "The sun's baking my wheat — could you water {qty} plants for me? {money} for it."
+      ],
+      "gather": [
+        "We're short of {item} at {building}. Could you bring in {qty}? I'd pay {money}."
+      ],
+      "supply": [
+        "I'm short of {item}. Could you bring me {qty}? {money} for them."
+      ],
+      "build_new": [
+        "You've done good work for me. I'd like a new {vbuilding} built — would you take it on? {money} for the building work."
+      ],
+      "build_works": [
+        "You've done good work for me — would you improve {building}? {money} for the work."
       ]
     },
     "job_details_line": [
@@ -2787,6 +2821,30 @@
     "job_all_done": [
       "That's the lot! Here's what I owe you.",
       "All in — thank you. Here's your pay."
+    ],
+    "haggle_yes_pay": [
+      "Fine — {money} it is.",
+      "You drive a hard bargain. {money}, then."
+    ],
+    "haggle_yes_time": [
+      "All right — take {n} days.",
+      "I suppose it can wait a little. {n} days."
+    ],
+    "haggle_no_pay": [
+      "That's all I can pay.",
+      "No — that's my price."
+    ],
+    "haggle_no_time": [
+      "I can't wait any longer than that.",
+      "No, it has to be done by then."
+    ],
+    "haggle_walk": [
+      "Then I'll find someone else.",
+      "Forget it — I'll ask elsewhere."
+    ],
+    "job_urgent": [
+      "It can't wait, mind.",
+      "And it's needed soon."
     ]
   },
   "rank": {
@@ -2865,7 +2923,10 @@
     "waiting_materials": "Waiting for materials",
     "repairing": "Repairing",
     "buying_materials": "Buying materials",
-    "harvesting_contract": "Harvesting a field for you"
+    "harvesting_contract": "Harvesting a field for you",
+    "working_forage": "Picking berries",
+    "carrying_contract": "Carrying goods for a job",
+    "watering_contract": "Watering a field for you"
   },
   "schedule": {
     "wake": "Wake up",
@@ -3127,12 +3188,14 @@
     "manager": "Manager"
   },
   "assignment": {
-    "idle": "Any work",
-    "gather_wood": "Gather wood",
-    "gather_stone": "Gather stone",
-    "build": "Build",
-    "farm": "Farm your fields",
-    "workshop": "Workshop"
+    "idle": "General worker",
+    "gather_wood": "Woodcutter",
+    "gather_stone": "Miner",
+    "build": "Builder",
+    "farm": "Farmer",
+    "workshop": "Crafter",
+    "haul": "Carrier",
+    "repair": "Repair worker"
   },
   "business": {
     "carpentry": {
@@ -5095,7 +5158,9 @@
       "haul": "Haulage",
       "order": "Order",
       "harvest": "Harvest",
-      "repair": "Repairs"
+      "repair": "Repairs",
+      "job": "Job",
+      "water": "Watering"
     },
     "supply": "{building} is running short: deliver {qty} × {item}.",
     "craft": "{npc} wants {qty} × {item} made — {quality} or better — delivered to their home.",
@@ -5114,7 +5179,7 @@
     "hauled": "delivered {n} / {of} (carrying {got})",
     "delivered_n": "delivered {n} / {of}",
     "deadline": "Due by {date}",
-    "hint": "Contracts come from real needs around the village — and the people who need the work ask you themselves when you talk to them. Do the work yourself, or put your workers on it (harvests, repairs, building work, haulage). Payment comes from whoever asked; missing a deadline costs you reputation.",
+    "hint": "Contracts come from real needs around the village — and the people who need the work ask you themselves when you talk to them. Do the work yourself, or be the manager: put your workers on any contract (and on jobs from the Jobs tab — \"Send my workers\"). You're paid; they get their usual wage. Missing a deadline costs you reputation.",
     "yours": "Your contracts",
     "offered": "On offer",
     "none": "Nothing on offer right now — check back tomorrow.",
@@ -5146,6 +5211,14 @@
       "haul": {
         "one": "{n} load to carry",
         "other": "{n} goods to carry"
+      },
+      "goods": {
+        "one": "{n} item to bring",
+        "other": "{n} items to bring"
+      },
+      "water": {
+        "one": "{n} plant to water",
+        "other": "{n} plants to water"
       }
     },
     "hands": {
@@ -5161,7 +5234,8 @@
       "waiting": "Waiting — nobody at it",
       "completed": "Done",
       "failed": "Fell through",
-      "cancelled": "Given up"
+      "cancelled": "Given up",
+      "late": "Late"
     },
     "workers_n": "Workers: {n} / {of} wanted",
     "owed": "You're carrying {qty} × {item} of theirs — hand it over at {building}.",
@@ -5176,7 +5250,9 @@
       "deadline": "Deadline",
       "xp": "Your experience",
       "wxp": "Each worker (for a fair share)",
-      "done_by": "Done so far"
+      "done_by": "Done so far",
+      "spent": "Spent so far",
+      "materials": "Materials"
     },
     "you": "You",
     "no_workers": "You have no workers yet — hire someone first.",
@@ -5185,7 +5261,106 @@
     "assign_n": "Put them on the job ({n})",
     "recent": "Recently finished",
     "rank_line": "{done} contracts seen through · up to {n} at once",
-    "rank_next": "next: {rank} at {n}"
+    "rank_next": "next: {rank} at {n}",
+    "job": "at {building}",
+    "send_workers": "Send my workers",
+    "send_workers_tip": "You take the job and your workers do it. You're paid; they get their usual wage.",
+    "hand_over": "Hand it to my workers",
+    "posted_n": "delivered {n} / {of}",
+    "need_goods": "Your workers can't get {item}: nobody sells it and it can't be gathered — put some in your storage.",
+    "need_stock": "{building} has no {item} in stock to send — your workers are waiting for it.",
+    "job_needs_workers": "No one's on this job yet — press \"Manage workers\" and pick who does it.",
+    "how": {
+      "supply": "Your workers take the goods from your storage — or buy them with your money (within the daily limit), or gather wood, stone and berries — and carry them over.",
+      "craft": "Your workers take pieces good enough from your storage (or buy plain ones if that's all it needs) and deliver them.",
+      "order": "A worker goes to your business and sends the goods off by cart.",
+      "shift": "Your workers go to the employer and work the hours there.",
+      "deliver": "Your workers take the goods from your storage, buy them, or gather them, and bring them to the employer.",
+      "courier": "A worker picks up the parcel and takes it to the house.",
+      "rounds": "A worker picks up the letters and takes one to each house.",
+      "haul": "Your workers take the materials from the supplier's yard to the building site."
+    },
+    "water": "{npc}'s wheat is drying out: water {qty} plants in the fields by {building}.",
+    "gather": "{building} is short of its own {item}: gather {qty} and bring it in.",
+    "build_new": "{npc} wants a new {vbuilding} built — the whole building, from the ground up.",
+    "build_works": "{npc} wants {building} improved: {hours} hours of building work.",
+    "regular": {
+      "one": "you've done {n} job for them",
+      "other": "you've done {n} jobs for them"
+    },
+    "size": {
+      "small": "Small",
+      "medium": "Medium",
+      "large": "Large",
+      "major": "Major project"
+    },
+    "cat": {
+      "agriculture": "Farming",
+      "construction": "Building",
+      "repair": "Repairs",
+      "transport": "Transport",
+      "business": "Business",
+      "resources": "Resources"
+    },
+    "urgent": "Urgent",
+    "from_regular": "A regular client",
+    "built_pct": "{n}% built",
+    "watered_n": "{n} / {of} watered",
+    "req_required": "Needs {field} {n}+ (you or a worker)",
+    "req_recommended": "Best with {field} {n}+",
+    "mat": "{item}",
+    "estimate": "≈ {days} d with {n} at it",
+    "costs": "costs ≈ {money}",
+    "profit": "profit {money}",
+    "accept_client": "Take it on — they buy the materials",
+    "accept_included": "Take it on — materials with their money ({money})",
+    "accept_player": "Take it on — I bring the materials ({money} back)",
+    "ask_pay": "Ask for {money}",
+    "ask_time": "Ask for more time",
+    "at_risk": "At risk: not enough hands on it to finish by the deadline.",
+    "advance": "{money} paid in advance",
+    "spent": "materials {money} · wages {money2}",
+    "mode": {
+      "client": "the client buys them",
+      "included": "you buy them with the client's advance",
+      "player": "you get them, paid back at the end"
+    },
+    "best_suited": "best suited",
+    "history": "Contract history",
+    "history_all": "Show all ({n})",
+    "history_less": "Show fewer",
+    "how_ended": {
+      "done": "done",
+      "short": "paid short",
+      "failed": "fell through",
+      "abandoned": "given up",
+      "client_cancelled": "called off by the client"
+    },
+    "grade": {
+      "excellent": "Excellent",
+      "good": "Good",
+      "fair": "Fair",
+      "poor": "Poor"
+    },
+    "when": {
+      "early": "early",
+      "on_time": "on time",
+      "late": "late"
+    },
+    "was_late": "late",
+    "stage": {
+      "individual": "Working for yourself",
+      "freelancer": "Freelancer",
+      "contractor": "Contractor",
+      "company": "Contracting company"
+    },
+    "rank_next2": "next: {rank} at {n} jobs and a name of {rep}",
+    "reputation": "Your name",
+    "company_name": "{name}'s Contracting",
+    "books": "earned {money} · costs {money2} · {n} jobs",
+    "found": "Found a company ({money})",
+    "found_tip": "A firm with a name: one more contract at once, a crew that works a little better, businesses trust it more.",
+    "overview": "{n} contracts on · {free} workers free"
   },
   "ambition": {
     "title": "Ambitions",
@@ -6784,7 +6959,16 @@
     "repair": "Repairing {building}",
     "charvest": "Harvesting a client's field",
     "crepair": "Repairing {building} (contract)",
-    "chaul": "Hauling {item} from {building} (contract)"
+    "chaul": "Hauling {item} from {building} (contract)",
+    "cfetch": "Taking {item} from your storage for a job",
+    "cbuy": "Buying {item} for a job",
+    "corder": "Sending an order off by cart",
+    "cshift": "Working a shift for you",
+    "cpost": "Taking parcels round",
+    "csite": "Carrying {item} to a building site",
+    "gather_berries": "Picking berries",
+    "cwater": "Watering a client's field",
+    "csaw": "Sawing planks for a site"
   },
   "jobcat": {
     "construction": "Construction",
@@ -6825,7 +7009,12 @@
     "less": "Hide",
     "hire_line": "Age {age} · reliability {r} · works at {s}% pace",
     "on_contract": "On a contract: {kind} at {building}",
-    "off_contract": "Take off the job"
+    "off_contract": "Take off the job",
+    "contract_prio": "Contract work",
+    "contract_prio_high": "Contracts come first, always.",
+    "contract_prio_medium": "Contracts before most of their usual work.",
+    "contract_prio_low": "Their usual work first; contracts when there's time.",
+    "role": "Role"
   },
   "land_name": {
     "lot": "{building} lot",

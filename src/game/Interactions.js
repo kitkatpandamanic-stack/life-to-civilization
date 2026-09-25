@@ -107,7 +107,7 @@ export function getActions(scene, target) {
     case 'object': {
       const obj = sim.state.objects[target.id];
       const kind = sim.actions.actionFor(obj);
-      if (kind && sim.resources.isHarvestable(obj)) add(`action.${kind}`, {}, () => scene.performObjectAction(obj), sim.actions.check(obj));
+      if (kind && (sim.resources.isHarvestable(obj) || kind === 'water')) add(kind === 'water' ? 'action.water_crop' : `action.${kind}`, {}, () => scene.performObjectAction(obj), sim.actions.check(obj));
       break;
     }
     case 'discovery': {

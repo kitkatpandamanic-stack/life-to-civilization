@@ -25,12 +25,21 @@ export class PlayerActionSystem {
   }
 
   actionFor(obj) {
+    // A growing plant in a farmer's field you've been asked to water.
+    if (obj?.kind === 'crop' && obj.stage < 3 && this.sim.contracts?.waterAt(obj)) return 'water';
     return KIND_BY_OBJECT[obj?.kind];
   }
 
   /** Returns { ok, reason, params }. */
   check(obj) {
     const kind = this.actionFor(obj);
+    if (kind === 'water') {
+      const can = this.sim.inventory.bestTool('watering_can');
+      if (!can) return { ok: false, reason: 'need_watering_can' };
+      if ((can.water || 0) <= 0) return { ok: false, reason: 'can_empty' };
+      if (this.p.energy < A.water.energy) return { ok: false, reason: 'too_tired' };
+      return { ok: true };
+    }
     if (!kind || !this.sim.resources.isHarvestable(obj)) return { ok: false, reason: 'nothing_here' };
     const p = this.p;
     const toolKind = TOOL_BY_ACTION[kind];
@@ -74,6 +83,18 @@ export class PlayerActionSystem {
     const kind = this.actionFor(obj);
     const res = this.sim.resources;
     const inv = this.sim.inventory;
+    if (kind === 'water') {
+      // The farmer's plant, watered from your can (it counts towards the job).
+      const can = inv.bestTool('watering_can');
+      can.water--;
+      inv.changed();
+      this.sim.needs.spendEnergy(A.water.energy);
+      this.sim.progression.addXp(A.water.xp);
+      this.sim.progression.addSkillXp(A.water.skill, A.water.skillXp);
+      this.sim.bus.emit('player:action', { kind: 'water_crop', obj });
+      this.sim.bus.emit('player:changed');
+      return true;
+    }
     let item;
     let qty;
     switch (kind) {

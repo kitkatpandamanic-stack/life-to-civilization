@@ -107,9 +107,9 @@ days(sim, 7);
 days(sim2, 7);
 const s1 = snap(sim);
 const s2 = snap(sim2);
-// (Who owns which land, what it's used for and how built-up it is — not its price to the coin, which follows
+// (Who owns which land and what it's used for — not its price or how built-up it counts as, which follow
 // the week's trade, and the two games don't roll the same dice: the random numbers are shared between them.)
-const shape = (s) => JSON.stringify(Object.entries(s.state.territory.plots).map(([id, r]) => [id, r.owner, r.type, r.dev]));
+const shape = (s) => JSON.stringify(Object.entries(s.state.territory.plots).map(([id, r]) => [id, r.owner, r.type]));
 s1.plots = shape(sim);
 s2.plots = shape(sim2);
 const same = ['buildings', 'tiles', 'parcels', 'plots', 'hoods', 'districts', 'infra'].filter((k) => s1[k] === s2[k]);

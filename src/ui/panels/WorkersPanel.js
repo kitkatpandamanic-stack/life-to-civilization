@@ -8,8 +8,10 @@ import { t, npcName, fmtMoney, cap } from '../../i18n/i18n.js';
 import { tr, escapeHtml, npcRole, buildingLabel, districtLabel } from '../format.js';
 import { bar, button, portrait, emptyState, status, stat, statGrid } from '../widgets.js';
 import { JOB_CATS, PRIORITIES, WORKFORCE } from '../../data/workforce.js';
+import { ROLES } from '../../data/contracting.js';
 
-const ASSIGNMENTS = ['idle', 'gather_wood', 'gather_stone', 'build', 'farm', 'workshop'];
+/** Roles: what each worker is for (their focus — see data/workforce.js FOCUS). */
+const ASSIGNMENTS = ROLES;
 /** How each state looks: a word, a colour and an icon (never colour alone). */
 const STATE_LOOK = {
   working: ['good', '🔨'],
@@ -84,6 +86,10 @@ export class WorkersPanel extends Panel {
     html += `<div class="setting-row"><div><b>${escapeHtml(t('workers.buy_title'))}</b><div class="hint">${escapeHtml(t('workers.buy_hint', { money: fmtMoney(W.buyBudgetLeft()) }))}</div></div>
       <div class="btn-row">${button(t(S.buy !== false ? 'workers.buy_on' : 'workers.buy_off'), 'buy_toggle', {}, { cls: S.buy !== false ? 'selected sm' : 'ghost sm' })}
       ${button('−', 'budget', { d: -50 }, { cls: 'sm ghost' })}<b class="num">${fmtMoney(S.budget ?? WORKFORCE.buyBudgetPerDay)}</b>${button('+', 'budget', { d: 50 }, { cls: 'sm ghost' })}</div></div>`;
+    // How contract work weighs against their usual work (high: contracts first, always).
+    const cp = S.contractPrio || 'high';
+    html += `<div class="setting-row"><div><b>${escapeHtml(t('workers.contract_prio'))}</b><div class="hint">${escapeHtml(t(`workers.contract_prio_${cp}`))}</div></div>
+      <div class="btn-row">${['high', 'medium', 'low'].map((p) => button(t(`prio.${p}`), 'contract_prio', { p }, { cls: `sm ${cp === p ? 'selected' : 'ghost'}` })).join('')}</div></div>`;
     if (!list.length) {
       html += emptyState('👷', t('ui.no_workers_title'), t(sim.progression.hasUnlock('hire_worker') ? 'ui.no_workers' : 'ui.workers_locked', { level: sim.progression.unlockLevel('hire_worker') }));
     }
@@ -102,10 +108,10 @@ export class WorkersPanel extends Panel {
       const promo = W.canPromote(c.npcId);
       const sites = sim.construction.playerSites();
       const assignBtns = ASSIGNMENTS.map((a) => {
-        const disabled = (a === 'build' && !sites.length) || (a === 'farm' && !Object.keys(sim.state.fields).length) || (a === 'workshop' && !sim.businesses.list().length);
+        const disabled = a === 'workshop' && !sim.businesses.list().length; // (a builder or farmer with nothing of yours to build or farm still takes contract work)
         return button(t(`assignment.${a}`), 'assign', { npc: c.npcId, a }, { cls: `sm ${c.assignment.type === a ? 'selected' : 'ghost'}`, disabled });
       }).join('');
-      const skills = prof.skills.map((s) => `<div class="aff-row"><span>${escapeHtml(cap(t(`knowledge.${s.field}`)))}</span>${bar(s.v, 'skill')}<b>${s.v}</b></div>`).join('');
+      const skills = prof.skills.map((s) => `<div class="aff-row"><span>${escapeHtml(cap(t(`knowledge.${s.field}`)))} ${Math.floor(s.v / 10)}</span>${bar(s.v, 'skill')}<b>${s.v}</b></div>`).join('');
       const queue = c.queue.map((id) => (sim.construction.byId(id) ? (sim.construction.byId(id).kind === 'works' ? buildingLabel(sim, sim.construction.byId(id).target) : t(`buildable.${sim.construction.byId(id).type}.name`)) : buildingLabel(sim, id))).join(' → ');
       const prios = this.open === c.npcId
         ? `<div class="card" style="margin-top:8px"><div class="stat-label">${escapeHtml(t('workers.priorities'))}</div>${JOB_CATS.map((cat) => `<div class="setting-row"><span>${escapeHtml(t(`jobcat.${cat}`))}</span><div class="btn-row">${PRIORITIES.map((p) => button(t(`prio.${p}`), 'prio', { npc: c.npcId, cat, p }, { cls: `sm ${c.jobs[cat] === p ? 'selected' : 'ghost'}` })).join('')}</div></div>`).join('')}
@@ -136,7 +142,7 @@ export class WorkersPanel extends Panel {
             <div class="aff-row"><span>${escapeHtml(t('workers.reliability'))}</span>${bar(prof.reliability, 'xp')}<b>${prof.reliability}</b></div>
           </div>
         </div>
-        <div class="assign-row"><span class="muted small">${escapeHtml(t('ui.assignment'))}:</span> ${assignBtns} ${button(this.open === c.npcId ? t('workers.less') : t('workers.more'), 'toggle', { npc: c.npcId }, { cls: 'sm ghost' })}</div>
+        <div class="assign-row"><span class="muted small">${escapeHtml(t('workers.role'))}:</span> ${assignBtns} ${button(this.open === c.npcId ? t('workers.less') : t('workers.more'), 'toggle', { npc: c.npcId }, { cls: 'sm ghost' })}</div>
         ${queue ? `<div class="hint">📋 ${escapeHtml(t('workers.queue', { list: queue }))}</div>` : ''}
         ${prios}
         <div class="btn-row">
@@ -167,6 +173,7 @@ export class WorkersPanel extends Panel {
     }
     else if (action === 'toggle') this.open = this.open === data.npc ? null : data.npc;
     else if (action === 'buy_toggle') W.state.buy = W.state.buy === false;
+    else if (action === 'contract_prio') W.state.contractPrio = data.p;
     else if (action === 'budget') W.state.budget = Math.max(0, (W.state.budget ?? WORKFORCE.buyBudgetPerDay) + Number(data.d));
     else if (action === 'promote') W.promote(data.npc);
     else if (action === 'fire') this.confirmFire = data.npc;

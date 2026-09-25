@@ -413,7 +413,7 @@ export class GrowthSystem {
     const day = sim.time.day;
     const pool = sim.state.npcs.filter((n) => n.occupation === 'unemployed' && n.age >= 16 && n.age < 62 && !n.leaving && n.dayLabour?.day !== day);
     for (const c of [...this.projects(), ...this.contracted()]) {
-      if (c.labor >= this.cons.maxLabor(c) - 1 || !pool.length) continue;
+      if (c.labor >= this.cons.maxLabor(c) - 1 || !pool.length || c.contractor === 'player') continue;
       const purse = this.purse(c);
       if (!purse || c.budget + purse.get() < G.dayWage * 2 + 20) continue;
       const hires = Math.min(2, pool.length);
@@ -771,7 +771,9 @@ export class GrowthSystem {
     // Builders you've paid to get the materials for you buy them like anyone else's.
     for (const c of this.contracted()) if (c.buyMats) this.buyMaterials(c);
     for (const c of this.projects()) {
-      this.buyMaterials(c);
+      // (A site you've contracted to supply: your crew brings the materials — see ContractSystem.)
+      if (c.supplier !== 'player') this.buyMaterials(c);
+      if (c.contractor === 'player') continue; // your contract decides its fate, not the owner's patience
       // A project nobody works on (and nobody can pay for) is eventually given up.
       // (The village's own civic buildings get more patience: it keeps putting money aside for them.)
       const patience = c.owner === 'village' && c.purpose === 'public' ? 3 : 1;

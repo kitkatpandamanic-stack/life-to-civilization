@@ -2,7 +2,7 @@
  * Job board — today's work. Opened from the notice board (all jobs),
  * a workplace, or by asking an employer in conversation.
  */
-import { contractsTab, contractAction, contractCard } from '../contracts.js';
+import { contractsTab, contractAction, contractCard, openCrew } from '../contracts.js';
 import { Panel } from '../Panel.js';
 import { t, npcName, fmtMoney } from '../../i18n/i18n.js';
 import { tr, escapeHtml, buildingLabel, dateString, villageName, rumorText } from '../format.js';
@@ -69,10 +69,18 @@ export class JobBoardPanel extends Panel {
       <div class="muted small">📍 ${escapeHtml(buildingLabel(sim, sim.economy.biz(employer)?.building))} · ${escapeHtml(t('ui.employer'))}: ${escapeHtml(npcName(owner))} · ${escapeHtml(what)}</div>
       <div class="job-bottom">
         <div class="reqs">${this.describeRequirements(def)} <span class="muted small">${escapeHtml(t('ui.openings', { n: openings }))}</span></div>
-        ${active ? `<span class="badge">${escapeHtml(t('ui.in_progress'))}</span>` : button(t('ui.accept'), 'accept', { job: jobId }, { disabled: !check.ok, cls: 'primary', title: check.ok ? '' : tr(sim, `reason.${check.reason}`, check.params || {}) })}
+        ${active ? `<span class="badge">${escapeHtml(t('ui.in_progress'))}</span>` : `<div class="btn-row">${button(t('ui.accept'), 'accept', { job: jobId }, { disabled: !check.ok, cls: 'primary', title: check.ok ? '' : tr(sim, `reason.${check.reason}`, check.params || {}) })}${this.crewButton(jobId)}</div>`}
       </div>
       ${!check.ok && !active ? `<div class="warn small">${escapeHtml(tr(sim, `reason.${check.reason}`, check.params || {}))}</div>` : ''}
     </div>`;
+  }
+
+  /** "Send my workers": you take the job, they do it (you're paid; they're on their wages). */
+  crewButton(jobId) {
+    const sim = this.sim;
+    if (!sim.workers.list().length) return '';
+    const chk = sim.contracts.canTakeJob(jobId);
+    return button(t('contract.send_workers'), 'job_crew', { job: jobId }, { disabled: !chk.ok, title: chk.ok ? t('contract.send_workers_tip') : tr(sim, `reason.${chk.reason}`, chk.params || {}) });
   }
 
   /** Headlines: the most important things that really happened. */
@@ -147,7 +155,14 @@ export class JobBoardPanel extends Panel {
     if (contractAction(this.sim, action, data)) return;
     if (action === 'tab') this.tab = data.tab;
     else if (action === 'property') this.ui.openProperty(data.id);
-    else if (action === 'accept') {
+    else if (action === 'job_crew') {
+      // The job's yours to manage: pick who does it.
+      const r = this.sim.contracts.takeJob(data.job);
+      if (!r.ok) return this.sim.toast(`reason.${r.reason}`, r.params || {}, 'warn');
+      openCrew(this.sim, r.id);
+      if (!this.bizId && !this.fromNpc) this.tab = 'contracts';
+      else this.ui.togglePanel('journal');
+    } else if (action === 'accept') {
       if (this.sim.jobs.accept(data.job)) this.ui.closePanel();
     } else if (action === 'back_dialogue') {
       this.ui.openDialogue(this.fromNpc);

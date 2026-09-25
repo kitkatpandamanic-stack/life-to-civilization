@@ -260,6 +260,116 @@ let T8save = null;
   check('…the record shows it once, with what was awarded', K3.S.log.filter((x) => x.id === o.id).length === 1 && K3.S.log.find((x) => x.id === o.id).xp > 0);
 }
 
+// Any contract, any job: your workers do it — you're the manager, paid by the client; they're on their wages.
+const pushOffer = (sim, kind, extra) => {
+  const o = sim.contracts.base(kind, extra);
+  sim.contracts.S.offers.push(o);
+  sim.contracts.accept(o.id);
+  return sim.contracts.S.active.find((x) => x.id === o.id);
+};
+{
+  // A supply contract: goods from your storage, carried to the business.
+  const sim = setup(2011);
+  const K = sim.contracts;
+  const [w] = hire(sim, 1);
+  const E = sim.economy;
+  const c = pushOffer(sim, 'supply', { bizId: 'tavern', issuer: E.ownerId('tavern'), building: E.biz('tavern').building, item: 'wood', qty: 12, pay: 40, days: 5 });
+  sim.home.store('wood', 12, { force: true });
+  const stock0 = E.stock('tavern', 'wood');
+  const money0 = sim.state.player.money;
+  K.assign(c.id, [w.id]);
+  workUntil(sim, () => !K.isActive(c.id), 3);
+  check('Supply: a worker takes the goods from your storage to the business', c.status === 'completed' && sim.home.storageCount('wood') === 0 && E.stock('tavern', 'wood') >= stock0 + 12 - 4, `${c.status}, tavern wood ${stock0} → ${E.stock('tavern', 'wood')}`);
+  check('…you are paid, the worker gains experience', c.awarded.pay > 0 && sim.state.player.money > money0 - 40 && c.awarded.workers[w.id]?.xp > 0, `paid ${c.awarded.pay}`);
+}
+{
+  // Nothing in storage, buying turned off: they gather it (wood from the forest).
+  const sim = setup(2012);
+  const K = sim.contracts;
+  const [w] = hire(sim, 1);
+  sim.workers.state.buy = false;
+  const E = sim.economy;
+  const c = pushOffer(sim, 'supply', { bizId: 'tavern', issuer: E.ownerId('tavern'), building: E.biz('tavern').building, item: 'wood', qty: 6, pay: 25, days: 5 });
+  K.assign(c.id, [w.id]);
+  let felled = false;
+  workUntil(sim, () => !K.isActive(c.id), 3, () => {
+    if (sim.workers.contract(w.id)?.task?.kind === 'gather_wood') felled = true;
+  });
+  check('Supply by gathering: nothing in store, no buying — they fell trees for it', felled && c.status === 'completed', `${c.status} ${c.delivered}/${c.qty}`);
+}
+{
+  // A shift from the notice board: you take it for your workers; they work the hours.
+  const sim = setup(2013);
+  const K = sim.contracts;
+  const ws = hire(sim, 1);
+  sim.jobs.refresh();
+  const id = ['store_assistant', 'dishwasher', 'tavern_server', 'mill_hand'].find((j) => K.canTakeJob(j).ok);
+  const r = id ? K.takeJob(id) : { ok: false };
+  const c = K.S.active.find((x) => x.id === r.id);
+  check('A notice-board shift, taken for your workers', !!c && c.kind === 'job' && c.type === 'shift' && c.hours > 0, `${id} ${JSON.stringify(r)}`);
+  if (c) {
+    K.assign(c.id, ws.map((w) => w.id));
+    const money0 = sim.state.player.money;
+    workUntil(sim, () => !K.isActive(c.id), 2);
+    check('…they work the hours at the employer\'s, and you are paid', c.status === 'completed' && c.done >= c.hours && sim.state.player.money - money0 >= c.awarded.pay - 30, `${c.status} ${c.done}/${c.hours}, paid ${c.awarded.pay}`);
+  }
+}
+{
+  // A courier job: the parcel picked up and walked to the house.
+  const sim = setup(2014);
+  const K = sim.contracts;
+  const ws = hire(sim, 1);
+  sim.jobs.refresh();
+  const id = ['courier', 'mail_rounds'].find((j) => K.canTakeJob(j).ok);
+  const r = id ? K.takeJob(id) : { ok: false };
+  const c = K.S.active.find((x) => x.id === r.id);
+  if (c) {
+    K.assign(c.id, ws.map((w) => w.id));
+    let carried = false;
+    workUntil(sim, () => !K.isActive(c.id), 2, () => {
+      if (sim.npcs.byId(ws[0].id).carry?.item === 'package') carried = true;
+    });
+    check('Courier / letters: a worker picks them up and takes them round', (carried || c.crew[ws[0].id] > 0) && c.status === 'completed' && c.targets.length === 0, `${id} ${c.status} ${c.done}/${c.qty}`);
+  } else check('Courier / letters: a worker picks them up and takes them round', false, JSON.stringify(r));
+}
+{
+  // The job you took yourself, handed to your workers before you started.
+  const sim = setup(2015);
+  const K = sim.contracts;
+  const ws = hire(sim, 1);
+  sim.jobs.refresh();
+  toHour(sim, 9);
+  const id = ['store_assistant', 'dishwasher', 'lumber_delivery', 'quarry_miner'].find((j) => sim.jobs.check(j).ok);
+  sim.jobs.accept(id);
+  const r = K.handOver();
+  const c = K.S.active.find((x) => x.id === r.id);
+  check('Your own job, handed to your workers', !!c && !sim.jobs.active && c.jobId === id, `${id} ${JSON.stringify(r)}`);
+  if (c) {
+    K.assign(c.id, ws.map((w) => w.id));
+    workUntil(sim, () => !K.isActive(c.id), 3);
+    check('…and they get it done', c.status === 'completed', `${c.status} ${c.done}/${K.required(c)} ${JSON.stringify(K.blocker(c))}`);
+  }
+}
+{
+  // Materials to a building site (a haulage job from the notice board).
+  const sim = setup(2016);
+  const K = sim.contracts;
+  const ws = hire(sim, 2);
+  // A villager's site short of wood, and the lumberyard with wood to send.
+  sim.state.village.treasury += 2000;
+  const site = sim.growth.start('village', 'small_house', 'rental', { tx: 84, ty: 44 });
+  sim.economy.biz('lumberyard').stock.wood = 60;
+  sim.jobs.refresh();
+  const r = K.canTakeJob('lumber_haul').ok ? K.takeJob('lumber_haul') : { ok: false, reason: K.canTakeJob('lumber_haul').reason };
+  const c = K.S.active.find((x) => x.id === r.id);
+  if (c) {
+    const got0 = site.delivered.wood || 0;
+    K.assign(c.id, ws.map((w) => w.id));
+    workUntil(sim, () => !K.isActive(c.id), 2);
+    check('Haulage to a site: workers carry the supplier\'s materials to the site', c.status === 'completed' && (sim.construction.byId(c.siteId)?.delivered.wood || 0) > got0, `${c.status} ${c.done}/${c.qty}`);
+  } else check('Haulage to a site: workers carry the supplier\'s materials to the site', false, JSON.stringify(r));
+}
+
 // Contractor rank: see enough jobs through and bigger ones come your way.
 {
   const sim = setup(2010);

@@ -3,7 +3,7 @@
  * of emergent stories) and the state of the world.
  */
 import { AMBITIONS, MAX_TRACKED } from '../../systems/AmbitionSystem.js';
-import { contractCard, contractAction } from '../contracts.js';
+import { contractCard, contractAction, openCrew } from '../contracts.js';
 import { BALANCE } from '../../config/balance.js';
 import { Panel } from '../Panel.js';
 import { t, npcName, occupationName, fmtMoney, itemName, cap } from '../../i18n/i18n.js';
@@ -87,7 +87,7 @@ export class JournalPanel extends Panel {
         <div class="desc">${escapeHtml(t(`job.${job.jobId}.desc`))}</div>
         ${obj ? `<div class="obj-text">➜ ${escapeHtml(tr(sim, obj.key, obj.params))}</div>` : ''}
         <div class="muted small">${escapeHtml(t('ui.deadline_today'))}</div>
-        <div class="btn-row">${this.confirmAbandon ? `${escapeHtml(t('ui.abandon_confirm'))} ${button(t('ui.yes'), 'abandon_yes', {}, { cls: 'danger' })} ${button(t('ui.no'), 'abandon_no')}` : button(t('ui.abandon'), 'abandon')}</div>
+        <div class="btn-row">${sim.workers.list().length ? button(t('contract.hand_over'), 'job_hand_over', {}, { disabled: !sim.contracts.canHandOver().ok, title: sim.contracts.canHandOver().ok ? t('contract.send_workers_tip') : tr(sim, `reason.${sim.contracts.canHandOver().reason}`) }) : ''}${this.confirmAbandon ? `${escapeHtml(t('ui.abandon_confirm'))} ${button(t('ui.yes'), 'abandon_yes', {}, { cls: 'danger' })} ${button(t('ui.no'), 'abandon_no')}` : button(t('ui.abandon'), 'abandon')}</div>
       </div>`;
     } else {
       html += `<div class="muted">${escapeHtml(t('ui.no_job'))}</div>`;
@@ -208,6 +208,12 @@ export class JournalPanel extends Panel {
 
   onAction(action, data) {
     if (contractAction(this.sim, action, data)) return;
+    if (action === 'job_hand_over') {
+      const r = this.sim.contracts.handOver();
+      if (!r.ok) return this.sim.toast(`reason.${r.reason}`, r.params || {}, 'warn');
+      openCrew(this.sim, r.id);
+      return;
+    }
     if (action === 'track') return void this.sim.ambitions.track(data.id);
     if (action === 'ambitions_toggle') return void (this.showAmbitions = !this.showAmbitions);
     if (action === 'tab') {

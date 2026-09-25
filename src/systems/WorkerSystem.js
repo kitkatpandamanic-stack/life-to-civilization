@@ -25,6 +25,9 @@ import { Mod, skill } from './Modifiers.js';
 import { rand } from '../core/rng.js';
 import { findPath } from '../world/Pathfinder.js';
 import { HOUSING } from '../data/housing.js';
+import { STANDARD } from '../data/quality.js';
+import { GATHERABLE } from './ContractSystem.js';
+import { COMPANY } from '../data/contracting.js';
 import { FOCUS, PRIORITY_WEIGHT, WORK_FIELDS, PROFESSIONS, WORKFORCE as WF } from '../data/workforce.js';
 
 export const WORKER_RANKS = ['worker', 'skilled', 'supervisor', 'manager'];
@@ -311,6 +314,7 @@ export class WorkerSystem {
   teamBonus() {
     let b = Mod.teamBonus(this.sim.state.player);
     for (const c of this.list()) b += W.rankTeamBonus[c.rank] || 0;
+    if (this.sim.state.contracts?.company) b += COMPANY.productivity;
     return b;
   }
 
@@ -498,7 +502,7 @@ export class WorkerSystem {
   contractTasks(npc, job, pos, add) {
     const sim = this.sim;
     const K = sim.contracts;
-    const urgent = 2000;
+    const urgent = { high: 2000, medium: 250, low: -150 }[this.state.contractPrio || 'high'] ?? 2000;
     const base = { contract: job.id, urgent };
     if (job.kind === 'harvest') {
       const busy = this.list().filter((o) => o.npcId !== npc.id && o.task?.kind === 'charvest' && o.task.contract === job.id);
@@ -520,13 +524,108 @@ export class WorkerSystem {
     } else if (job.kind === 'repair') {
       const b = sim.world.buildings[job.building];
       if (b && job.done < job.qty) add({ ...base, key: `crepair:${job.building}`, kind: 'crepair', cat: 'maintenance', target: job.building, tx: b.door.tx, ty: b.door.ty, cap: 3 });
+    } else if (job.kind === 'water') {
+      // A dry plant in the farmer's field (each waterer their own).
+      const busy = this.list().filter((o) => o.npcId !== npc.id && o.task?.kind === 'cwater' && o.task.contract === job.id);
+      if (job.done + busy.length >= job.qty) return;
+      const taken = new Set(busy.map((o) => o.task.target));
+      const now = sim.time.total;
+      const blocked = this.contract(npc.id)?.blocked || {};
+      let best = null;
+      let bestD = Infinity;
+      for (const o of K.dryPlants(job.bizId)) {
+        if (taken.has(o.id) || (o.reservedBy && o.reservedBy !== npc.id) || (blocked[`cwater:${o.id}`] || 0) > now) continue;
+        const d = Math.abs(o.tx - pos.tx) + Math.abs(o.ty - pos.ty);
+        if (d < bestD) {
+          bestD = d;
+          best = o;
+        }
+      }
+      if (best) add({ ...base, key: `cwater:${best.id}`, kind: 'cwater', cat: 'farming', target: best.id, tx: best.tx, ty: best.ty, cap: 1 });
     } else if (job.kind === 'build') {
       const site = sim.construction.byId(job.siteId);
       if (site?.status === 'site' && site.labor < sim.construction.maxLabor(site) - 1) add({ ...base, key: `build:${site.id}`, kind: 'build', cat: 'construction', target: site.id, tx: site.tx + Math.floor(site.w / 2), ty: site.ty + site.h, cap: this.siteCapacity(site) });
+      // You're bringing the materials: from your storage, bought, or gathered — to the site.
+      if (site?.status === 'site' && site.supplier === 'player') {
+        const buyLeft = this.buyBudgetLeft();
+        for (const item of Object.keys(sim.construction.missing(site))) {
+          if (sim.home.storageCount(item) > 0) add({ ...base, key: `haul:${site.id}:${item}`, kind: 'haul', cat: 'hauling', target: site.id, item, ...this.baseDoor(), cap: WF.haulersPerSite });
+          else {
+            const seller = buyLeft > 0 && this.state.buy !== false ? this.seller(item) : null;
+            if (seller) add({ ...base, key: `buy:${site.id}:${item}`, kind: 'buy', cat: 'hauling', target: site.id, item, seller: seller.id, ...seller.door, cap: 1 });
+            else if (item === 'planks') {
+              // Nobody has planks: saw them from timber at the site (two logs a plank) — yours, or bought.
+              const woodSeller = sim.home.storageCount('wood') >= 2 ? null : buyLeft > 0 && this.state.buy !== false ? this.seller('wood') : null;
+              if (sim.home.storageCount('wood') >= 2) add({ ...base, key: `saw:${site.id}`, kind: 'csaw', cat: 'hauling', target: site.id, item: 'wood', ...this.baseDoor(), cap: 2 });
+              else if (woodSeller) add({ ...base, key: `saw:${site.id}`, kind: 'csaw', cat: 'hauling', target: site.id, item: 'wood', seller: woodSeller.id, ...woodSeller.door, cap: 2 });
+            } else if (GATHERABLE[item] === 'tree' || GATHERABLE[item] === 'rock') {
+              const o = this.findResource(GATHERABLE[item], npc, pos, item === 'stone' ? (x) => x.variant === 'stone' : null);
+              if (o) add({ ...base, key: `gather:${o.id}`, kind: item === 'wood' ? 'gather_wood' : 'gather_stone', cat: 'gathering', target: o.id, forSite: site.id, tx: o.tx, ty: o.ty, cap: 1 });
+            }
+          }
+        }
+      }
     } else if (job.kind === 'haul') {
       const b = sim.world.buildings[job.from];
       if (b && job.collected < job.qty && sim.economy.stock(job.fromBiz, job.item) > 0) add({ ...base, key: `chaul:${job.id}`, kind: 'chaul', cat: 'hauling', target: job.from, item: job.item, tx: b.door.tx, ty: b.door.ty, cap: 2 });
+    } else if (K.isGoods(job)) {
+      // Goods to bring: from your storage, else bought with your money, else gathered in the woods.
+      if (K.goodsLeft(job) <= 0) return;
+      if (this.storeCount(job.item, job.minQ) > 0) {
+        add({ ...base, key: `cfetch:${job.id}`, kind: 'cfetch', cat: 'hauling', target: job.building, item: job.item, ...this.baseDoor(), cap: 2 });
+        return;
+      }
+      const seller = (job.minQ === undefined || job.minQ <= STANDARD) && this.buyBudgetLeft() > 0 && this.state.buy !== false ? this.seller(job.item, job.bizId) : null;
+      if (seller) {
+        add({ ...base, key: `cbuy:${job.id}`, kind: 'cbuy', cat: 'hauling', target: job.building, item: job.item, seller: seller.id, ...seller.door, cap: 1 });
+        return;
+      }
+      const kind = GATHERABLE[job.item];
+      const o = kind && this.findResource(kind, npc, pos, job.item === 'stone' ? (x) => x.variant === 'stone' : null);
+      if (o) add({ ...base, key: `gather:${o.id}`, kind: kind === 'tree' ? 'gather_wood' : kind === 'rock' ? 'gather_stone' : 'gather_berries', cat: 'gathering', target: o.id, tx: o.tx, ty: o.ty, cap: 1 });
+    } else if (job.kind === 'order') {
+      // Your business's stock, sent off to the customer by cart.
+      const b = sim.world.buildings[sim.economy.biz(job.supplierBiz)?.building];
+      if (b && job.delivered < job.qty && sim.economy.stock(job.supplierBiz, job.item) >= 1) add({ ...base, key: `corder:${job.id}`, kind: 'corder', cat: 'hauling', target: b.id, item: job.item, tx: b.door.tx, ty: b.door.ty, cap: 1 });
+    } else if (job.kind === 'job') {
+      const b = sim.world.buildings[job.building];
+      if (!b) return;
+      if (job.type === 'shift') {
+        // A shift at the employer's: hours worked there.
+        const busy = this.list().filter((o) => o.npcId !== npc.id && o.task?.kind === 'cshift' && o.task.contract === job.id).length;
+        if (job.done + busy < job.hours) add({ ...base, key: `cshift:${job.id}`, kind: 'cshift', cat: 'workshop', target: b.id, tx: b.door.tx, ty: b.door.ty, cap: Math.max(1, Math.ceil(job.hours - job.done)) });
+      } else if (job.type === 'courier' || job.type === 'rounds') {
+        // Parcels or letters: picked up at the employer's, taken round.
+        if (job.targets?.length && !K.carried(job)) add({ ...base, key: `cpost:${job.id}`, kind: 'cpost', cat: 'hauling', target: b.id, tx: b.door.tx, ty: b.door.ty, cap: 1 });
+      } else if (job.type === 'haul') {
+        // Materials from the employer's yard to a building site.
+        const site = sim.construction.byId(job.siteId);
+        if (site?.status === 'site' && K.goodsLeft(job) > 0 && sim.economy.stock(job.bizId, job.item) >= 1) add({ ...base, key: `csite:${job.id}`, kind: 'csite', cat: 'hauling', target: b.id, item: job.item, tx: b.door.tx, ty: b.door.ty, cap: 2 });
+      }
     }
+  }
+
+  /** How much of something is in your storage (only pieces good enough, when it matters). */
+  storeCount(item, minQ) {
+    let n = 0;
+    for (const s of this.sim.home.storage) if (s.id === item && (minQ === undefined || (s.q ?? STANDARD) >= minQ)) n += s.qty;
+    return n;
+  }
+  /** Take pieces out of storage (the plainest that are still good enough). Returns how many. */
+  storeTake(item, n, minQ) {
+    if (minQ === undefined) return this.sim.home.take(item, n);
+    const slots = this.sim.home.storage.filter((s) => s.id === item && (s.q ?? STANDARD) >= minQ).sort((a, b) => (a.q ?? STANDARD) - (b.q ?? STANDARD));
+    let got = 0;
+    for (const s of slots) {
+      const k = Math.min(n - got, s.qty);
+      s.qty -= k;
+      got += k;
+      if (got >= n) break;
+    }
+    const st = this.sim.home.storage;
+    for (let i = st.length - 1; i >= 0; i--) if (st[i].qty <= 0) st.splice(i, 1);
+    if (got) this.sim.home.changed();
+    return got;
   }
 
   /** How many workers have reserved each task. */
@@ -567,13 +666,13 @@ export class WorkerSystem {
   }
 
   /** The nearest tree or rock nobody's working on — close by first, then further out. */
-  findResource(kind, npc, pos) {
+  findResource(kind, npc, pos, only = null) {
     const res = this.sim.resources;
     const base = this.baseBuilding();
     const taken = new Set(this.list().filter((c) => c.npcId !== npc.id && c.task).map((c) => c.task.target));
     const blocked = this.contract(npc.id)?.blocked || {};
     const now = this.sim.time.total;
-    const ok = (o) => (!o.reservedBy || o.reservedBy === npc.id) && !taken.has(o.id) && !((blocked[`gather:${o.id}`] || 0) > now) && (kind !== 'rock' || o.variant === 'stone' || o.variant === 'coal');
+    const ok = (o) => (!o.reservedBy || o.reservedBy === npc.id) && !taken.has(o.id) && !((blocked[`gather:${o.id}`] || 0) > now) && (kind !== 'rock' || o.variant === 'stone' || o.variant === 'coal') && (!only || only(o));
     for (const r of WF.gatherRadii) {
       const o = res.findNearest(kind, base.door.tx, base.door.ty, r, ok);
       if (o) return o;
@@ -612,10 +711,11 @@ export class WorkerSystem {
   }
 
   /** A business selling this material (the cheapest), for a worker sent to buy it. */
-  seller(item) {
+  seller(item, except = null) {
     const E = this.sim.economy;
     let best = null;
     for (const id of E.active()) {
+      if (id === except) continue; // (not from the very business that wants it)
       const d = E.def(id);
       if (E.stock(id, item) <= 0 || !(d.kind === 'producer' || d.kind === 'depot' || d.sells?.includes(item) || d.buys?.includes(item))) continue;
       const b = this.sim.world.buildings[E.biz(id).building];
@@ -699,17 +799,25 @@ export class WorkerSystem {
   go(npc, c, task) {
     const sim = this.sim;
     let stand = null;
-    if (task.kind === 'build' || task.kind === 'repair' || task.kind === 'crepair') {
+    if (task.kind === 'build' || task.kind === 'repair' || task.kind === 'crepair' || task.kind === 'cshift') {
       const rect = task.kind === 'build' ? sim.construction.byId(task.target) : sim.world.buildings[task.target];
       if (!rect) return this.block(c, task);
       const used = new Set(this.list().filter((o) => o.npcId !== npc.id && o.task?.spot).map((o) => `${o.task.spot.tx},${o.task.spot.ty}`));
       const spots = this.spots(task.kind === 'build' ? rect : { tx: rect.tx, ty: rect.ty, w: rect.w, h: rect.h, door: rect.door }).filter((s) => !used.has(`${s.tx},${s.ty}`));
       stand = spots.find((s) => this.reachable(npc, s));
       if (!stand) return spots.length ? this.block(c, task) : false; // no free spot: someone else's turn (not a failure)
-    } else if (task.kind === 'gather_wood' || task.kind === 'gather_stone') {
+    } else if (task.kind === 'gather_wood' || task.kind === 'gather_stone' || task.kind === 'gather_berries') {
       const o = sim.resources.get(task.target);
       if (!o || !sim.resources.isHarvestable(o)) return this.block(c, task);
       stand = [[0, 1], [-1, 0], [1, 0], [0, -1]].map(([dx, dy]) => ({ tx: o.tx + dx, ty: o.ty + dy })).find((s) => !sim.world.isBlocked(s.tx, s.ty) && this.reachable(npc, s));
+      if (!stand) return this.block(c, task);
+      o.reservedBy = npc.id;
+    } else if (task.kind === 'cwater') {
+      // A dry plant: stand beside it, never on someone else's spot.
+      const o = sim.resources.get(task.target);
+      if (!o || o.stage >= 3) return this.block(c, task);
+      const used = new Set(this.list().filter((x) => x.npcId !== npc.id && x.task?.spot).map((x) => `${x.task.spot.tx},${x.task.spot.ty}`));
+      stand = [[0, 1], [0, -1], [-1, 0], [1, 0], [0, 0]].map(([dx, dy]) => ({ tx: o.tx + dx, ty: o.ty + dy })).find((s) => !sim.world.isBlocked(s.tx, s.ty) && !used.has(`${s.tx},${s.ty}`) && this.reachable(npc, s));
       if (!stand) return this.block(c, task);
       o.reservedBy = npc.id;
     } else if (task.kind === 'charvest') {
@@ -757,7 +865,7 @@ export class WorkerSystem {
   release(c) {
     const t = c?.task;
     if (!t) return;
-    if (t.kind === 'gather_wood' || t.kind === 'gather_stone' || t.kind === 'charvest') {
+    if (t.kind === 'gather_wood' || t.kind === 'gather_stone' || t.kind === 'gather_berries' || t.kind === 'charvest' || t.kind === 'cwater') {
       const o = this.sim.resources.get(t.target);
       if (o && o.reservedBy === c.npcId) delete o.reservedBy;
     }
@@ -775,7 +883,8 @@ export class WorkerSystem {
     if ((c.blocked?.[t.key] || 0) > sim.time.total) return false;
     // Contract work only while the contract's on and they're on it.
     if (t.contract !== undefined) {
-      const job = sim.contracts.S.active.find((x) => x.id === t.contract);
+      const K = sim.contracts;
+      const job = K.S.active.find((x) => x.id === t.contract);
       if (!job || !job.workers?.includes(npc.id)) return false;
       if (t.kind === 'charvest') {
         const o = sim.resources.get(t.target);
@@ -783,6 +892,18 @@ export class WorkerSystem {
       }
       if (t.kind === 'crepair') return job.done < job.qty && (sim.property.rec(t.target)?.condition ?? 100) < 100;
       if (t.kind === 'chaul') return job.collected < job.qty;
+      if (t.kind === 'cwater') {
+        const o = sim.resources.get(t.target);
+        return job.done < job.qty && !!o && o.stage < 3 && o.wateredDay !== sim.time.day && (!o.reservedBy || o.reservedBy === npc.id);
+      }
+      if (t.kind === 'csaw') return (sim.construction.missing(sim.construction.byId(t.target) || { required: {}, delivered: {} })?.planks || 0) > 0;
+      if (t.kind === 'cfetch') return K.goodsLeft(job) > 0 && this.storeCount(job.item, job.minQ) > 0;
+      if (t.kind === 'cbuy') return K.goodsLeft(job) > 0 && sim.economy.stock(t.seller, job.item) > 0;
+      if (t.kind === 'corder') return job.delivered < job.qty && sim.economy.stock(job.supplierBiz, job.item) >= 1;
+      if (t.kind === 'cshift') return job.done < job.hours;
+      if (t.kind === 'cpost') return !!job.targets?.length;
+      if (t.kind === 'csite') return K.goodsLeft(job) > 0 && sim.construction.byId(job.siteId)?.status === 'site';
+      if (t.kind.startsWith('gather') && K.isGoods(job) && K.goodsLeft(job) <= 0) return false;
     }
     switch (t.kind) {
       case 'build': {
@@ -795,10 +916,18 @@ export class WorkerSystem {
         return !!s && s.status === 'site' && (cons.missing(s)[t.item] || 0) > 0;
       }
       case 'gather_wood':
-      case 'gather_stone': {
+      case 'gather_stone':
+      case 'gather_berries': {
         const o = sim.resources.get(t.target);
         return !!o && sim.resources.isHarvestable(o) && (!o.reservedBy || o.reservedBy === npc.id);
       }
+      case 'cfetch':
+      case 'cbuy':
+      case 'corder':
+      case 'cshift':
+      case 'cpost':
+      case 'csite':
+        return true;
       case 'farm':
         return !!sim.state.fields[t.target];
       case 'workshop':
@@ -842,12 +971,94 @@ export class WorkerSystem {
         task.until = now + Math.max(5, Math.round(WF.farmMinutes / (prod * skilled)));
         return;
       }
+      case 'cwater': {
+        const o = sim.resources.get(t.target);
+        face(o.tx, o.ty);
+        task.stage = 'working';
+        task.until = now + Math.max(4, Math.round(WF.farmMinutes / 2 / (prod * skilled)));
+        return;
+      }
       case 'crepair': {
         const b = sim.world.buildings[t.target];
         face(b.tx + b.w / 2, b.ty + b.h / 2);
         task.stage = 'working';
         task.until = now + WF.workBlockMinutes;
         return;
+      }
+      case 'csaw': {
+        // Timber for sawing into planks at the site: from your storage, or bought.
+        const job = sim.contracts.S.active.find((x) => x.id === t.contract);
+        const site = sim.construction.byId(t.target);
+        const want = Math.min(WF.carryLoad, (sim.construction.missing(site).planks || 0) * 2);
+        let got = 0;
+        if (t.seller) {
+          const price = this.unitPrice(t.seller, 'wood');
+          got = Math.min(want, Math.floor(sim.economy.stock(t.seller, 'wood')), Math.floor(this.buyBudgetLeft() / price));
+          if (got > 0) this.buyFor(npc, t.seller, 'wood', got, price, job);
+        } else {
+          got = sim.home.take('wood', want);
+          if (got && job) sim.contracts.addCost(job, 'materials', got * (ITEMS.wood?.basePrice || 3));
+        }
+        if (got < 2) {
+          this.block(c, t, 120);
+          return this.next(npc);
+        }
+        npc.carry = { item: 'wood', qty: got, items: { wood: got }, to: site.id, saw: true };
+        return this.carryTo(npc, c, site.id);
+      }
+      case 'cfetch': {
+        // At your storage: take what the job still wants (good enough pieces), and take it over.
+        const job = sim.contracts.S.active.find((x) => x.id === t.contract);
+        const got = this.storeTake(job.item, Math.min(sim.contracts.goodsLeft(job), WF.carryLoad), job.minQ);
+        if (!got) return this.next(npc);
+        sim.contracts.addCost(job, 'materials', got * (ITEMS[job.item]?.basePrice || 3)); // (yours: what they'd have fetched at market)
+        npc.carry = { item: job.item, qty: got, items: { [job.item]: got }, to: sim.contracts.destOf(job), contract: job.id };
+        return this.deliverCarry(npc, c);
+      }
+      case 'cbuy': {
+        // At the seller's: buy it with your money (within the day's limit), and take it over.
+        const job = sim.contracts.S.active.find((x) => x.id === t.contract);
+        const E = sim.economy;
+        const price = this.unitPrice(t.seller, job.item);
+        const qty = Math.min(sim.contracts.goodsLeft(job), WF.carryLoad, Math.floor(E.stock(t.seller, job.item)), Math.floor(this.buyBudgetLeft() / price));
+        if (qty <= 0) {
+          this.block(c, t, 240);
+          return this.next(npc);
+        }
+        this.buyFor(npc, t.seller, job.item, qty, price, job);
+        npc.carry = { item: job.item, qty, items: { [job.item]: qty }, to: sim.contracts.destOf(job), contract: job.id };
+        return this.deliverCarry(npc, c);
+      }
+      case 'corder': {
+        // At your business: the order goes out on the cart.
+        const job = sim.contracts.S.active.find((x) => x.id === t.contract);
+        npc.facing = 'up';
+        sim.contracts.crewShipOrder(job, npc);
+        this.completed(npc, c);
+        return this.next(npc);
+      }
+      case 'cshift': {
+        const b = sim.world.buildings[t.target];
+        face(b.tx + b.w / 2, b.ty + b.h / 2);
+        task.stage = 'working';
+        task.until = now + WF.workBlockMinutes;
+        return;
+      }
+      case 'cpost': {
+        // At the employer's: the parcels or letters, then round the houses.
+        const job = sim.contracts.S.active.find((x) => x.id === t.contract);
+        npc.carry = { item: 'package', qty: job.targets.length, items: { package: job.targets.length }, to: `post:${job.id}`, contract: job.id };
+        return this.deliverCarry(npc, c);
+      }
+      case 'csite': {
+        // At the supplier's yard: the materials out of their stock, to the site.
+        const job = sim.contracts.S.active.find((x) => x.id === t.contract);
+        const E = sim.economy;
+        const got = Math.min(sim.contracts.goodsLeft(job), WF.carryLoad, Math.floor(E.stock(job.bizId, job.item)));
+        if (got <= 0) return this.next(npc);
+        E.biz(job.bizId).stock[job.item] -= got;
+        npc.carry = { item: job.item, qty: got, items: { [job.item]: got }, to: job.siteId, contract: job.id };
+        return this.carryTo(npc, c, job.siteId);
       }
       case 'chaul': {
         // At the producer: pick up what the buyer ordered (they pay for it now), then carry it over.
@@ -875,7 +1086,8 @@ export class WorkerSystem {
         return;
       }
       case 'gather_wood':
-      case 'gather_stone': {
+      case 'gather_stone':
+      case 'gather_berries': {
         const o = sim.resources.get(t.target);
         face(o.tx, o.ty);
         task.stage = 'working';
@@ -905,6 +1117,10 @@ export class WorkerSystem {
           if (n >= WF.carryLoad) break;
         }
         if (!n) return this.next(npc);
+        if (t.contract !== undefined) {
+          const job = sim.contracts.S.active.find((x) => x.id === t.contract);
+          if (job) sim.contracts.addCost(job, 'materials', Object.entries(load).reduce((s, [item, q]) => s + q * (ITEMS[item]?.basePrice || 3), 0));
+        }
         npc.carry = { item: Object.keys(load)[0], qty: n, items: load, to: site.id };
         return this.carryTo(npc, c, site.id);
       }
@@ -928,23 +1144,31 @@ export class WorkerSystem {
           this.block(c, t, 240);
           return this.next(npc);
         }
-        const cost = qty * price;
-        const p = sim.state.player;
-        const pay = () => (p.money -= cost);
-        if (sim.ledger?.as) sim.ledger.as('building', pay);
-        else pay();
-        E.biz(t.seller).stock[t.item] -= qty;
-        E.biz(t.seller).money += cost;
-        E.ledger(t.seller, 'rev', cost);
-        this.state.spent += cost;
-        this.state.log.unshift({ day: sim.time.day, npc: npc.id, item: t.item, qty, cost });
-        this.state.log.length = Math.min(this.state.log.length, 12);
+        this.buyFor(npc, t.seller, t.item, qty, price, t.contract !== undefined ? sim.contracts.S.active.find((x) => x.id === t.contract) : null);
         npc.carry = { item: t.item, qty, items: { [t.item]: qty }, to: site.id };
         return this.carryTo(npc, c, site.id);
       }
       default:
         return this.next(npc);
     }
+  }
+
+  /** Buy goods at a business with your money (a worker sent shopping: within the day's limit, in the books). */
+  buyFor(npc, seller, item, qty, price, job = null) {
+    const sim = this.sim;
+    const E = sim.economy;
+    const cost = qty * price;
+    const p = sim.state.player;
+    const pay = () => (p.money -= cost);
+    if (sim.ledger?.as) sim.ledger.as('building', pay);
+    else pay();
+    E.biz(seller).stock[item] -= qty;
+    E.biz(seller).money += cost;
+    E.ledger(seller, 'rev', cost);
+    this.state.spent += cost;
+    if (job) sim.contracts.addCost(job, 'materials', cost);
+    this.state.log.unshift({ day: sim.time.day, npc: npc.id, item, qty, cost });
+    this.state.log.length = Math.min(this.state.log.length, 12);
   }
 
   /** Walk a load to a site. */
@@ -969,8 +1193,37 @@ export class WorkerSystem {
         return this.npcs().walkTo(npc, b.door.tx, b.door.ty);
       }
     }
+    // Goods for a person (a commission): to their door.
+    if (to && String(to).startsWith('bld:') && this.sim.world.buildings[to.slice(4)]) {
+      const b = this.sim.world.buildings[to.slice(4)];
+      npc.task.stage = 'carry_site';
+      this.setState(c, 'moving', 'carrying');
+      return this.npcs().walkTo(npc, b.door.tx, b.door.ty);
+    }
+    // Parcels and letters: the nearest house still waiting for one.
+    if (to && String(to).startsWith('post:')) {
+      const job = this.sim.contracts.S.active.find((x) => x.id === npc.carry.contract);
+      const here = this.sim.world.toTile(npc.x, npc.y);
+      const next = (job?.targets || []).map((id) => this.sim.world.buildings[id]).filter(Boolean).sort((a, b) => Math.abs(a.door.tx - here.tx) + Math.abs(a.door.ty - here.ty) - (Math.abs(b.door.tx - here.tx) + Math.abs(b.door.ty - here.ty)))[0];
+      if (next) {
+        npc.carry.at = next.id;
+        npc.task.stage = 'carry_site';
+        this.setState(c, 'moving', 'carrying');
+        return this.npcs().walkTo(npc, next.door.tx, next.door.ty);
+      }
+      npc.carry = null; // (the round's over — or it fell through)
+      return this.next(npc);
+    }
     const site = to && this.sim.construction.byId(to);
     if (site && site.status === 'site') return this.carryTo(npc, c, to);
+    // Materials for a site that's gone: back to the supplier's yard.
+    if (npc.carry?.contract !== undefined && site) {
+      const job = this.sim.contracts.S.active.find((x) => x.id === npc.carry.contract) || null;
+      const E = this.sim.economy;
+      if (job?.bizId && E.biz(job.bizId)) E.biz(job.bizId).stock[npc.carry.item] = E.stock(job.bizId, npc.carry.item) + npc.carry.qty;
+      npc.carry = null;
+      return this.next(npc);
+    }
     if (to && String(to).startsWith('biz:') && this.sim.businesses.get(to.slice(4))) {
       const wb = this.sim.world.buildings[this.sim.businesses.get(to.slice(4)).buildingId];
       npc.task.stage = 'carry_site';
@@ -991,10 +1244,39 @@ export class WorkerSystem {
       const site = load.to && sim.construction.byId(load.to);
       const biz = load.to && String(load.to).startsWith('biz:') ? sim.businesses.get(load.to.slice(4)) : null;
       const ebiz = load.to && String(load.to).startsWith('ebiz:') && sim.economy.biz(load.to.slice(5));
-      if (npc.task.stage === 'carry_site' && ebiz) {
+      const person = load.to && String(load.to).startsWith('bld:');
+      const post = load.to && String(load.to).startsWith('post:');
+      if (npc.task.stage === 'carry_site' && post) {
+        // One parcel or letter at this house; on round to the next.
+        const job = sim.contracts.S.active.find((x) => x.id === load.contract);
+        const at = load.at;
+        load.qty--;
+        load.items = { package: load.qty };
+        if (load.qty <= 0 || !job) npc.carry = null;
+        if (!npc.carry && c.task?.kind === 'cpost') this.completed(npc, c);
+        if (job && at) sim.contracts.crewPosted(job, npc, at);
+      } else if (npc.task.stage === 'carry_site' && (ebiz || person)) {
         npc.carry = null;
-        sim.contracts.crewDelivered(npc, load);
-        if (c.task?.kind === 'chaul') this.completed(npc, c);
+        const used = sim.contracts.crewDelivered(npc, load);
+        // More than the job wanted: it goes back to your storage.
+        if (used < load.qty) npc.carry = { item: load.item, qty: load.qty - used, items: { [load.item]: load.qty - used } };
+        if (['chaul', 'cfetch', 'cbuy'].includes(c.task?.kind)) this.completed(npc, c);
+      } else if (npc.task.stage === 'carry_site' && site && site.status === 'site' && load.saw) {
+        // Timber sawn into planks on the spot (two logs a plank); what's left over goes back to your storage.
+        const planks = Math.min(Math.floor(load.qty / 2), sim.construction.missing(site).planks || 0);
+        if (planks > 0) sim.construction.receive(site, 'planks', planks);
+        const left = load.qty - planks * 2;
+        npc.carry = left > 0 ? { item: 'wood', qty: left, items: { wood: left } } : null;
+        if (c.task?.kind === 'csaw') this.completed(npc, c);
+      } else if (npc.task.stage === 'carry_site' && site && site.status === 'site' && load.contract !== undefined) {
+        // Materials for a haulage job: what the site needs goes in (the site's owner pays the supplier); the rest back to the yard.
+        const put = Math.min(load.qty, sim.construction.missing(site)[load.item] || 0);
+        if (put > 0) sim.construction.receive(site, load.item, put);
+        const job = sim.contracts.S.active.find((x) => x.id === load.contract);
+        if (load.qty - put > 0 && job && sim.economy.biz(job.bizId)) sim.economy.biz(job.bizId).stock[load.item] = sim.economy.stock(job.bizId, load.item) + (load.qty - put);
+        npc.carry = null;
+        sim.contracts.crewSiteDelivered(npc, load, put);
+        if (c.task?.kind === 'csite') this.completed(npc, c);
       } else if (npc.task.stage === 'carry_site' && site && site.status === 'site') {
         // What the site can take goes in; anything over goes back to your storage later.
         const missing = sim.construction.missing(site);
@@ -1058,6 +1340,14 @@ export class WorkerSystem {
         sim.contracts.addWork(sim.contracts.S.active.find((x) => x.id === t.contract), npc.id, Math.max(0.1, Math.round(pts * 10) / 10));
         return this.next(npc);
       }
+      case 'cwater': {
+        // Watered: it'll grow for certain tomorrow.
+        const o = sim.resources.get(t.target);
+        const job = sim.contracts.S.active.find((x) => x.id === t.contract);
+        this.completed(npc, c);
+        if (o && job) sim.contracts.watered(job, npc.id, o);
+        return this.next(npc);
+      }
       case 'charvest': {
         // A plant brought in: the wheat goes in their arms, for the farmer's barn.
         const o = sim.resources.get(t.target);
@@ -1084,20 +1374,31 @@ export class WorkerSystem {
         break;
       }
       case 'gather_wood':
-      case 'gather_stone': {
+      case 'gather_stone':
+      case 'gather_berries': {
         const res = sim.resources;
         const o = res.get(t.target);
         let carry = null;
         if (o.kind === 'tree') carry = { item: 'wood', qty: res.fellTree(o.id) };
+        else if (o.kind === 'bush') carry = { item: 'berries', qty: res.forageBush(o.id) };
         else {
           const r = res.mineRock(o.id);
           if (r.item) carry = { item: r.item, qty: r.qty };
         }
         this.completed(npc, c);
-        if (!carry) return this.next(npc);
-        // Wood for a site that's waiting for it goes straight there (the work chain); the rest to your storage.
-        npc.carry = { ...carry, items: { [carry.item]: carry.qty }, to: t.forSite || null };
+        if (!carry || !carry.qty) return this.next(npc);
+        // Wood for a site that's waiting for it goes straight there (the work chain); goods for a
+        // contract to whoever wants them; the rest to your storage.
+        const job = t.contract !== undefined && sim.contracts.S.active.find((x) => x.id === t.contract);
+        if (job && carry.item === job.item) npc.carry = { ...carry, items: { [carry.item]: carry.qty }, to: sim.contracts.destOf(job), contract: job.id };
+        else npc.carry = { ...carry, items: { [carry.item]: carry.qty }, to: t.forSite || null };
         return this.deliverCarry(npc, c);
+      }
+      case 'cshift': {
+        // An hour's work at the employer's counts towards the shift.
+        this.completed(npc, c);
+        sim.contracts.addWork(sim.contracts.S.active.find((x) => x.id === t.contract), npc.id, WF.workBlockMinutes / 60);
+        return this.next(npc);
       }
       case 'farm':
         this.finishFarm(npc, { field: t.target, farmJob: t.farmJob });
@@ -1116,6 +1417,11 @@ export class WorkerSystem {
   completed(npc, c) {
     const t = c.task;
     if (!t) return;
+    // Their time on a contract is part of what it cost you (a day's wage buys eight hours).
+    if (t.contract !== undefined) {
+      const job = this.sim.contracts.S.active.find((x) => x.id === t.contract);
+      if (job) this.sim.contracts.addCost(job, 'wages', (Math.max(0, this.sim.time.total - (t.since ?? this.sim.time.total)) / 60) * (c.salary / 8));
+    }
     const field = WORK_FIELDS[t.kind];
     if (field) this.sim.education?.practise(npc, field, WF.practice);
     npc.xp = (npc.xp || 0) + WF.xpPerStint * (1 + Mod.perk(this.sim.state.player, 'worker_xp'));
@@ -1251,12 +1557,16 @@ export class WorkerSystem {
     if (!c || !t) return { key: 'idle', params: {} };
     const k = c.task?.kind;
     if (t.stage === 'carry_home') return { key: 'carrying_home', params: { item: npc.carry?.item || 'wood' } };
-    if (t.stage === 'carry_site') return { key: 'hauling', params: {} };
+    if (t.stage === 'carry_site') return { key: npc.carry?.contract !== undefined ? 'carrying_contract' : 'hauling', params: {} };
     if (t.stage === 'idle_wait' || t.stage === 'to_idle') return { key: c.state === 'need_materials' ? 'waiting_materials' : 'waiting_orders', params: {} };
     if (k === 'build') return { key: npc.moving ? 'going_to_site' : 'building', params: {} };
     if (k === 'repair' || k === 'crepair') return { key: npc.moving ? 'going_to_site' : 'repairing', params: {} };
     if (k === 'charvest') return { key: npc.moving ? 'going_to_work' : 'harvesting_contract', params: {} };
-    if (k === 'chaul') return { key: 'hauling', params: {} };
+    if (k === 'cwater') return { key: npc.moving ? 'going_to_work' : 'watering_contract', params: {} };
+    if (k === 'chaul' || k === 'cfetch' || k === 'csite' || k === 'corder' || k === 'cpost') return { key: 'carrying_contract', params: {} };
+    if (k === 'cbuy') return { key: 'buying_materials', params: { item: c.task.item } };
+    if (k === 'cshift') return { key: npc.moving ? 'going_to_work' : 'working_for_you', params: {} };
+    if (k === 'gather_berries') return { key: 'working_forage', params: {} };
     if (k === 'haul') return { key: 'fetching_materials', params: {} };
     if (k === 'buy') return { key: 'buying_materials', params: { item: c.task.item } };
     if (k === 'farm') return { key: 'working_your_fields', params: {} };

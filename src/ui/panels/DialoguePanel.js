@@ -200,7 +200,16 @@ export class DialoguePanel extends Panel {
       }
       if (this.jobDetails) opts.push(contractCard(sim, o, 'offer').replace(/<div class="btn-row">[\s\S]*?<\/div>/, ''));
       const chk = sim.contracts.canAccept(o.id);
-      opt(t('dialog.opt.job_accept'), 'job_accept', {}, !chk.ok, chk.ok ? '' : tr(sim, `reason.${chk.reason}`, chk.params || {}));
+      const why = chk.ok ? '' : tr(sim, `reason.${chk.reason}`, chk.params || {});
+      if (o.proposal) {
+        // A building: who brings the materials?
+        opt(t('dialog.opt.job_accept_client'), 'job_accept', { materials: 'client' }, !chk.ok, why);
+        opt(tr(sim, 'dialog.opt.job_accept_included', { money: o.proposal.value }), 'job_accept', { materials: 'included' }, !chk.ok, why);
+        opt(tr(sim, 'dialog.opt.job_accept_player', { money: Math.round(o.proposal.value * 1.25) }), 'job_accept', { materials: 'player' }, !chk.ok, why);
+      } else opt(t('dialog.opt.job_accept'), 'job_accept', {}, !chk.ok, why);
+      // Asking for more (once each).
+      if (sim.contracts.canNegotiate(o, 'pay')) opt(tr(sim, 'dialog.opt.job_ask_pay', { money: Math.round(o.pay * 1.2) }), 'job_ask', { what: 'pay' });
+      if (sim.contracts.canNegotiate(o, 'time')) opt(t('dialog.opt.job_ask_time'), 'job_ask', { what: 'time' });
       if (!this.jobDetails) opt(t('dialog.opt.job_details'), 'job_details');
       opt(t('dialog.opt.job_decline'), 'job_decline');
       return opts.join('');
@@ -272,7 +281,7 @@ export class DialoguePanel extends Panel {
 
   /** What they say when they ask: how much work, how much they'd pay, where. */
   jobParams(o) {
-    return { qty: o.qty, hours: o.hours, item: o.item, money: o.pay, building: o.kind === 'haul' ? o.from : o.building, n: Math.round(this.sim.property.rec(o.building)?.condition ?? 0) };
+    return { qty: o.qty, hours: o.hours, item: o.item, money: o.pay, building: o.kind === 'haul' ? o.from : o.building, n: Math.round(this.sim.property.rec(o.building)?.condition ?? 0), vbuilding: o.proposal?.type };
   }
 
   renderAbout() {
@@ -322,7 +331,8 @@ export class DialoguePanel extends Panel {
         }
         this.jobId = o.id;
         this.jobDetails = false;
-        this.line = this.say(`dialog.job_pitch.${o.kind}`, this.jobParams(o));
+        const pitch = o.proposal ? `build_${o.proposal.what}` : o.kind === 'supply' && o.gather ? 'gather' : o.kind;
+        this.line = this.say(`dialog.job_pitch.${pitch}`, this.jobParams(o)) + (sim.contracts.isUrgent(o) ? ` ${this.say('dialog.job_urgent')}` : '');
         this.view = 'job';
         break;
       }
@@ -333,8 +343,17 @@ export class DialoguePanel extends Panel {
         this.line = this.say('dialog.job_details_line', { n: K.recommended(o), what: tr(sim, `contract.work.${o.kind}`, { n: K.required(o) }), when: t('contract.time_allowed', { n: o.days }) });
         break;
       }
+      case 'job_ask': {
+        const r = K.negotiate(this.jobId, data.what);
+        if (r.ok) this.line = this.say(data.what === 'pay' ? 'dialog.haggle_yes_pay' : 'dialog.haggle_yes_time', { money: r.pay, n: r.days });
+        else if (r.walked) {
+          this.line = this.say('dialog.haggle_walk');
+          this.view = 'main';
+        } else this.line = this.say(data.what === 'pay' ? 'dialog.haggle_no_pay' : 'dialog.haggle_no_time');
+        break;
+      }
       case 'job_accept': {
-        const r = K.accept(this.jobId);
+        const r = K.accept(this.jobId, { materials: data.materials });
         if (!r.ok) {
           this.line = tr(sim, `reason.${r.reason}`, r.params || {});
           break;

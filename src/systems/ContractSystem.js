@@ -29,7 +29,12 @@
  * loaded. The more contracts you see through, the bigger the ones you're trusted with
  * (CONTRACTOR_RANKS).
  *
- *   state.contracts = { offers: [], active: [], nextId, done, failed, log: [], tracked, declined: {} }
+ * What villagers need and how pressing it is, sizes and requirements, estimates and costs,
+ * negotiating, judging the work, your name, clients who come back, your firm: ContractPlanner
+ * (mixed into this system).
+ *
+ *   state.contracts = { offers: [], active: [], nextId, done, failed, log: [], tracked, declined: {},
+ *                       rep, clients: { npcId: { done, late, failed, cancelled, q, n, pay } }, company }
  *   a contract: { id, kind, issuer, building, qty | hours, done, pay, deadline, status,
  *                 workers: [npcId], crew: { who: work }, awarded: { pay, xp, workers }, … }
  */
@@ -38,6 +43,10 @@ import { ITEMS } from '../data/items.js';
 import { Q, STANDARD } from '../data/quality.js';
 import { countAtLeast } from './slots.js';
 import { Mod } from './Modifiers.js';
+import { JOBS } from '../data/jobs.js';
+import { BALANCE } from '../config/balance.js';
+import { ContractPlanner } from './ContractPlanner.js';
+import { STANDINGS, REPUTATION, QUALITY } from '../data/contracting.js';
 
 export const CONTRACTS = {
   maxOffers: 6,
@@ -73,31 +82,42 @@ export const CONTRACTS = {
 };
 const C = CONTRACTS;
 
-/** Contracts that can be handed to your workers (the others need your goods or your business). */
-export const DELEGABLE = ['harvest', 'repair', 'build', 'haul'];
+/**
+ * Contracts your workers can do for you — all of them: you're the one who took the job on and
+ * gets paid; they do the work (and you pay their wages as always). Goods come from your storage,
+ * are bought with your money (within the day's limit) or gathered; orders go out from your
+ * business; shifts are worked; parcels and letters are carried round.
+ */
+export const DELEGABLE = ['harvest', 'repair', 'build', 'haul', 'supply', 'craft', 'order', 'job', 'water'];
+/** What villagers ask you for to your face (the rest are on the notice board). */
+const TALK_KINDS = ['harvest', 'repair', 'build', 'haul', 'water', 'supply'];
 /** What each kind of contract work trains, in a worker (education fields). */
-export const CONTRACT_FIELDS = { harvest: 'farming', repair: 'building', build: 'building', haul: 'trade' };
+export const CONTRACT_FIELDS = { harvest: 'farming', water: 'farming', repair: 'building', build: 'building', haul: 'trade', supply: 'trade', craft: 'trade', order: 'trade' };
+/** Your skills → the trades workers learn (for jobs from the notice board). */
+const SKILL_FIELDS = { farming: 'farming', construction: 'building', woodcutting: 'forestry', mining: 'mining', crafting: 'carpentry', trading: 'trade', fishing: 'fishing' };
+/** Goods workers can go and gather themselves when nobody has them to sell. */
+export const GATHERABLE = { wood: 'tree', stone: 'rock', berries: 'bush' };
 
-/** From odd jobs to a name for yourself: more contracts at once, and bigger ones. */
-export const CONTRACTOR_RANKS = [
-  { id: 'odd_jobs', done: 0, maxActive: 3, size: 1 },
-  { id: 'handyman', done: 3, maxActive: 4, size: 1.4 },
-  { id: 'contractor', done: 8, maxActive: 5, size: 1.9 },
-  { id: 'master_contractor', done: 16, maxActive: 6, size: 2.6 },
-];
+/** From odd jobs to a name for yourself: more contracts at once, and bigger ones (data/contracting.js). */
+export const CONTRACTOR_RANKS = STANDINGS;
 
 export class ContractSystem {
   constructor(sim) {
     this.sim = sim;
     sim.state.contracts ??= { offers: [], active: [], nextId: 1, done: 0, failed: 0, log: [] };
     this.S.declined ??= {};
+    this.S.rep ??= REPUTATION.start;
+    this.S.clients ??= {};
     for (const c of this.S.active) this.normalize(c);
     sim.bus.on('time:hour', (h) => {
       if (h === 6) this.daily();
       this.hourly();
     });
     sim.bus.on('construction:player_worked', ({ site, minutes }) => this.onBuildWork(site, minutes));
-    sim.bus.on('player:action', (e) => e.kind === 'harvest' && this.onPlayerHarvest(e));
+    sim.bus.on('player:action', (e) => {
+      if (e.kind === 'harvest') this.onPlayerHarvest(e);
+      if (e.kind === 'water_crop') this.onPlayerWater(e);
+    });
   }
 
   /** A contract taken on, filled in (older saves too). */
@@ -107,21 +127,8 @@ export class ContractSystem {
     c.awarded ??= {};
     c.done ??= 0;
     c.status ??= 'accepted';
+    c.costs ??= { materials: 0, wages: 0 };
     return c;
-  }
-
-  // ------------------------------------------------------------------ your standing as a contractor
-
-  rank() {
-    let r = CONTRACTOR_RANKS[0];
-    for (const x of CONTRACTOR_RANKS) if (this.S.done >= x.done) r = x;
-    return r;
-  }
-  nextRank() {
-    return CONTRACTOR_RANKS[CONTRACTOR_RANKS.indexOf(this.rank()) + 1] || null;
-  }
-  maxActive() {
-    return this.rank().maxActive;
   }
 
   get S() {
@@ -137,13 +144,25 @@ export class ContractSystem {
   daily() {
     const day = this.sim.time.day;
     this.S.offers = this.S.offers.filter((o) => day - o.posted < C.offerDays && this.stillWanted(o));
-    for (const c of this.S.active.slice()) if (day > c.deadline) this.fail(c);
+    for (const c of this.S.active.slice()) {
+      // Past the deadline: late (docked pay) for a couple of days — then it's fallen through.
+      if (day > c.deadline + QUALITY.graceDays) this.fail(c);
+      else if (day > c.deadline && !c.late) {
+        c.late = true;
+        this.addRep(REPUTATION.late);
+        this.sim.progression.addReputation(-1); // (the village hears of it too)
+        this.sim.toast('toast.contract_late', { npc: c.issuer !== 'village' ? c.issuer : undefined }, 'danger');
+      }
+    }
+    // What people need most, first (each of them once).
+    for (const o of this.boardNeeds(Math.max(1, Math.floor(C.maxOffers / 2)))) if (this.S.offers.length < C.maxOffers && !this.duplicate(o)) this.S.offers.push(o);
     let tries = 0;
     while (this.S.offers.length < C.maxOffers && tries++ < 12) {
       const kind = rand.weighted([['supply', 3], ['craft', 2], ['build', 2], ['haul', 2], ['harvest', 2], ['repair', 2], ['order', this.sim.holdings?.mine().length ? 3 : 0]]);
       const o = this[`make_${kind}`]?.();
-      if (o && !this.duplicate(o)) this.S.offers.push(o);
+      if (o && !this.duplicate(o)) this.S.offers.push(this.assess(o));
     }
+    this.S.offers.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
     for (const [id, d] of Object.entries(this.S.declined)) if (d < day) delete this.S.declined[id];
   }
 
@@ -155,6 +174,8 @@ export class ContractSystem {
       // Workers who've left your service are off the job.
       c.workers = c.workers.filter((id) => this.sim.workers.contract(id));
     }
+    // (All the work in? Settled first.) The need is gone (winter took the fields, the building's gone): the client calls it off.
+    for (const c of this.S.active.slice()) if (!this.checkDone(c) && !this.stillNeeded(c)) this.clientCancel(c);
     // (All the work in, and somehow not settled? Settle it.)
     for (const c of this.S.active.slice()) this.checkDone(c);
   }
@@ -165,7 +186,9 @@ export class ContractSystem {
 
   /** Is the need behind an offer still there? */
   stillWanted(o) {
+    if (o.kind === 'build' && o.proposal) return !!this.sim.npcs.byId(o.issuer) && !this.sim.growth.projectOf?.(this.sim.npcs.byId(o.issuer));
     if (o.kind === 'build') return this.sim.construction.byId(o.siteId)?.status === 'site';
+    if (o.kind === 'water') return this.dryPlants(o.bizId).length >= Math.min(o.qty, 6) && this.sim.weather.type !== 'rain';
     if (o.kind === 'harvest' && this.ripe(o.bizId).length < Math.min(o.qty, C.harvestMin)) return false;
     if (o.kind === 'repair') {
       const r = this.sim.property.rec(o.building);
@@ -230,7 +253,7 @@ export class ContractSystem {
 
   /** Building work on a villager's (or the village's) site. `who`: only their own site, and no dice. */
   make_build(who = null) {
-    const sites = this.sim.construction.list.filter((c) => c.status === 'site' && c.kind === 'building' && c.owner !== 'player' && c.laborNeeded - c.labor > 180 && (!who || c.owner === who.id));
+    const sites = this.sim.construction.list.filter((c) => c.status === 'site' && (c.kind === 'building' || c.kind === 'works') && c.owner !== 'player' && !c.contractor && c.laborNeeded - c.labor > 180 && (!who || c.owner === who.id));
     if (!sites.length) return null;
     const c = who ? sites[0] : rand.pick(sites);
     const hours = Math.min(Math.round(8 * this.rank().size), Math.floor((c.laborNeeded - c.labor) / 60) - 1);
@@ -238,7 +261,7 @@ export class ContractSystem {
     const pay = Math.round(hours * C.buildPayPerHour * 1.5 + 5);
     const payer = c.owner === 'village' ? this.sim.state.village.treasury : this.sim.npcs.byId(c.owner)?.money || 0;
     if (payer < pay) return null;
-    return this.base('build', { siteId: c.id, issuer: c.owner, building: c.id, hours, done: 0, pay, days: who ? 6 : rand.int(5, 9) });
+    return this.base('build', { siteId: c.id, siteKind: c.kind, issuer: c.owner, building: c.kind === 'works' ? c.target : c.id, hours, done: 0, pay, days: who ? 6 : rand.int(5, 9) });
   }
 
   // --- the harvest: a farmer's own fields, full of ripe wheat
@@ -386,16 +409,32 @@ export class ContractSystem {
     const o = this.S.offers.find((x) => x.id === id);
     if (!o) return { ok: false, reason: 'contract_gone' };
     if (this.S.active.length >= this.maxActive()) return { ok: false, reason: 'too_many_contracts', params: { n: this.maxActive() } };
+    // Big building work needs a skilled hand: you, or a worker of yours.
+    const req = this.requirements(o);
+    if (req.required && !this.meets(o)) return { ok: false, reason: 'need_skilled_hand', params: { field: req.field, n: req.level } };
     return { ok: true };
   }
 
-  accept(id) {
+  /** Take it on. opts.materials (for new buildings and improvements): 'client' · 'included' · 'player'. */
+  accept(id, opts = {}) {
     const chk = this.canAccept(id);
     if (!chk.ok) return chk;
     const o = this.S.offers.find((x) => x.id === id);
+    this.assess(o);
+    if (o.proposal && !o.siteId) {
+      const r = this.startProposal(o, opts.materials || 'client');
+      if (!r.ok) {
+        this.S.offers = this.S.offers.filter((x) => x !== o);
+        this.sim.bus.emit('contracts:changed');
+        return r;
+      }
+    }
     this.S.offers.splice(this.S.offers.indexOf(o), 1);
     o.deadline = this.sim.time.day + o.days;
     o.accepted = this.sim.time.day;
+    o.acceptedAt = this.sim.time.total;
+    // What it should take (with the hands it wants) — the yardstick for how fast it was done.
+    o.expectHours = Math.max(4, this.estimate(o, this.recommended(o)).days * 24);
     o.contractor = 'player';
     this.normalize(o).status = 'accepted';
     this.S.active.push(o);
@@ -420,10 +459,10 @@ export class ContractSystem {
    */
   needOf(npc) {
     if (!npc || npc.age < 18 || this.S.active.some((c) => c.issuer === npc.id)) return null;
-    const offered = this.S.offers.find((o) => o.issuer === npc.id && DELEGABLE.includes(o.kind));
-    if (offered) return offered;
+    const offered = this.S.offers.find((o) => o.issuer === npc.id && (o.via === 'talk' || TALK_KINDS.includes(o.kind) || o.proposal));
+    if (offered) return this.assess(offered);
     if (this.S.declined[npc.id] >= this.sim.time.day) return null;
-    return this.make_harvest(npc) || this.make_repair(npc) || this.make_build(npc) || this.make_haul(npc);
+    return this.needs(npc)[0] || null;
   }
 
   /** They ask you: the offer goes on the table (and stays on the board for a day or two). */
@@ -443,8 +482,14 @@ export class ContractSystem {
     if (c.kind === 'harvest') return Math.max(1, Math.ceil(c.qty / C.plantsPerWorker));
     if (c.kind === 'repair') return Math.max(1, Math.min(3, Math.ceil(c.qty / C.pointsPerWorker)));
     if (c.kind === 'build') return Math.max(1, Math.min(4, Math.ceil(c.hours / C.hoursPerWorker)));
-    if (c.kind === 'haul') return Math.max(1, Math.ceil(c.qty / 20));
+    if (c.kind === 'haul' || c.kind === 'supply' || c.kind === 'craft') return Math.max(1, Math.ceil(c.qty / 20));
+    if (c.kind === 'job' && (c.type === 'deliver' || c.type === 'haul')) return Math.max(1, Math.ceil(c.qty / 20));
     return 1;
+  }
+  /** The trade a contract's work trains, in a worker. */
+  fieldOf(c) {
+    if (c.kind === 'job') return SKILL_FIELDS[JOBS[c.jobId]?.skill] || 'trade';
+    return CONTRACT_FIELDS[c.kind] || null;
   }
   /** Experience the job brings you (for taking it on and seeing it through) and the crew. */
   playerXp(c) {
@@ -455,7 +500,132 @@ export class ContractSystem {
   }
   /** How much work the job is: plants, condition points, hours, goods. */
   required(c) {
-    return c.kind === 'build' ? c.hours : c.qty;
+    return c.kind === 'build' || (c.kind === 'job' && c.type === 'shift') ? c.hours : c.qty;
+  }
+  /** Goods on their way: things workers carry for a job that aren't handed over yet. */
+  carriedQty(c) {
+    let n = 0;
+    for (const x of this.sim.state.npcs) if (x.carry?.contract === c.id && x.carry.item === c.item) n += x.carry.qty;
+    return n;
+  }
+  /** Goods still to be brought (none counted twice: not what's handed over, not what's on the way). */
+  goodsLeft(c) {
+    return Math.max(0, c.qty - (c.delivered || 0) - this.carriedQty(c));
+  }
+  /** Where a job's goods go: the business that wants them, or the person (their home, the hall). */
+  destOf(c) {
+    return c.bizId && this.sim.economy.biz(c.bizId) ? `ebiz:${c.bizId}` : `bld:${c.building}`;
+  }
+  /** Is it a job of bringing goods (from your storage, the market or the woods)? */
+  isGoods(c) {
+    return c.kind === 'supply' || c.kind === 'craft' || (c.kind === 'job' && c.type === 'deliver');
+  }
+  /** What's holding your workers up, in words (for the card): nothing to fetch, buy or gather; nothing in stock. */
+  blocker(c) {
+    if (!c.workers?.length) return null;
+    if (this.isGoods(c) && this.goodsLeft(c) > 0) {
+      const W = this.sim.workers;
+      const inStore = W.storeCount(c.item, c.minQ) > 0;
+      const buy = (c.minQ === undefined || c.minQ <= STANDARD) && W.buyBudgetLeft() > 0 && W.state.buy !== false && W.seller(c.item, c.bizId);
+      if (!inStore && !buy && !GATHERABLE[c.item]) return { key: 'contract.need_goods', params: { item: c.item } };
+    }
+    if (c.kind === 'order' && this.sim.economy.stock(c.supplierBiz, c.item) < 1) return { key: 'contract.need_stock', params: { item: c.item, building: this.sim.economy.biz(c.supplierBiz)?.building } };
+    return null;
+  }
+
+  // ------------------------------------------------------------------ jobs from the notice board, for your workers
+
+  /**
+   * Take a job from the notice board for your workers to do (you're paid, as if you'd done it;
+   * they do the work — a shift, a delivery, a parcel, letters, materials to a site, the harvest).
+   */
+  canTakeJob(jobId) {
+    const J = this.sim.jobs;
+    const d = JOBS[jobId];
+    if (!d) return { ok: false, reason: 'contract_gone' };
+    if (!this.sim.workers.list().length) return { ok: false, reason: 'no_workers' };
+    if (this.S.active.length >= this.maxActive()) return { ok: false, reason: 'too_many_contracts', params: { n: this.maxActive() } };
+    if (!J.employerOf(jobId)) return { ok: false, reason: 'no_employer', params: { biz_type: d.employerType } };
+    if ((J.js.openings[jobId] || 0) <= 0) return { ok: false, reason: 'no_openings' };
+    if (d.seasons && !d.seasons.includes(this.sim.time.season)) return { ok: false, reason: 'wrong_season' };
+    const p = this.sim.state.player;
+    // They take your word for your workers: the standing it needs is yours.
+    if (d.requires?.level && p.level < d.requires.level) return { ok: false, reason: 'need_level', params: { level: d.requires.level } };
+    if (d.requires?.reputation && p.reputation < d.requires.reputation) return { ok: false, reason: 'need_reputation', params: { value: d.requires.reputation } };
+    return { ok: true };
+  }
+
+  takeJob(jobId) {
+    const chk = this.canTakeJob(jobId);
+    if (!chk.ok) return chk;
+    const c = this.fromJob({ jobId, type: JOBS[jobId].type, item: JOBS[jobId].item || null, qty: JOBS[jobId].qty || 0, employer: this.sim.jobs.employerOf(jobId) });
+    if (!c.ok) return c;
+    this.sim.jobs.js.openings[jobId]--;
+    this.sim.bus.emit('jobs:changed');
+    return c;
+  }
+
+  /** The job you took yourself, handed to your workers (before you've started on it). */
+  canHandOver() {
+    const job = this.sim.jobs.active;
+    if (!job) return { ok: false, reason: 'contract_gone' };
+    if (!this.sim.workers.list().length) return { ok: false, reason: 'no_workers' };
+    if (this.S.active.length >= this.maxActive()) return { ok: false, reason: 'too_many_contracts', params: { n: this.maxActive() } };
+    const started = (job.type === 'harvest' && job.harvested > 0) || job.stage === 'working' || (['courier', 'rounds', 'haul'].includes(job.type) && job.stage !== 'pickup');
+    if (started) return { ok: false, reason: 'job_started' };
+    return { ok: true };
+  }
+
+  handOver() {
+    const chk = this.canHandOver();
+    if (!chk.ok) return chk;
+    const job = this.sim.jobs.active;
+    const r = this.fromJob(job);
+    if (!r.ok) return r;
+    this.sim.jobs.js.active = null;
+    this.sim.bus.emit('jobs:changed');
+    return r;
+  }
+
+  /** A notice-board job as a contract of yours (the harvest becomes a farmer's harvest, in plants). */
+  fromJob(job) {
+    const sim = this.sim;
+    const d = JOBS[job.jobId];
+    const bizId = job.employer;
+    const E = sim.economy;
+    const building = E.biz(bizId)?.building;
+    const issuer = E.ownerId(bizId) || 'village';
+    const pay = sim.jobs.pay(job.jobId);
+    const day = sim.time.day;
+    let c;
+    if (d.type === 'harvest') {
+      c = this.base('harvest', { bizId, issuer, building, item: d.item, qty: Math.max(1, Math.ceil(job.qty / (BALANCE.resources.cropYield || 2))), done: 0, owed: 0, pay, days: 1, jobId: job.jobId });
+    } else {
+      c = this.base('job', { jobId: job.jobId, type: d.type, bizId, issuer, building, item: job.item, qty: job.qty || 1, pay, days: 1, done: 0 });
+      if (d.type === 'shift') c.hours = d.durationHours;
+      if (d.type === 'courier') {
+        c.targets = [job.target || rand.pick(sim.jobs.homes())];
+        c.qty = 1;
+      }
+      if (d.type === 'rounds') {
+        c.targets = job.targets?.length ? [...job.targets] : sim.jobs.homes().filter((h) => h !== building).slice(0, d.qty);
+        c.qty = c.targets.length;
+      }
+      if (d.type === 'haul') {
+        const site = job.target ? sim.construction.byId(job.target) : sim.jobs.siteNeeding(d.item);
+        if (!site) return { ok: false, reason: 'no_openings' };
+        c.siteId = site.id;
+        c.qty = Math.min(job.qty || d.qty, sim.construction.missing(site)[d.item] || d.qty);
+      }
+    }
+    c.deadline = day + c.days;
+    c.accepted = day;
+    c.contractor = 'player';
+    c.via = 'board';
+    this.normalize(c).status = 'accepted';
+    this.S.active.push(c);
+    sim.bus.emit('contracts:changed');
+    return { ok: true, id: c.id };
   }
   /** Where the work is (for the map arrow and "Go to job"). */
   location(c) {
@@ -515,8 +685,16 @@ export class ContractSystem {
     let done = false;
     if (c.kind === 'harvest') done = c.done >= c.qty && (c.owed || 0) <= 0 && !this.carried(c);
     else if (c.kind === 'repair') done = c.done >= c.qty || (this.sim.property.rec(c.building)?.condition ?? 0) >= C.repairTo;
-    else if (c.kind === 'build') done = c.done >= c.hours || this.sim.construction.byId(c.siteId)?.status === 'done';
+    else if (c.kind === 'build') {
+      // (Works on a building are cleared away when they're finished: gone means done.)
+      const s = this.sim.construction.byId(c.siteId);
+      const finished = s ? s.status === 'done' : c.siteKind === 'works';
+      done = c.proposal ? finished : c.done >= c.hours || finished;
+    }
+    else if (c.kind === 'water') done = c.done >= c.qty;
     else if (c.kind === 'haul') done = c.delivered >= c.qty;
+    else if (c.kind === 'supply' || c.kind === 'craft' || c.kind === 'order') done = c.delivered >= c.qty;
+    else if (c.kind === 'job') done = c.done >= this.required(c) && !this.carried(c);
     if (done) this.complete(c);
     return done;
   }
@@ -529,6 +707,7 @@ export class ContractSystem {
   /** How the job stands: accepted · preparing (workers on their way) · working · waiting (nothing done for a while). */
   statusOf(c) {
     if (c.status === 'completed' || c.status === 'failed' || c.status === 'cancelled') return c.status;
+    if (this.sim.time.day > c.deadline) return 'late';
     if (c.lastWork === undefined) return c.workers?.length ? 'preparing' : 'accepted';
     return this.sim.time.total - c.lastWork > C.waitingAfter ? 'waiting' : 'working';
   }
@@ -550,21 +729,75 @@ export class ContractSystem {
     this.addWork(c, 'player', 1);
   }
 
-  /** A worker brings goods for a job to the business that wanted them (the farmer's wheat, a haul). */
+  /** You watered one of the farmer's plants (PlayerActionSystem). */
+  onPlayerWater({ obj }) {
+    const c = this.waterAt(obj) || this.S.active.find((x) => x.kind === 'water' && this.fieldsOf(x.bizId).includes(obj.id));
+    if (c) this.watered(c, 'player', obj);
+  }
+
+  /**
+   * A worker hands over goods for a job — at the business that wanted them (the farmer's wheat, a
+   * haul, a supply), or to the person (a commission, at their home). Returns how many were taken
+   * (what's over the order goes back with them).
+   */
   crewDelivered(npc, load) {
     const E = this.sim.economy;
-    const bizId = String(load.to).slice(5);
-    if (E.biz(bizId)) E.biz(bizId).stock[load.item] = E.stock(bizId, load.item) + load.qty;
     const c = this.S.active.find((x) => x.id === load.contract);
-    if (!c) return;
-    c.delivered = (c.delivered || 0) + load.qty;
-    if (c.kind === 'haul') {
-      c.inCrew = Math.max(0, (c.inCrew || 0) - load.qty);
-      this.addWork(c, npc.id, load.qty);
-    } else {
+    const counted = c && (this.isGoods(c) || c.kind === 'haul') ? Math.min(load.qty, Math.max(0, c.qty - (c.delivered || 0))) : load.qty;
+    // (The harvest's wheat is the farmer's, all of it; a supply takes what was ordered.)
+    const used = c && this.isGoods(c) ? counted : load.qty;
+    if (String(load.to).startsWith('ebiz:')) {
+      const bizId = String(load.to).slice(5);
+      if (E.biz(bizId)) E.biz(bizId).stock[load.item] = E.stock(bizId, load.item) + used;
+    }
+    if (!c) return used;
+    c.delivered = (c.delivered || 0) + (c.kind === 'harvest' ? load.qty : counted);
+    if (c.kind === 'harvest') {
       this.sim.bus.emit('contracts:changed');
       this.checkDone(c);
+    } else this.addWork(c, npc.id, counted);
+    return used;
+  }
+
+  /** A worker's materials arrive at the building site of a haulage job (the site's owner pays the supplier, as when you do it). */
+  crewSiteDelivered(npc, load, n) {
+    const c = this.S.active.find((x) => x.id === load.contract);
+    if (!c || n <= 0) return;
+    const sim = this.sim;
+    const E = sim.economy;
+    const site = sim.construction.byId(c.siteId);
+    const cost = Math.round(n * (ITEMS[c.item]?.basePrice || 1) * 0.9);
+    const purse = site && sim.growth?.purse(site);
+    if (purse && E.biz(c.bizId)) {
+      const fromBudget = Math.min(site.budget || 0, cost);
+      site.budget -= fromBudget;
+      const rest = Math.min(cost - fromBudget, Math.max(0, purse.get()));
+      purse.pay(rest);
+      E.biz(c.bizId).money += fromBudget + rest;
+      E.ledger(c.bizId, 'rev', fromBudget + rest);
     }
+    if (site) site.lastProgressDay = sim.time.day;
+    c.delivered = (c.delivered || 0) + n;
+    this.addWork(c, npc.id, n);
+  }
+
+  /** A worker at your business sends a customer's order off by cart. Returns how many went. */
+  crewShipOrder(c, npc) {
+    const n = Math.min(Math.floor(this.sim.economy.stock(c.supplierBiz, c.item)), c.qty - c.delivered);
+    if (n <= 0) return 0;
+    // (Credited before it's shipped: the last cart settles the order.)
+    c.crew[npc.id] = Math.round(((c.crew[npc.id] || 0) + n) * 10) / 10;
+    c.done = (c.done || 0) + n;
+    c.lastWork = this.sim.time.total;
+    return this.fulfilOrder(c.id);
+  }
+
+  /** A worker delivered a parcel or a letter at a house on the round. */
+  crewPosted(c, npc, building) {
+    c.targets = (c.targets || []).filter((h) => h !== building);
+    const resident = this.sim.npcs.residentsOf(building)[0];
+    if (resident) this.sim.social.addRel(resident, 1);
+    this.addWork(c, npc.id, 1);
   }
 
   /** A worker picks up goods to haul: the buyer pays the producer now, as when you collect them. */
@@ -581,7 +814,6 @@ export class ContractSystem {
       E.ledger(c.bizId, 'exp', unit * n);
     }
     c.collected += n;
-    c.inCrew = (c.inCrew || 0) + n;
     this.sim.bus.emit('contracts:changed');
     return n;
   }
@@ -665,7 +897,8 @@ export class ContractSystem {
 
   /** How many units you could hand over now (only goods of the required quality count). */
   deliverable(c) {
-    if (c.kind === 'haul') return Math.max(0, Math.min(c.collected - c.delivered - (c.inCrew || 0), this.sim.inventory.count(c.item)));
+    if (c.kind === 'haul') return Math.max(0, Math.min(c.collected - c.delivered - this.carriedQty(c), this.sim.inventory.count(c.item)));
+    if (c.kind === 'job') return 0;
     if (c.kind === 'harvest') return Math.min(c.owed || 0, this.sim.inventory.count(c.item));
     if (c.kind === 'repair' || c.kind === 'build') return 0;
     const have = c.minQ !== undefined ? countAtLeast(this.sim.inventory.slots, c.item, c.minQ) : this.sim.inventory.count(c.item);
@@ -738,7 +971,11 @@ export class ContractSystem {
   /** Progress 0–1. */
   progress(c) {
     if (c.kind === 'build') return Math.min(1, c.done / c.hours);
-    if (c.kind === 'harvest' || c.kind === 'repair') return Math.min(1, (c.done || 0) / c.qty);
+    if (c.kind === 'build' && c.proposal) {
+      const s = this.sim.construction.byId(c.siteId);
+      return s ? Math.min(1, s.labor / Math.max(1, s.laborNeeded)) : 0;
+    }
+    if (c.kind === 'harvest' || c.kind === 'repair' || c.kind === 'job' || c.kind === 'water') return Math.min(1, (c.done || 0) / this.required(c));
     return Math.min(1, c.delivered / c.qty);
   }
 
@@ -767,10 +1004,14 @@ export class ContractSystem {
     this.S.active = this.S.active.filter((x) => x !== c);
     c.status = 'completed';
     const A = c.awarded;
+    // How it went: speed, skill, deadline, the job itself.
+    c.result ??= this.judge(c);
+    const R = c.result;
+    const due = Math.max(0, Math.round(c.pay * R.payMult));
     let paid = A.pay ?? 0;
     if (A.pay === undefined) {
       const payer = this.payer(c);
-      paid = Math.max(0, Math.min(c.pay, Math.floor(payer.get())));
+      paid = Math.max(0, Math.min(due, Math.floor(payer.get())));
       payer.take(paid);
       if (c.kind === 'order' && sim.economy.biz(c.supplierBiz)) {
         // Orders are your business's revenue — and its good name.
@@ -786,7 +1027,7 @@ export class ContractSystem {
     const total = Object.values(c.crew).reduce((s, v) => s + v, 0);
     const crewShare = total > 0 ? Object.entries(c.crew).filter(([who]) => who !== 'player').reduce((s, [, v]) => s + v, 0) / total : 0;
     if (A.xp === undefined) {
-      A.xp = this.playerXp(c);
+      A.xp = Math.round(this.playerXp(c) * R.xpMult);
       sim.progression.addReputation(C.repOnTime);
       sim.progression.addXp(A.xp);
       if (c.kind === 'build') sim.progression.addSkillXp('construction', 5);
@@ -800,10 +1041,13 @@ export class ContractSystem {
     if (issuer) sim.memory.remember(issuer, 'player_helped', { who: 'player', params: { item: c.item } });
     const rankBefore = this.rank();
     this.S.done++;
-    this.log(c, paid < c.pay ? 'short' : 'done', paid);
+    const how = paid < due ? 'short' : 'done';
+    this.recordOutcome(c, how, R);
+    this.log(c, how, paid);
     if (this.S.tracked === c.id) this.S.tracked = null;
-    const params = { money: paid, money2: c.pay, n: A.xp, npc: c.issuer !== 'village' && issuer ? c.issuer : undefined };
-    sim.toast(paid < c.pay ? 'toast.contract_short' : c.kind === 'order' || !params.npc ? 'toast.contract_done_xp' : 'toast.contract_paid', params, paid < c.pay ? 'warn' : 'good');
+    const params = { money: paid, money2: due, n: A.xp, npc: c.issuer !== 'village' && issuer ? c.issuer : undefined };
+    sim.toast(paid < due ? 'toast.contract_short' : c.kind === 'order' || !params.npc ? 'toast.contract_done_xp' : 'toast.contract_paid', params, paid < due ? 'warn' : 'good');
+    sim.toast('toast.contract_graded', { grade: R.grade, speed: R.speed, dl: R.deadline }, R.grade === 'poor' ? 'warn' : 'info');
     for (const [id, x] of Object.entries(A.workers)) sim.toast('toast.crew_xp', { npc: id, n: x.xp, field: x.field }, 'good');
     if (this.rank() !== rankBefore) {
       sim.toast('toast.contractor_rank', { crank: this.rank().id }, 'good');
@@ -822,7 +1066,7 @@ export class ContractSystem {
     const sim = this.sim;
     const out = {};
     const fair = this.required(c) / this.recommended(c);
-    const field = CONTRACT_FIELDS[c.kind];
+    const field = this.fieldOf(c);
     for (const [who, work] of Object.entries(c.crew)) {
       const npc = who === 'player' ? null : sim.npcs.byId(who);
       if (!npc || work <= 0) continue;
@@ -849,6 +1093,12 @@ export class ContractSystem {
   release(c) {
     const ids = c.workers || [];
     c.workers = [];
+    // A site you were building and supplying goes back to its owner's care.
+    const s = c.proposal && c.siteId && this.sim.construction.byId(c.siteId);
+    if (s && s.status === 'site') {
+      delete s.contractor;
+      delete s.supplier;
+    }
     for (const id of ids) this.sim.workers.offContract(id);
   }
 
@@ -858,13 +1108,21 @@ export class ContractSystem {
     c.status = abandoned ? 'cancelled' : 'failed';
     this.release(c);
     if (this.S.tracked === c.id) this.S.tracked = null;
+    this.recordOutcome(c, abandoned ? 'abandoned' : 'failed');
+    // Money they gave you up front for materials: what you haven't spent goes back.
+    if (c.advance > 0) {
+      const back = Math.max(0, Math.min(Math.floor(sim.state.player.money), c.advance - (c.costs?.materials || 0)));
+      sim.state.player.money -= back;
+      this.payer(c).take(-back);
+      c.refunded = back;
+    }
     sim.progression.addReputation(C.repFail);
     if (c.kind === 'order' && sim.economy.biz(c.supplierBiz)) sim.economy.biz(c.supplierBiz).reputation = Math.max(0, (sim.economy.biz(c.supplierBiz).reputation ?? 50) - 6);
     const issuer = sim.npcs.byId(c.issuer);
     if (issuer) sim.memory.remember(issuer, 'player_let_down', { who: 'player' });
     // Hauled goods you never delivered: you owe the buyer what they paid.
-    if (c.kind === 'haul' && c.collected - c.delivered - (c.inCrew || 0) > 0) {
-      const owed = Math.round((c.goods / c.qty) * (c.collected - c.delivered - (c.inCrew || 0)));
+    if (c.kind === 'haul' && c.collected - c.delivered - this.carriedQty(c) > 0) {
+      const owed = Math.round((c.goods / c.qty) * (c.collected - c.delivered - this.carriedQty(c)));
       const take = Math.min(owed, Math.max(0, Math.floor(sim.state.player.money)));
       sim.state.player.money -= take;
       if (sim.economy.biz(c.bizId)) sim.economy.biz(c.bizId).money += take;
@@ -881,7 +1139,11 @@ export class ContractSystem {
   }
 
   log(c, how, paid) {
-    this.S.log.push({ id: c.id, kind: c.kind, item: c.item, how, paid, day: this.sim.time.day, issuer: c.issuer, building: c.building, xp: c.awarded?.xp, crew: c.awarded?.workers ? Object.fromEntries(Object.entries(c.awarded.workers).map(([id, x]) => [id, x.xp])) : undefined, you: c.crew?.player });
-    if (this.S.log.length > 30) this.S.log.shift();
+    const cost = Math.round((c.costs?.materials || 0) + (c.costs?.wages || 0));
+    this.S.log.push({ id: c.id, kind: c.kind, type: c.type, jobId: c.jobId, item: c.item, how, paid: paid + (c.advance || 0) - (c.refunded || 0), day: this.sim.time.day, issuer: c.issuer, building: c.building, xp: c.awarded?.xp, crew: c.awarded?.workers ? Object.fromEntries(Object.entries(c.awarded.workers).map(([id, x]) => [id, x.xp])) : undefined, you: c.crew?.player, grade: c.result?.grade, score: c.result?.score, late: c.result?.daysLate || (c.late ? 1 : 0), cost, size: c.size, proposal: c.proposal ? c.proposal.type || c.proposal.what : undefined });
+    if (this.S.log.length > 80) this.S.log.shift();
   }
 }
+
+// What villagers need, sizes and requirements, estimates, negotiating, judging the work, your name, your firm.
+Object.assign(ContractSystem.prototype, ContractPlanner);

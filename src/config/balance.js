@@ -66,6 +66,7 @@ export const BALANCE = {
     chop: { ms: 2600, energy: 5, xp: 6, skill: 'woodcutting', skillXp: 8 },
     mine: { ms: 3000, energy: 6, xp: 7, skill: 'mining', skillXp: 9 },
     harvest: { ms: 900, energy: 1.5, xp: 2, skill: 'farming', skillXp: 4 },
+    water: { ms: 600, energy: 0.5, xp: 1, skill: 'farming', skillXp: 2 }, // a farmer's plant (a watering contract)
     forage: { ms: 1200, energy: 1, xp: 2, skill: 'foraging', skillXp: 5 },
     fish: { ms: 3800, energy: 2, xp: 4, skill: 'fishing', skillXp: 8 },
     hunt: { ms: 900, energy: 4, xp: 6, skill: 'hunting', skillXp: 10 },

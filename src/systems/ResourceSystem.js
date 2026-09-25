@@ -155,7 +155,9 @@ export class ResourceSystem {
         changed = true;
       } else if (o.kind === 'crop' && season !== 'winter' && o.stage < 3) {
         const chance = growth <= 0 ? 0 : drought ? 0.5 : Math.min(1, 0.85 * growth);
-        if (rand.chance(chance)) {
+        // Watered yesterday (a farmer's watering, done for them): it grows for certain.
+        const watered = o.wateredDay !== undefined && o.wateredDay >= day - 1 && growth > 0;
+        if (rand.chance(chance) || watered) {
           o.stage++;
           changed = true;
         }
