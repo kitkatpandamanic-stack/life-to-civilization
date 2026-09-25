@@ -17,7 +17,7 @@ const count = (xs, f) => xs.filter(f).length;
 export const AMBITIONS = {
   master_craftsman: { icon: '🪚', measure: (s) => [Math.max(...['carpentry', 'smithing', 'cooking'].map((k) => s.state.player.skills[k]?.level || 0)), 10] },
   masterworks: { icon: '✨', measure: (s) => [s.state.stats.masterworks || 0, 5] },
-  landowner: { icon: '🏘️', measure: (s) => [count(Object.values(s.property.all), (r) => r.owner === 'player') + s.state.land.owned.length, 10] },
+  landowner: { icon: '🏘️', measure: (s) => [count(Object.values(s.property.all), (r) => r.owner === 'player') + s.land.holdings().length, 10] },
   big_farm: { icon: '🌾', measure: (s) => [Object.keys(s.state.fields).length, 40] },
   builder: { icon: '🏗️', measure: (s) => [count(s.construction.list, (c) => c.owner === 'player' && c.status === 'done'), 8] },
   employer: { icon: '👷', measure: (s) => [Object.keys(s.state.workers).length, 5] },

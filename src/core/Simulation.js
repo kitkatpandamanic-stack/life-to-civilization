@@ -49,7 +49,8 @@
  *    ├── actions      PlayerActionSystem
  *    ├── home         HomeSystem (tier, storage chest, comfort)
  *    ├── crafting     CraftingSystem (recipes at stations)
- *    ├── land         LandSystem (plots, prices, ownership)
+ *    ├── land         LandSystem (your land: buying it, what it's worth)
+ *    ├── territory    TerritorySystem (the valley in plots of land, and who owns each)
  *    ├── nature       NatureSystem (forests grow and thin, finite ore, fish and game populations)
  *    ├── construction ConstructionSystem (sites, buildings, roads, home upgrades)
  *    ├── farming      FarmingSystem (till, plant, water, grow, harvest)
@@ -115,6 +116,8 @@ import { KnowHowSystem } from '../systems/KnowHowSystem.js';
 import { StudySystem } from '../systems/StudySystem.js';
 import { EducationWorldSystem } from '../systems/EducationWorldSystem.js';
 import { StructureSystem, restoreStructures } from '../systems/StructureSystem.js';
+import { TerritorySystem } from '../systems/TerritorySystem.js';
+import { buildParcels } from '../world/Parcels.js';
 import { rand } from './rng.js';
 
 const MAX_CHRONICLE = 200;
@@ -125,6 +128,8 @@ export class Simulation {
     // Simulation randomness is seeded and saved, so a save replays the same way.
     rand.setState(state.rngState ?? Math.imul(state.seed | 0, 2654435761));
     this.world = world || generateWorld(state.seed);
+    // The land divided into plots — from the world as it was made, before anything built since is put back.
+    this.world.parcels ??= buildParcels(this.world, state.seed | 0);
     for (const id in state.objects) delete state.objects[id].reservedBy;
     this.world.rebuildDynamicBlocking(state.objects);
     this.bus = new EventBus();
@@ -155,6 +160,7 @@ export class Simulation {
     this.businesses = new BusinessSystem(this);
     this.property = new PropertySystem(this);
     this.structures = new StructureSystem(this);
+    this.territory = new TerritorySystem(this); // who owns which land
     this.enterprise = new EnterpriseSystem(this);
     this.growth = new GrowthSystem(this);
     this.disasters = new DisasterSystem(this);

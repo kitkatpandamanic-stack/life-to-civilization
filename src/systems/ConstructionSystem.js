@@ -580,7 +580,11 @@ export class ConstructionSystem {
     if (!world.inBounds(tx, ty) || world.isRoad(tx, ty)) return { ok: false, reason: 'bad_ground' };
     if (world.isWater(tx, ty) || world.tileAt(tx, ty) === T.CLIFF || world.tileAt(tx, ty) === T.FARMLAND) return { ok: false, reason: 'bad_ground' };
     if (world.isBlocked(tx, ty) || this.sim.state.fields[`${tx},${ty}`]) return { ok: false, reason: 'obstructed' };
+    // Roads go on your land, the village's, or land nobody owns — not across a neighbour's.
+    const T2 = this.sim.territory;
+    const owner = T2 ? T2.ownerAt(tx, ty) : undefined;
     const plot = this.sim.land.plotAt(tx, ty);
+    if (T2 ? owner !== undefined && owner !== null && owner !== 'player' && owner !== 'village' : plot && !this.sim.land.isOwned(plot.id)) return { ok: false, reason: 'not_your_land' };
     if (plot && !this.sim.land.isOwned(plot.id)) return { ok: false, reason: 'not_your_land' };
     const touches = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => world.isRoad(tx + dx, ty + dy) || world.tileAt(tx + dx, ty + dy) === T.DIRT);
     if (!touches) return { ok: false, reason: 'road_must_connect' };

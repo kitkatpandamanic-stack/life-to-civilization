@@ -25,7 +25,7 @@ function setup(seed) {
   sim.state.player.money = 20000;
   sim.progression.addXp(8000);
   sim.state.player.skills.construction.level = 6;
-  sim.land.owned.push('village_south');
+  sim.territory.transfer('village_south', 'player', 'gift');
   return sim;
 }
 function hire(sim, n, assignment) {

@@ -990,7 +990,8 @@ export class NPCSystem {
     const mainItem = kind === 'tree' ? 'wood' : 'stone';
     const wants = this.sim.economy.wantsMore(biz, mainItem);
     // Woodcutters only fell full-grown trees (young ones are left to grow).
-    const usable = (o) => (kind !== 'tree' || o.state === 'grown') && (!o.reservedBy || o.reservedBy === npc.id);
+    // …and leave your land alone: what grows on it is yours.
+    const usable = (o) => (kind !== 'tree' || o.state === 'grown') && (!o.reservedBy || o.reservedBy === npc.id) && !this.sim.land.ownsTile(o.tx, o.ty);
     // Nothing left near the yard? Go deeper into the woods (a longer walk, but there's work).
     const target = wants ? this.sim.resources.findNearest(kind, bld.door.tx, bld.door.ty, NB.searchRadius, usable) || this.sim.resources.findNearest(kind, bld.door.tx, bld.door.ty, NB.searchRadius * 2.2, usable) : null;
     if (!target) {
@@ -1021,7 +1022,7 @@ export class NPCSystem {
     let stump = null;
     let bestD = Infinity;
     for (const o of Object.values(this.sim.state.objects)) {
-      if (o.kind !== 'tree' || (o.state !== 'stump' && o.state !== 'cleared') || this.sim.land.plotAt(o.tx, o.ty)) continue;
+      if (o.kind !== 'tree' || (o.state !== 'stump' && o.state !== 'cleared') || this.sim.land.plotAt(o.tx, o.ty) || this.sim.land.ownsTile(o.tx, o.ty)) continue;
       const d = Math.abs(o.tx - bld.door.tx) + Math.abs(o.ty - bld.door.ty);
       if (d < bestD && d <= NB.searchRadius) {
         bestD = d;

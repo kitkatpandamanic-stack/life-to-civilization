@@ -179,9 +179,12 @@ export class PropertySystem {
     if (last && last.to === undefined) last.to = this.sim.time.day;
     r.history.push({ owner, from: this.sim.time.day, how, price: price || undefined });
     if (r.history.length > 12) r.history.splice(1, 1); // keep the founder and the recent owners
+    const from = r.owner;
     r.owner = owner;
     r.forSale = false;
     r.arrears = 0;
+    // The ground it stands on goes with it.
+    if (from !== owner) this.sim.territory?.buildingSold(id, from, owner);
     this.sim.bus.emit('property:changed', id);
   }
 

@@ -876,7 +876,9 @@
     "need_water": "Needs a well or water nearby.",
     "need_road": "Needs a road to the door.",
     "no_room": "No free ground beside it ({n} more tiles needed) — it needs clear land its owner may build on.",
-    "no_renovation_needed": "It's as good as it can be at this level."
+    "no_renovation_needed": "It's as good as it can be at this level.",
+    "go_to_land": "Go to the land to buy it.",
+    "sold_with_building": "This land is sold with the building on it."
   },
   "toast": {
     "hungry": "You're getting hungry. Press Q to eat.",
@@ -3156,7 +3158,9 @@
     "took_player_apprentice": "Took you on as an apprentice ({field}).",
     "taught_player": "Gave you a lesson in {field}.",
     "player_journeyman": "Saw you through your apprenticeship ({field}).",
-    "improved_building": "Had {building} improved."
+    "improved_building": "Had {building} improved.",
+    "sold_land_to_player": "Sold you land: {plot}.",
+    "bought_land": "Bought land: {plot}."
   },
   "talk": {
     "deflect": [
@@ -5419,7 +5423,8 @@
     "wells": "Wells",
     "lamps": "Street lamps",
     "people_hint": "People living there",
-    "click_hint": "Click a building on the map to see it."
+    "click_hint": "Click a building on the map to see it.",
+    "click_hint_land": "Click a building to see it, or a piece of land to look at it."
   },
   "institution": {
     "market": {
@@ -6148,7 +6153,8 @@
     "could_do": "What could be done",
     "start": "Start",
     "works_hint": "The money is paid now; the materials must be brought to the site and the hours put in — by you, your workers or hired builders. The building stays in use while the work goes on.",
-    "floors": "Floors"
+    "floors": "Floors",
+    "land_needed": "Land to grow onto: {money}"
   },
   "works": {
     "level": "Build up to: {name}",
@@ -6477,5 +6483,50 @@
     "more": "Priorities…",
     "less": "Hide",
     "hire_line": "Age {age} · reliability {r} · works at {s}% pace"
+  },
+  "land_name": {
+    "lot": "{building} lot",
+    "meadow": "Meadow No. {n}",
+    "woods": "Woods No. {n}",
+    "field": "Field No. {n}",
+    "hillside": "Hillside No. {n}",
+    "shore": "Shore No. {n}",
+    "village": "Village ground No. {n}",
+    "rocky": "Stony ground No. {n}"
+  },
+  "land_kind": {
+    "meadow": "Meadow",
+    "woods": "Woodland",
+    "field": "Field",
+    "hillside": "Hillside",
+    "shore": "Shore",
+    "village": "Village ground",
+    "rocky": "Stony ground"
+  },
+  "land_owner": {
+    "player": "Your land",
+    "village": "Village land",
+    "none": "Nobody's land",
+    "npc": "{npc}'s land",
+    "other": "Private land"
+  },
+  "land_how": {
+    "old": "held of old",
+    "bought": "bought",
+    "lot": "taken as a building lot",
+    "with_building": "came with a building",
+    "gift": "given",
+    "split": "split off",
+    "granted": "granted by the village"
+  },
+  "land_ui": {
+    "kind": "Land",
+    "history": "Owners before",
+    "was": "{who} — {how}",
+    "since": "{how} · day {day}",
+    "gone": "This land isn't there as it was any more.",
+    "buy_hint": "You buy land standing on it (or right beside it). Land that belongs to nobody is bought from the village — it keeps the register.",
+    "for_sale_short": "for sale",
+    "chip_tip": "The land you're standing on. Click to look at it — and to buy it."
   }
 }

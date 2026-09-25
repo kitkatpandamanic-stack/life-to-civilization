@@ -24,7 +24,7 @@ check('level 10 reached', p.level === 10);
 check('can manage 3+ workers', sim.workers.maxWorkers() >= 3, String(sim.workers.maxWorkers()));
 
 // Land
-check('buy land', sim.land.buy('riverside'));
+check('buy land', sim.land.buy('riverside', { anywhere: true }));
 check('owns tile', sim.land.ownsTile(80, 50));
 
 // Construction: storage shed placed, materials in the chest for workers to haul
@@ -71,7 +71,7 @@ check('extra storage from shed', sim.home.storageCapacity() > 40, `${sim.home.st
 sim.home.store('wood', 60, { force: true });
 sim.home.store('stone', 30, { force: true });
 sim.home.store('planks', 20, { force: true });
-check('buy a second plot', sim.land.buy('east_meadow'));
+check('buy a second plot', sim.land.buy('east_meadow', { anywhere: true }));
 const ws = sim.construction.place('workshop', 90, 51);
 check('workshop site placed', !!ws, ws ? '' : JSON.stringify(sim.construction.canPlace('workshop', 90, 51)));
 if (ws) {

@@ -195,21 +195,11 @@ export class TerritorySystem {
    * the owner doesn't already own is carved out of the village's land and made theirs.
    * Returns the price paid (0 if it was all theirs already), or -1 if it can't be had.
    */
-  acquireLot(by, x1, y1, x2, y2, { pay = true } = {}) {
-    const take = new Set();
-    for (let y = y1; y <= y2; y++) {
-      for (let x = x1; x <= x2; x++) {
-        const p = this.parcelAt(x, y);
-        if (!p || this.owner(p.id) === by) continue;
-        if (!this.mayAcquire(by, x, y)) continue;
-        take.add(p.id);
-      }
-    }
+  acquireLot(by, x1, y1, x2, y2, { pay = true, price: paid, how = 'lot' } = {}) {
+    const take = this.lotTake(by, x1, y1, x2, y2);
     if (!take.size) return 0;
-    const tiles = [];
-    for (let y = y1; y <= y2; y++) for (let x = x1; x <= x2; x++) if (take.has(this.idAt(x, y))) tiles.push([x, y]);
-    const price = Math.round(tiles.reduce((s, [x, y]) => s + this.tileValue(x, y), 0) * LAND.lotPremium);
-    if (pay && by !== 'village') {
+    const price = paid ?? this.lotPrice(by, x1, y1, x2, y2, take);
+    if (pay && by !== 'village' && price > 0) {
       const purse = by === 'player' ? { get: () => this.sim.state.player.money, pay: (v) => (this.sim.state.player.money -= v) } : this.sim.structures?.purseOf(null, by) || null;
       const n = this.sim.npcs.byId(by);
       const wallet = by === 'player' ? purse : n ? { get: () => n.money, pay: (v) => (n.money -= v) } : purse;
@@ -221,20 +211,59 @@ export class TerritorySystem {
     const op = { op: 'carve', id, x1, y1, x2, y2, only: [...take] };
     if (!applyOp(this.P, op)) return 0;
     this.S.ops.push(op);
-    this.S.plots[id] = { owner: by, since: this.sim.time.day, how: 'lot', price: price || undefined, forSale: false, hist: [] };
+    this.S.plots[id] = { owner: by, since: this.sim.time.day, how, price: price || undefined, forSale: false, hist: [] };
     for (const t of take) this.cache.delete(t);
     if (by === 'player') this.syncPlayerLand();
     this.sim.bus.emit('land:changed', id);
     return price;
   }
 
-  /** A building changed hands: its lot goes with it (if it was the seller's). */
+  /** The plots a lot over this rectangle would be cut from (the parts that aren't the owner's already). */
+  lotTake(by, x1, y1, x2, y2) {
+    const take = new Set();
+    for (let y = y1; y <= y2; y++) {
+      for (let x = x1; x <= x2; x++) {
+        const p = this.parcelAt(x, y);
+        if (!p || this.owner(p.id) === by) continue;
+        if (!this.mayAcquire(by, x, y)) continue;
+        take.add(p.id);
+      }
+    }
+    return take;
+  }
+
+  /** What the land for a lot over this rectangle costs (only the part not already the owner's; the village pays nothing). */
+  lotPrice(by, x1, y1, x2, y2, take = this.lotTake(by, x1, y1, x2, y2)) {
+    if (by === 'village' || !take.size) return 0;
+    let v = 0;
+    for (let y = y1; y <= y2; y++) for (let x = x1; x <= x2; x++) if (take.has(this.idAt(x, y))) v += this.tileValue(x, y);
+    return Math.round(v * LAND.lotPremium);
+  }
+
+  /**
+   * A building changed hands: its lot goes with it (if it was the seller's). On a big stretch
+   * of land — or one with more of the seller's buildings — only the building's own lot is cut
+   * out and goes with it; the seller keeps the rest.
+   */
   buildingSold(buildingId, from, to) {
     const lot = this.lotOf(buildingId);
     if (!lot || this.owner(lot) !== from) return;
-    // Only if nothing else of the seller's stands on it.
-    if (this.buildingsOn(lot).some((b) => b.id !== buildingId && this.sim.property.rec(b.id)?.owner === from)) return;
-    this.transfer(lot, to, 'with_building');
+    const b = this.world.buildings[buildingId];
+    const p = this.parcel(lot);
+    const m = LAND.lotMargin;
+    const others = this.buildingsOn(lot).some((o) => o.id !== buildingId && this.sim.property.rec(o.id)?.owner === from);
+    if (!others && p.n <= (b.w + 2 * m) * (b.h + 2 * m) * 2) {
+      this.transfer(lot, to, 'with_building');
+      return;
+    }
+    const id = `l${this.S.next++}`;
+    const op = { op: 'carve', id, x1: b.tx - m, y1: b.ty - m, x2: b.tx + b.w - 1 + m, y2: b.ty + b.h - 1 + m, only: [lot] };
+    if (!applyOp(this.P, op)) return;
+    this.S.ops.push(op);
+    this.S.plots[id] = { owner: to, since: this.sim.time.day, how: 'with_building', forSale: false, hist: [{ owner: from, from: this.rec(lot)?.since ?? 0, how: 'split' }] };
+    this.cache.delete(lot);
+    if (from === 'player' || to === 'player') this.syncPlayerLand();
+    this.sim.bus.emit('land:changed', id);
   }
 
   // ------------------------------------------------------------------ what it's worth
@@ -390,13 +419,13 @@ export class TerritorySystem {
     if (by === 'player') {
       sim.progression.addXp(40);
       sim.progression.addReputation(2);
-      sim.chronicle('chronicle.player_land', { parcel: id });
+      sim.chronicle('chronicle.player_land', { plot: id });
       sim.bus.emit('player:changed');
-      if (seller) sim.memory.remember(seller, 'sold_land_to_player', { who: 'player', params: { parcel: id } });
+      if (seller) sim.memory.remember(seller, 'sold_land_to_player', { who: 'player', params: { plot: id } });
     } else {
       const n = sim.npcs.byId(by);
-      sim.memory.remember(n, 'bought_land', { params: { parcel: id } });
-      sim.chronicle('chronicle.npc_bought_land', { npc: n.id, gender: n.gender, parcel: id });
+      sim.memory.remember(n, 'bought_land', { params: { plot: id } });
+      sim.chronicle('chronicle.npc_bought_land', { npc: n.id, gender: n.gender, plot: id });
     }
     return { ok: true, price: chk.price };
   }

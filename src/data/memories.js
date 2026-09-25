@@ -129,6 +129,8 @@ export const MEMORY_KINDS = {
   arrived_village: { imp: 5, val: 2 },
   friend_left: { imp: 3, val: -2 },
   player_helped_build: { imp: 3, val: 3, bond: { f: 6, t: 10, r: 6 }, merge: 14, share: true },
+  bought_land: { imp: 4, val: 3 },
+  sold_land_to_player: { imp: 3, val: 1, bond: { t: 3 } },
 
   // ---- disasters
   home_flood: { imp: 4, val: -3 },

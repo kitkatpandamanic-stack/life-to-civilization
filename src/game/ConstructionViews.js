@@ -1,6 +1,7 @@
 /**
  * ConstructionViews — what land and construction look like in the world:
  *   • corner stakes around every plot (gold ones on land you own) and a flag on your signs
+ *   • a line along the edge of all your land, and around the land you're looking at
  *   • construction sites that visibly progress: foundation → frame → walls → roof
  *   • material piles next to the site as materials are delivered
  *   • a progress bar when you're nearby, and dust when a new stage is reached
@@ -24,6 +25,8 @@ export class ConstructionViews {
     this.stakes = [];
     this.bars = scene.add.graphics().setDepth(DEPTH.WORLD_UI);
     this.dust = scene.add.particles(0, 0, 'smoke', { speed: { min: 20, max: 60 }, lifespan: 900, scale: { start: 0.6, end: 1.4 }, alpha: { start: 0.5, end: 0 }, emitting: false }).setDepth(DEPTH.WORLD_UI - 2);
+    this.bounds = scene.add.graphics().setDepth(DEPTH.TUFTS + 1);
+    this.shown = null;
     this.drawPlots();
     for (const c of sim.construction.sites()) this.createSite(c);
     this.unsubs = [
@@ -39,6 +42,7 @@ export class ConstructionViews {
   drawPlots() {
     for (const s of this.stakes) s.destroy();
     this.stakes = [];
+    this.drawBounds();
     for (const p of PLOTS) {
       const owned = this.sim.land.isOwned(p.id);
       const tex = owned ? 'plot_stake_owned' : 'plot_stake';
@@ -50,6 +54,37 @@ export class ConstructionViews {
         this.stakes.push(this.scene.add.image(sx * TS + 22, sy * TS + 10, 'owner_flag').setOrigin(0, 1).setDepth(sy * TS + 31));
       }
     }
+  }
+
+  /** The edges of your land (gold), and of the land open in the land panel (white). */
+  drawBounds() {
+    const g = this.bounds;
+    const T2 = this.sim.territory;
+    g.clear();
+    if (!T2) return;
+    for (const id of this.sim.state.land.owned) this.outline(id, 0xffd24a, 0.75, 2);
+    if (this.shown) this.outline(this.shown, 0xffffff, 0.9, 3);
+  }
+
+  outline(id, color, alpha, width) {
+    const T2 = this.sim.territory;
+    const g = this.bounds;
+    g.lineStyle(width, color, alpha);
+    const inset = width / 2;
+    for (const [x, y] of T2.tiles(id)) {
+      const px = x * TS;
+      const py = y * TS;
+      if (!T2.contains(id, x, y - 1)) g.lineBetween(px, py + inset, px + TS, py + inset);
+      if (!T2.contains(id, x, y + 1)) g.lineBetween(px, py + TS - inset, px + TS, py + TS - inset);
+      if (!T2.contains(id, x - 1, y)) g.lineBetween(px + inset, py, px + inset, py + TS);
+      if (!T2.contains(id, x + 1, y)) g.lineBetween(px + TS - inset, py, px + TS - inset, py + TS);
+    }
+  }
+
+  /** Outline a piece of land while you look at it (null to stop). */
+  showParcel(id) {
+    this.shown = id;
+    this.drawBounds();
   }
 
   // ------------------------------------------------------------------ sites
@@ -177,5 +212,6 @@ export class ConstructionViews {
 
   destroy() {
     this.unsubs.forEach((u) => u());
+    this.bounds.destroy();
   }
 }

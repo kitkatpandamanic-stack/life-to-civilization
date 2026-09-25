@@ -322,7 +322,10 @@ export class StructureSystem {
     if (!r) return [];
     const F = FAMILIES[r.fam];
     const out = [];
-    const add = (job) => out.push({ job, cost: this.cost(id, job), check: this.check(id, job, by) });
+    const add = (job) => {
+      const check = this.check(id, job, by);
+      out.push({ job, cost: check.cost || this.cost(id, job), check }); // check.cost includes land it would grow onto
+    };
     if (r.lvl < maxLevel(r.fam)) add({ type: 'level', to: r.lvl + 1 });
     for (const m of F.modules) {
       const d = MODULES[m];
@@ -381,7 +384,7 @@ export class StructureSystem {
     if (this.works(id)) return { ok: false, reason: 'works_underway' };
     const pr = sim.property.rec(id);
     if (pr?.ruined) return { ok: false, reason: 'restore_first' };
-    const cost = this.cost(id, job);
+    let cost = this.cost(id, job);
     if (!cost) return { ok: false, reason: 'cant_improve' };
     for (const tech of cost.tech || []) if (!sim.tech?.has(tech)) return { ok: false, reason: 'need_tech', params: { tech } };
     if (cost.anyTech && !cost.anyTech.some((t) => sim.tech?.has(t))) return { ok: false, reason: 'need_tech', params: { tech: cost.anyTech[0] } };
@@ -410,18 +413,28 @@ export class StructureSystem {
     if (job.type === 'renovate' && this.quality(id) >= this.qualityCap(id) - 3) return { ok: false, reason: 'no_renovation_needed' };
     // Room to grow: the new footprint must fit on free ground its owner may use.
     const grow = this.growthOf(id, job);
-    if (grow && !this.newFootprint(id, grow, by)) return { ok: false, reason: 'no_room', params: { n: grow.cols || grow.rows } };
+    const fp = grow ? this.newFootprint(id, grow, by) : null;
+    if (grow && !fp) return { ok: false, reason: 'no_room', params: { n: grow.cols || grow.rows } };
+    // Growing onto ground that isn't yours yet: the strip is bought from the village with the work.
+    const land = fp ? this.landPrice(fp, by) : 0;
+    if (land) cost = { ...cost, land };
     if (by === 'player') {
       const p = sim.state.player;
       const need = Math.max(0, (cost.minSkill || 0) - (Mod.perk(p, 'architect') ? 2 : 0));
       if (need && skill(p, 'construction') < need) return { ok: false, reason: 'need_skill', params: { skill: 'construction', level: need } };
       if (!sim.progression.hasUnlock('construction')) return { ok: false, reason: 'locked', params: { level: sim.progression.unlockLevel('construction') } };
-      if (p.money < cost.money) return { ok: false, reason: 'no_money', params: { money: cost.money } };
+      if (p.money < cost.money + land) return { ok: false, reason: 'no_money', params: { money: cost.money + land } };
     } else {
       const purse = this.purseOf(id, by);
-      if (!purse || purse.get() < this.estimate(cost) * WORKS.npcMoneyCushion) return { ok: false, reason: 'no_money', params: { money: this.estimate(cost) } };
+      if (!purse || purse.get() < this.estimate(cost) * WORKS.npcMoneyCushion + land) return { ok: false, reason: 'no_money', params: { money: this.estimate(cost) + land } };
     }
     return { ok: true, cost };
+  }
+
+  /** The price of the land a new footprint needs that its owner doesn't have yet. */
+  landPrice(fp, by) {
+    const T2 = this.sim.territory;
+    return T2 ? T2.lotPrice(by, fp.tx, fp.ty, fp.tx + fp.w - 1, fp.ty + fp.h - 1) : 0;
   }
 
   /** A well, a pump or the river close enough for a washroom. */
@@ -467,7 +480,7 @@ export class StructureSystem {
     return null;
   }
 
-  /** Can this tile be built on by this owner? (Land rules — see TerritorySystem once there is one.) */
+  /** Can this tile be built on by this owner? (Land rules: TerritorySystem.) */
   groundOk(x, y, by) {
     const world = this.world;
     if (!world.inBounds(x, y)) return false;
@@ -478,10 +491,10 @@ export class StructureSystem {
     return this.landOk(x, y, by);
   }
 
-  /** May this owner build on this tile? */
+  /** May this owner build on this tile — their land, or land the village will sell them with the work? */
   landOk(x, y, by) {
     const T2 = this.sim.territory;
-    if (T2) return T2.mayBuild(by, x, y);
+    if (T2) return T2.mayAcquire(by, x, y);
     const plot = this.sim.land.plotAt(x, y);
     if (!plot) return true;
     if (by === 'player') return this.sim.land.isOwned(plot.id);
@@ -547,6 +560,12 @@ export class StructureSystem {
     const cost = chk.cost;
     const grow = this.growthOf(id, job);
     const fp = grow ? this.newFootprint(id, grow, by) : null;
+    // The ground it grows onto becomes the owner's (paid to the village).
+    if (fp && sim.territory && cost.land && sim.territory.acquireLot(by === 'village' ? 'village' : by, fp.tx, fp.ty, fp.tx + fp.w - 1, fp.ty + fp.h - 1, { pay: false }) >= 0) {
+      if (by === 'player') sim.state.player.money -= cost.land;
+      else this.purseOf(id, by)?.pay(cost.land);
+      sim.territory.payTo('village', cost.land);
+    }
     let budget = 0;
     let required = { ...cost.materials };
     if (by === 'player') {

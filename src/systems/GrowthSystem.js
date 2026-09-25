@@ -56,8 +56,9 @@ export class GrowthSystem {
 
   // ------------------------------------------------------------------ lots
 
-  /** Can a w×h building (plus margin and a free door tile) go here? */
-  lotFree(tx, ty, w, h) {
+  /** Can a w×h building (plus margin and a free door tile) go here — on land this owner has or can get? */
+  lotFree(tx, ty, w, h, by = 'village') {
+    const T2 = this.sim.territory;
     const world = this.sim.world;
     const m = G.lotMargin;
     for (let y = ty - m; y < ty + h + m; y++) {
@@ -69,6 +70,8 @@ export class GrowthSystem {
         if (inside && [T.WATER, T.DEEP, T.CLIFF, T.MOUNTAIN, T.FARMLAND, T.ROAD, T.PLAZA, T.BRIDGE].includes(tile)) return false;
         if (!inside && [T.WATER, T.DEEP, T.CLIFF].includes(tile)) return false;
         if (this.sim.land.plotAt(x, y)) return false; // plots are for sale to you
+        // The building itself goes on land they own or the village will sell them; nobody builds hard against your land.
+        if (T2 && (inside ? !T2.mayAcquire(by, x, y) : T2.ownerAt(x, y) === 'player')) return false;
         if (this.sim.state.fields[`${x},${y}`]) return false;
       }
     }
@@ -97,24 +100,24 @@ export class GrowthSystem {
   }
 
   /** The best free lot for a building of this type, near a point. */
-  findLot(type, near = PLAZA_C) {
+  findLot(type, near = PLAZA_C, by = 'village') {
     const def = VILLAGE_BUILDINGS[type];
     const reach = G.maxLotDistance + Math.floor(this.sim.state.npcs.length / 6);
     let best = null;
     for (let r = 3; r <= reach; r += 1) {
       for (let dy = -r; dy <= r; dy++) {
-        for (const dx of [-r, r]) this.tryLot(def, near.tx + dx, near.ty + dy, near, (lot) => (best = !best || lot.score < best.score ? lot : best));
+        for (const dx of [-r, r]) this.tryLot(def, near.tx + dx, near.ty + dy, near, (lot) => (best = !best || lot.score < best.score ? lot : best), by);
       }
       for (let dx = -r + 1; dx < r; dx++) {
-        for (const dy of [-r, r]) this.tryLot(def, near.tx + dx, near.ty + dy, near, (lot) => (best = !best || lot.score < best.score ? lot : best));
+        for (const dy of [-r, r]) this.tryLot(def, near.tx + dx, near.ty + dy, near, (lot) => (best = !best || lot.score < best.score ? lot : best), by);
       }
       if (best && r > Math.hypot(best.tx - near.tx, best.ty - near.ty) + 4) break;
     }
     return best;
   }
 
-  tryLot(def, tx, ty, near, take) {
-    if (!this.lotFree(tx, ty, def.w, def.h)) return;
+  tryLot(def, tx, ty, near, take, by) {
+    if (!this.lotFree(tx, ty, def.w, def.h, by)) return;
     const door = { tx: tx + Math.floor(def.w / 2), ty: ty + def.h };
     const road = this.roadDistance(door.tx, door.ty);
     if (road === Infinity) return;
@@ -209,7 +212,8 @@ export class GrowthSystem {
   }
 
   start(owner, type, purpose, near, extra = {}) {
-    const lot = this.findLot(type, near);
+    const by = owner === 'village' ? 'village' : owner.id;
+    const lot = this.findLot(type, near, by);
     if (!lot) return null;
     const cost = this.estimate(type);
     let budget = 0;
@@ -220,6 +224,7 @@ export class GrowthSystem {
       budget = Math.min(owner.money, cost);
       owner.money -= budget;
     }
+    this.buyLot(owner, type, lot, cost); // after the building's budget is put by: the land never starves the build
     const c = this.cons.startProject({ owner: owner === 'village' ? 'village' : owner.id, type, tx: lot.tx, ty: lot.ty, purpose, budget, ...extra });
     this.clearLot(c);
     if (owner !== 'village') {
@@ -229,6 +234,30 @@ export class GrowthSystem {
       this.sim.chronicle('chronicle.village_building', { vbuilding: type });
     }
     return c;
+  }
+
+  /**
+   * The ground for a new building: the lot (footprint and a strip around it) becomes the
+   * builder's. Villagers pay the village for it out of their savings — what's left once the
+   * building's budget is put by, keeping enough back for the materials that always run short.
+   * Those who can't pay are granted the lot: the village doesn't turn away a family that
+   * needs a roof. (The village builds on its own land.)
+   */
+  buyLot(owner, type, lot, cost = 0) {
+    const T2 = this.sim.territory;
+    if (!T2) return;
+    const def = VILLAGE_BUILDINGS[type];
+    const m = G.lotMargin;
+    const rect = [lot.tx - m, lot.ty - m, lot.tx + def.w - 1 + m, lot.ty + def.h - 1 + m];
+    if (owner === 'village') {
+      T2.acquireLot('village', ...rect, { pay: false });
+      return;
+    }
+    const price = T2.lotPrice(owner.id, ...rect);
+    const paid = Math.max(0, Math.min(price, Math.floor((owner.money - cost) * 0.5)));
+    owner.money -= paid;
+    T2.payTo('village', paid);
+    T2.acquireLot(owner.id, ...rect, { pay: false, price: paid, how: paid < price ? 'granted' : 'lot' });
   }
 
   /** Weekly: who needs to build, and who can? */

@@ -69,6 +69,14 @@ export function npcRole(sim, npc) {
   return cap(s);
 }
 
+/** What to call a piece of land: a signposted plot has a name; the rest are described ("Meadow No. 12"). */
+export function parcelName(sim, id) {
+  const np = sim?.territory?.nameParts(id);
+  if (!np || np.plot) return t(`plot.${id}`);
+  if (np.lot) return t('land_name.lot', { building: buildingLabel(sim, np.lot) });
+  return t(`land_name.${np.kind}`, { n: np.n });
+}
+
 export function resolveParams(sim, params = {}) {
   const out = { ...params };
   for (const [k, v] of Object.entries(params)) {
@@ -83,7 +91,7 @@ export function resolveParams(sim, params = {}) {
     else if (k === 'attr') out[k] = t(`attr.${v}.name`);
     else if (k === 'money') out[k] = fmtMoney(v);
     else if (k === 'hour' || k === 'hour2') out[k] = `${String(v).padStart(2, '0')}:00`;
-    else if (k === 'plot') out[k] = t(`plot.${v}`);
+    else if (k === 'plot') out[k] = parcelName(sim, v);
     else if (k === 'building_type') out[k] = t(`buildable.${v}.name`);
     else if (k === 'tier') out[k] = t(`home_tier.${v}`);
     else if (k === 'worker_rank') out[k] = t(`worker_rank.${v}`, { gender: params.gender });

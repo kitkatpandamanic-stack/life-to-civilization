@@ -217,7 +217,7 @@ export class LedgerSystem {
     let buildings = 0;
     for (const [id, r] of Object.entries(sim.property.all)) if (r.owner === 'player' && !r.ruined) buildings += sim.property.value(id);
     add('buildings', buildings);
-    add('land', (sim.land.owned || []).reduce((s, id) => s + (sim.land.price(id) || 0), 0));
+    add('land', sim.land.holdings().reduce((s, id) => s + (sim.land.price(id) || 0), 0));
     // A business's worth (its premises are already counted with your buildings).
     add('businesses', sim.holdings.mine().reduce((s, id) => {
       const b = sim.economy.biz(id);

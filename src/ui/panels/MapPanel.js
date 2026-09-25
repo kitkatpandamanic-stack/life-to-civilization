@@ -83,7 +83,7 @@ export class MapPanel extends Panel {
         <span><i class="lg home"></i>${escapeHtml(t('ui.map_home'))}</span>
       </div>
       ${legend ? `<div class="map-legend">${legend}</div>` : ''}
-      <div class="hint">${escapeHtml(t('map.click_hint'))}</div>
+      <div class="hint">${escapeHtml(t(L === 'ownership' ? 'map.click_hint_land' : 'map.click_hint'))}</div>
       ${this.settlementsHtml()}`;
   }
 
@@ -126,6 +126,11 @@ export class MapPanel extends Panel {
       const ty = ((e.clientY - r.top) / r.height) * this.sim.world.H;
       const b = this.sim.world.buildingList.find((o) => tx >= o.tx && tx < o.tx + o.w && ty >= o.ty - 0.5 && ty < o.ty + o.h + 0.5);
       if (b && this.sim.property.rec(b.id)) this.ui.openProperty(b.id);
+      // …or a piece of land, on the ownership map.
+      else if (this.layer === 'ownership') {
+        const id = this.sim.territory?.idAt(Math.floor(tx), Math.floor(ty));
+        if (id) this.ui.openLand(id);
+      }
     });
     this.draw();
   }
@@ -142,6 +147,30 @@ export class MapPanel extends Panel {
       ctx.globalAlpha = 1;
     };
     if (L === 'ownership') {
+      // Every piece of land, tinted by who owns it (nobody's land left bare), with the lines between them.
+      const T2 = sim.territory;
+      if (T2) {
+        const tint = { player: [OWNER_COLORS.player, 0.5], village: [OWNER_COLORS.village, 0.22], npc: [OWNER_COLORS.npc, 0.32] };
+        const W = sim.world.W;
+        for (let y = 0; y < sim.world.H; y++) {
+          for (let x = 0; x < W; x++) {
+            const id = T2.idAt(x, y);
+            if (!id) continue;
+            const o = T2.owner(id);
+            const k = o === 'player' || o === 'village' ? o : o ? 'npc' : null;
+            if (k) {
+              ctx.globalAlpha = tint[k][1];
+              ctx.fillStyle = tint[k][0];
+              ctx.fillRect(x * SCALE, y * SCALE, SCALE, SCALE);
+            }
+            ctx.globalAlpha = 0.35;
+            ctx.fillStyle = '#1a120a';
+            if (T2.idAt(x + 1, y) !== id) ctx.fillRect((x + 1) * SCALE - 1, y * SCALE, 1, SCALE);
+            if (T2.idAt(x, y + 1) !== id) ctx.fillRect(x * SCALE, (y + 1) * SCALE - 1, SCALE, 1);
+          }
+        }
+        ctx.globalAlpha = 1;
+      }
       for (const pl of PLOTS) {
         const mine = sim.land.isOwned(pl.id);
         ctx.strokeStyle = mine ? OWNER_COLORS.player : '#ffffff';

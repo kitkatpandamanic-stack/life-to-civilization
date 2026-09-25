@@ -40,6 +40,7 @@ import { InstitutePanel } from './panels/InstitutePanel.js';
 import { AffairsPanel } from './panels/AffairsPanel.js';
 import { itemTip } from './items.js';
 import { icon, condState } from './widgets.js';
+import { landHere } from './land.js';
 import { applySettings, uiScale } from './settings.js';
 import { ITEMS } from '../data/items.js';
 
@@ -90,6 +91,7 @@ export class UIManager {
       sim.bus.on('toast', (d) => this.toast(d)),
       sim.bus.on('player:levelup', (d) => this.showLevelUp(d)),
       onLanguageChange(() => this.onLanguage()),
+      sim.bus.on('land:changed', () => (this.landKey = null)),
       ...REFRESH_EVENTS.map((ev) => sim.bus.on(ev, () => this.queueRefresh())),
     ];
     this.updateHud();
@@ -141,7 +143,8 @@ export class UIManager {
     this.hudRight.innerHTML = `
       <div class="clock"></div>
       <div class="date"></div>
-      <div class="weather"></div>`;
+      <div class="weather"></div>
+      <button class="land-chip hidden"></button>`;
     this.q = {
       lvl: this.hudLeft.querySelector('.lvl'),
       name: this.hudLeft.querySelector('.pname'),
@@ -159,7 +162,10 @@ export class UIManager {
       clock: this.hudRight.querySelector('.clock'),
       date: this.hudRight.querySelector('.date'),
       weather: this.hudRight.querySelector('.weather'),
+      land: this.hudRight.querySelector('.land-chip'),
     };
+    // Whose land you're standing on — click for the land panel (and to buy it).
+    this.q.land.addEventListener('click', () => this.landId && this.openLand(this.landId));
     this.q.points.addEventListener('click', () => this.togglePanel('character'));
     this.hudLeft.querySelector('.portrait-ring').addEventListener('click', () => this.togglePanel('character'));
     this.q.healthVal = this.hudLeft.querySelector('.health .val');
@@ -227,6 +233,24 @@ export class UIManager {
     if (this.panel?.tick) this.panel.tick(delta);
   }
 
+  /** The land chip: the piece of land under your feet, whose it is, and whether it's for sale. */
+  updateLandChip() {
+    const sim = this.sim;
+    const me = sim.world.toTile(sim.state.player.x, sim.state.player.y);
+    const id = sim.territory?.idAt(me.tx, me.ty) ?? null;
+    const key = `${id}|${id && sim.territory.owner(id)}`;
+    if (key === this.landKey) return;
+    this.landKey = key;
+    this.landId = id;
+    const here = id ? landHere(sim, me.tx, me.ty) : null;
+    this.q.land.classList.toggle('hidden', !here);
+    if (!here) return;
+    this.q.land.classList.toggle('mine', here.owner === 'player');
+    this.q.land.classList.toggle('sale', here.forSale);
+    this.q.land.innerHTML = `<span class="lc-name">🏞️ ${escapeHtml(here.name)}</span><span class="lc-owner">${escapeHtml(here.text)}${here.forSale ? ` · ${escapeHtml(t('land_ui.for_sale_short'))}` : ''}</span>`;
+    this.q.land.dataset.tip = `<div class='tip-title'>${escapeHtml(here.name)}</div><div class='tip-sub'>${escapeHtml(t('land_ui.chip_tip'))}</div>`;
+  }
+
   updateHud() {
     const sim = this.sim;
     const p = sim.state.player;
@@ -277,6 +301,7 @@ export class UIManager {
       year: time.year,
     });
     q.weather.textContent = `${WEATHER_ICONS[sim.weather.type] || ''} ${t(`weather.${sim.weather.type}`)}`;
+    this.updateLandChip();
 
     const obj = sim.jobs.objective();
     if (obj) {
@@ -802,6 +827,7 @@ export class UIManager {
   }
 
   onLanguage() {
+    this.landKey = null;
     this.renderStatic();
     this.updateHud();
     if (this.panel) this.renderPanel();

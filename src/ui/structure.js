@@ -96,6 +96,8 @@ function jobReqs(sim, id, o) {
   const cost = o.cost;
   const rows = [];
   if (cost.money) rows.push({ ico: '💰', label: t('ui.money'), have: fmtMoney(Math.floor(p.money)), need: fmtMoney(cost.money), ok: p.money >= cost.money });
+  // It grows onto ground that isn't yours yet: that strip is bought from the village too.
+  if (cost.land) rows.push({ ico: '🏞️', label: t('structure.land_needed', { money: fmtMoney(cost.land) }), ok: p.money >= (cost.money || 0) + cost.land });
   const have = (item) => sim.inventory.count(item) + sim.home.storageCount(item);
   for (const [item, n] of Object.entries(cost.materials || {})) rows.push({ item, label: itemName(item), have: have(item), need: n, ok: have(item) >= n });
   if (cost.minSkill) rows.push({ ico: '🎓', label: t('ui.skill_level', { skill: t('skill.construction.name'), n: cost.minSkill }), ok: o.check.reason !== 'need_skill' });

@@ -12,7 +12,7 @@
  */
 import { Panel } from '../Panel.js';
 import { t, fmtMoney, npcName, itemName } from '../../i18n/i18n.js';
-import { escapeHtml, buildingLabel, villageName } from '../format.js';
+import { escapeHtml, buildingLabel, villageName, parcelName } from '../format.js';
 import { bar, icon, tabs, portrait, stat, statGrid, emptyState } from '../widgets.js';
 import { propBadges } from '../property.js';
 import { ITEMS } from '../../data/items.js';
@@ -249,7 +249,7 @@ export class AffairsPanel extends Panel {
         return `<div class="prop-row" data-action="building" data-id="${id}"><div><div class="prop-name">${escapeHtml(buildingLabel(sim, id))}<span class="muted small">${escapeHtml(lvl)}</span></div><div>${propBadges(sim, id)}</div></div><span class="muted small">${escapeHtml(rent)}</span><b>${escapeHtml(fmtMoney(P.value(id)))}</b></div>`;
       })
       .join('');
-    const land = (sim.land.owned || []).map((id) => this.kv(t(`plot.${id}`), escapeHtml(fmtMoney(sim.land.price(id))))).join('');
+    const land = sim.land.holdings().map((id) => `<div class="prop-row" data-action="land" data-id="${id}"><div><div class="prop-name">🏞️ ${escapeHtml(parcelName(sim, id))}</div><div class="muted small">${escapeHtml(t(`land_kind.${sim.land.info(id)?.kind || 'meadow'}`))} · ${escapeHtml(t('ui.tiles_n', { n: sim.land.plot(id)?.n || 0 }))}</div></div><span></span><b>${escapeHtml(fmtMoney(sim.land.price(id)))}</b></div>`).join('');
     const businesses = H.mine()
       .map((id) => {
         const b = E.biz(id);
@@ -334,6 +334,7 @@ export class AffairsPanel extends Panel {
     if (action === 'tab') this.tab = data.tab;
     if (action === 'period') this.period = data.p;
     if (action === 'building') this.ui.openProperty(data.id);
+    if (action === 'land') this.ui.openLand(data.id);
     if (action === 'business') this.ui.openEnterprise(data.id);
   }
 }

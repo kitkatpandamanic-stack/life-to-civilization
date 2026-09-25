@@ -77,7 +77,8 @@ export function targetSubtitle(scene, target) {
     return t(`ui.fish_${c > 0.55 ? 'plenty' : c > 0.3 ? 'some' : 'few'}`);
   }
   if (target.kind === 'decor' && target.type === 'land_sign') {
-    return sim.land.isOwned(target.plotId) ? t('ui.your_land') : t('ui.land_for_sale', { money: fmtMoney(sim.land.price(target.plotId)) });
+    const owner = sim.territory.owner(target.plotId);
+    return owner === 'player' ? t('ui.your_land') : owner === 'village' ? t('ui.land_for_sale', { money: fmtMoney(sim.land.price(target.plotId)) }) : ownerLabel(sim, owner);
   }
   if (target.kind === 'building') {
     if (sim.disasters?.fireAt(target.id)) return t('ui.on_fire');
