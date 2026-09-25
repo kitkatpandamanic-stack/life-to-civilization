@@ -14,7 +14,7 @@ import { BUSINESS_TYPES } from './businessTypes.js';
 export const FOUNDING_BUSINESSES = {
   store: {
     type: 'general_store', building: 'store', owner: 'vera', money: 600,
-    stock: { bread: 16, apple: 12, cheese: 6, potato: 8, carrot: 8, cabbage: 4, wheat_seeds: 20, carrot_seeds: 20, potato_seeds: 20, cabbage_seeds: 12, pumpkin_seeds: 8, watering_can: 2, wood: 12, stone: 10, clay: 4, wheat: 12, berries: 4, pumpkin: 2, planks: 4, stool: 1, chair: 1, table: 0 },
+    stock: { bread: 16, apple: 12, cheese: 6, potato: 8, carrot: 8, cabbage: 4, wheat_seeds: 20, carrot_seeds: 20, potato_seeds: 20, cabbage_seeds: 12, pumpkin_seeds: 8, watering_can: 2, wood: 12, stone: 10, clay: 4, wheat: 12, berries: 4, pumpkin: 2, planks: 4, bricks: 6, glass: 2, stool: 1, chair: 1, table: 0 },
   },
   tavern: {
     type: 'tavern', building: 'tavern', owner: 'boris', money: 300,

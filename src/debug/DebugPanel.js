@@ -104,6 +104,19 @@ export function installDebugPanel(dev) {
       const n = sim.state.npcs[Math.floor(Math.random() * sim.state.npcs.length)];
       dev.scene.ui.openInspect(n.id, 'learning');
     },
+    wspots: () => (showSpots = !showSpots),
+    wdog: (sim) => sim.workers.watchdog(),
+    hire3: (sim) => {
+      const look = sim.state.npcs[0].look;
+      for (let i = 0; i < 3; i++) {
+        const p = sim.state.player;
+        const n = sim.npcs.spawn({ age: 30, occupation: 'unemployed', look, money: 20, x: p.x + 20 * i, y: p.y + 30 });
+        n.met = true;
+        sim.workers.hire(n, 15);
+        const site = sim.construction.playerSites()[0];
+        sim.workers.assign(n.id, site ? { type: 'build', siteId: site.id } : { type: 'idle' });
+      }
+    },
     inspect: (sim) => {
       const n = sim.state.npcs[Math.floor(Math.random() * sim.state.npcs.length)];
       dev.scene.ui.openInspect(n.id);
@@ -145,6 +158,63 @@ export function installDebugPanel(dev) {
     return rows.map(([k, v]) => `<div class="dbg-row"><span>${k}</span><b>${v}</b></div>`).join('');
   }
 
+  /** Your workers, for the worker debugger: state, task, spot, progress, time in state. */
+  function workersHtml(sim) {
+    const W = sim.workers;
+    const now = sim.time.total;
+    const rows = W.list().map((c) => {
+      const n = sim.npcs.byId(c.npcId);
+      if (!n) return '';
+      W.settings(c);
+      const t = n.task;
+      const prog = t?.stage === 'working' && t.until ? `${Math.max(0, Math.round(100 - ((t.until - now) / 60) * 100))}%` : '';
+      const path = sim.npcs.paths.get(n.id);
+      const next = W.candidates(n, c).find((x) => x.key !== c.task?.key);
+      return `<div class="dbg-w"><b>${n.id}</b> ${c.state} · ${t?.type || '-'}:${t?.stage || '-'} ${prog}<br>task ${c.task?.key || '—'} spot ${c.task?.spot ? `${c.task.spot.tx},${c.task.spot.ty}` : '—'} · path ${path ? path.length : 'none'} · ${Math.round((now - (c.stateSince ?? now)))}m in state · unstuck ${c.unstuck || 0}${c.lastStuck ? ` (${c.lastStuck.why})` : ''}<br>next ${next?.key || '—'} · blocked ${Object.keys(c.blocked).length} · queue ${c.queue.join(',') || '—'}
+        <div>${['reset', 'cancel', 'next', 'teleport'].map((a) => `<button data-dbgw="${a}:${n.id}">${a}</button>`).join('')}</div></div>`;
+    });
+    return rows.length ? `<div class="dbg-head"><b>Workers</b> <button data-dbg="wspots">${showSpots ? 'hide' : 'show'} spots & paths</button> <button data-dbg="wdog">run watchdog</button></div>${rows.join('')}` : '';
+  }
+
+  // Worker spots, reservations and paths drawn over the world (debug only).
+  let showSpots = false;
+  let overlay = null;
+  function drawSpots() {
+    const sim = dev.sim;
+    const scene = dev.scene;
+    if (!showSpots || !sim || !scene) {
+      overlay?.clear();
+      return;
+    }
+    if (overlay && overlay.scene !== scene) overlay = null; // a loaded game has a new scene
+    overlay ??= scene.add.graphics().setDepth(999999);
+    overlay.clear();
+    const TS = 32;
+    const W = sim.workers;
+    const colors = [0xff6b5a, 0x6fbf6a, 0x8fc3e8, 0xffcf5a, 0xc3a0ff, 0xffffff];
+    for (const site of sim.construction.playerSites()) {
+      overlay.lineStyle(1, 0xffffff, 0.6);
+      for (const s of W.spots(site)) overlay.strokeRect(s.tx * TS + 4, s.ty * TS + 4, TS - 8, TS - 8);
+    }
+    W.list().forEach((c, i) => {
+      const n = sim.npcs.byId(c.npcId);
+      if (!n) return;
+      const col = colors[i % colors.length];
+      if (c.task?.spot) {
+        overlay.fillStyle(col, 0.45).fillRect(c.task.spot.tx * TS + 2, c.task.spot.ty * TS + 2, TS - 4, TS - 4);
+        overlay.lineStyle(2, col, 0.9).lineBetween(n.x, n.y, c.task.spot.tx * TS + TS / 2, c.task.spot.ty * TS + TS / 2);
+      }
+      const path = sim.npcs.paths.get(n.id);
+      if (path?.length) {
+        overlay.lineStyle(2, col, 0.5).beginPath();
+        overlay.moveTo(n.x, n.y);
+        for (const p of path) overlay.lineTo(p.tx * TS + TS / 2, p.ty * TS + TS / 2);
+        overlay.strokePath();
+      }
+    });
+  }
+  setInterval(drawSpots, 300);
+
   function render() {
     const sim = dev.sim;
     if (!sim) {
@@ -165,8 +235,9 @@ export function installDebugPanel(dev) {
         ${btn('contact', 'Contact all settlements')}${btn('week', 'Settlements: a week')}${btn('caravans', 'Send caravans')}${btn('horse', 'Get a horse cart')}
         ${btn('election', 'Election now')}${btn('headman', 'Make me headman')}${btn('fund', 'Fill civic fund')}${btn('renown', '+20 renown')}
         ${btn('edu_school', 'Build school')}${btn('edu_trade', 'Build trade school')}${btn('edu_institute', 'Build institute')}${btn('edu_teacher', 'Make a teacher')}${btn('edu_enrol', 'Enrol now')}
-        ${btn('edu_week', 'Education: a week')}${btn('edu_year', 'School year ends')}${btn('edu_research', '+20 research')}${btn('edu_spread', 'Know-how spreads')}${btn('edu_talent', 'Talented pupil')}${btn('edu_scholar', 'Scholar arrives')}${btn('edu_inspect', 'Inspect learning')}
+        ${btn('hire3', 'Hire 3 workers')}${btn('edu_week', 'Education: a week')}${btn('edu_year', 'School year ends')}${btn('edu_research', '+20 research')}${btn('edu_spread', 'Know-how spreads')}${btn('edu_talent', 'Talented pupil')}${btn('edu_scholar', 'Scholar arrives')}${btn('edu_inspect', 'Inspect learning')}
       </div>
+      ${workersHtml(sim)}
       <div class="dbg-sel">
         <select data-sel="event"><option value="">Event…</option>${Object.keys(EVENT_DEFS).map((k) => `<option>${k}</option>`).join('')}</select>
         <select data-sel="weather"><option value="">Weather…</option>${WEATHERS.map((k) => `<option>${k}</option>`).join('')}</select>
@@ -175,6 +246,32 @@ export function installDebugPanel(dev) {
   }
 
   el.addEventListener('click', (e) => {
+    // The worker debugger's buttons: reset / cancel / next / teleport one worker.
+    const w = e.target.closest('[data-dbgw]')?.dataset.dbgw;
+    if (w && dev.sim) {
+      const [a, id] = w.split(':');
+      const sim = dev.sim;
+      const W = sim.workers;
+      const c = W.contract(id);
+      const n = sim.npcs.byId(id);
+      if (c && n) {
+        if (a === 'reset' || a === 'cancel' || a === 'next') {
+          sim.npcs.paths.delete(id);
+          W.release(c);
+          if (a !== 'cancel' && n.task?.type === 'work') W.next(n);
+          else if (n.task) n.task.stage = 'idle_wait';
+        }
+        if (a === 'teleport' && c.task?.spot) {
+          const p = sim.world.tileCenter(c.task.spot.tx, c.task.spot.ty);
+          sim.npcs.paths.delete(id);
+          n.x = p.x;
+          n.y = p.y;
+          sim.npcs.arrive(n);
+        }
+      }
+      render();
+      return;
+    }
     const id = e.target.closest('[data-dbg]')?.dataset.dbg;
     if (id && dev.sim) {
       actions[id](dev.sim);
@@ -223,6 +320,8 @@ export function installDebugPanel(dev) {
     .debug-panel .dbg-row b { color: #ffd27a; text-align: right; word-break: break-word; }
     .debug-panel .dbg-btns { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
     .debug-panel button, .debug-panel select { font: 11px monospace; background: #223; color: #dde; border: 1px solid #556; border-radius: 4px; padding: 3px 6px; cursor: pointer; }
-    .debug-panel .dbg-sel { display: flex; gap: 4px; flex-wrap: wrap; }`;
+    .debug-panel .dbg-sel { display: flex; gap: 4px; flex-wrap: wrap; }
+    .debug-panel .dbg-w { border-top: 1px solid #334; padding: 4px 0; font-size: 11px; color: #bcc; }
+    .debug-panel .dbg-w b { color: #ffd27a; }`;
   document.head.appendChild(css);
 }

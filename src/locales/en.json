@@ -455,6 +455,10 @@
     "gemstone": {
       "name": "Gemstone",
       "desc": "A clear blue stone from deep in a cave. Traders pay well for it."
+    },
+    "glass": {
+      "name": "Glass",
+      "desc": "Window panes, brought in from the towns. Better houses need them."
     }
   },
   "item_cat": {
@@ -702,7 +706,8 @@
     "attend_course": "Attend your {field} lesson (2 h)",
     "give_lesson": "Give a lesson (2 h)",
     "read_library": "Read at the library (1 h)",
-    "work_beside": "Work beside {npc} (half a day)"
+    "work_beside": "Work beside {npc} (half a day)",
+    "improve_building": "Improve the building…"
   },
   "reason": {
     "nothing_here": "Nothing to do here.",
@@ -859,7 +864,19 @@
     "no_lot": "There's nowhere to build it.",
     "no_library": "There's no library here.",
     "cant_read": "You can't read well enough yet.",
-    "cant_study_here": "You can't study that here (yet)."
+    "cant_study_here": "You can't study that here (yet).",
+    "cant_improve": "That can't be done to this building.",
+    "works_underway": "Work is already going on here.",
+    "restore_first": "It's a ruin — restore it first.",
+    "need_tech": "The village doesn't know how yet ({tech}).",
+    "need_quality": "It must be at least {n}% good first.",
+    "need_blevel": "The building must be level {n} first.",
+    "have_module": "It already has that.",
+    "no_slots": "No room inside for more ({n} is all this level has space for) — build it up a level first.",
+    "need_water": "Needs a well or water nearby.",
+    "need_road": "Needs a road to the door.",
+    "no_room": "No free ground beside it ({n} more tiles needed) — it needs clear land its owner may build on.",
+    "no_renovation_needed": "It's as good as it can be at this level."
   },
   "toast": {
     "hungry": "You're getting hungry. Press Q to eat.",
@@ -1016,7 +1033,10 @@
     "study_done_read": "An hour with the books ({field}).",
     "study_done_university": "Another week of lectures ({n} so far).",
     "study_finished_university": "You've taken your degree in {field}!",
-    "course_signed": "You've signed up for the {field} course at {building}."
+    "course_signed": "You've signed up for the {field} course at {building}.",
+    "works_started": "Work begins on {building}: {works}.",
+    "works_done": "Finished! {building}: {works}.",
+    "worker_levelled": "{npc} is getting good at this — level {n}."
   },
   "objective": {
     "harvest": "Harvest ripe wheat in the farm fields ({have}/{qty})",
@@ -1380,7 +1400,18 @@
     "scholarship_offered": "The village will pay for {npc}'s studies at a university. A chance like that doesn't come twice.",
     "scholar_arrives": "{npc}, a scholar from {settlement}, has come to work at the valley's institute.",
     "scholar_arrives_far": "{npc}, a scholar from far away, has come to work at the valley's institute.",
-    "new_university": "{settlement} has founded a university of its own — best at {field}."
+    "new_university": "{settlement} has founded a university of its own — best at {field}.",
+    "player_improved": "You had work done on {building}: {works}.",
+    "building_improved": {
+      "m": "{npc} had {building} built up — it's now a {slevel}.",
+      "f": "{npc} had {building} built up — it's now a {slevel}."
+    },
+    "village_improved": "The village enlarged {building} — it's now a {slevel}.",
+    "works_abandoned": "Work on {building} was given up half done.",
+    "npc_bought_land": {
+      "m": "{npc} bought a plot of land.",
+      "f": "{npc} bought a plot of land."
+    }
   },
   "event": {
     "good_harvest": {
@@ -1522,7 +1553,8 @@
     "points": "+{a} attribute point, +{s} skill point",
     "title": "New title: {title}",
     "job": "New job available: {job}",
-    "hint": "Press C to spend your points."
+    "hint": "Press C to spend your points.",
+    "from_to": "Level {a} → {b}"
   },
   "status": {
     "sleep": "Sleeping… zZz",
@@ -1563,7 +1595,7 @@
     },
     "numbers": {
       "keys": "1–9",
-      "what": "Choose an option in menus and conversations"
+      "what": "Take a tool in hand · choose an option in menus"
     },
     "eat": {
       "keys": "Q",
@@ -1572,6 +1604,18 @@
     "esc": {
       "keys": "Esc",
       "what": "Close window / game menu"
+    },
+    "inspect_key": {
+      "keys": "F",
+      "what": "Look closer at a person or a building"
+    },
+    "more_keys": {
+      "keys": "B · K · L",
+      "what": "Build · Workers · Your affairs"
+    },
+    "tools_keys": {
+      "keys": "Q",
+      "what": "Eat something"
     }
   },
   "titlescreen": {
@@ -1586,7 +1630,7 @@
     "intro": "You arrive in a small river village with $25, a worn axe and two loaves of bread. You rent a leaky shack by the river. Everything else is up to you.",
     "start": "Begin",
     "back": "Back",
-    "footer": "Phase 1–2 prototype · WASD to move · E to interact",
+    "footer": "WASD to move · E to interact · Esc for the menu",
     "default_name_f": "Katya",
     "gender_m": "♂ Man",
     "gender_f": "♀ Woman"
@@ -1813,7 +1857,7 @@
     "promote": "Promote",
     "fire_confirm": "Fire them?",
     "fire": "Fire",
-    "workers_hint": "Workers bring goods to your storage shed (or home). Pay them well and they work better; ignore them and they quit. Supervisors boost the whole team.",
+    "workers_hint": "Workers find their own work: the job you give them comes first, and when there is none they help wherever they are needed — fetching or buying missing materials, felling trees, repairing your buildings. They get better at what they do. Pay them well and they work better; ignore them and they quit.",
     "biz_overview": "Overview",
     "biz_production": "Production",
     "biz_books": "Books",
@@ -1970,7 +2014,44 @@
     "job_haul": "Carry {item} ×{qty} to a building site",
     "jobs_available": "You can take {n} of {total} jobs right now.",
     "req_tool_bow": "Own a bow",
-    "req_tool_fishing_rod": "Own a fishing rod"
+    "req_tool_fishing_rod": "Own a fishing rod",
+    "hours_n": "{n} h",
+    "tier": "Tier",
+    "tier_n": "Tier {n}",
+    "in_hand": "in hand",
+    "used_for": "Used for",
+    "used_building": "Building",
+    "upgrade_path": "Upgrade path",
+    "next_tool": "Next: {item}",
+    "next_tool_gain": "Works {eff}% faster · lasts {dur} uses",
+    "next_tool_buy": "The next one up ({item}) can be bought from traders.",
+    "best_tool": "This is the best of its kind.",
+    "repair_at_smith": "Worn down — the smith can repair it.",
+    "skill_level": "{skill} level {n}",
+    "needs_tool": "Tool: {tool}",
+    "key_n": "Key: {key}",
+    "n_actions": "{n} things to do",
+    "quit_confirm": "Leave to the title screen? Unsaved progress since you last slept will be lost.",
+    "ui_scale": "Interface size",
+    "ui_scale_hint": "Makes the panels, text and HUD bigger or smaller.",
+    "fullscreen": "Full screen",
+    "fullscreen_hint": "Fill the whole screen (Esc leaves it).",
+    "fullscreen_on": "Go full screen",
+    "fullscreen_off": "Leave full screen",
+    "filter_all": "All",
+    "inventory_empty_title": "Your pockets are empty",
+    "inventory_empty_text": "Gather wood and stone, buy food at the store, or take things from your chest at home.",
+    "sort_by": "Sort:",
+    "sort_kind": "Kind",
+    "sort_name": "Name",
+    "sort_value": "Value",
+    "sort_weight": "Weight",
+    "take_in_hand": "Take in hand",
+    "in_hand_now": "In your hand",
+    "money": "Money",
+    "improve": "Improve",
+    "sell_confirm": "Put it up for sale (it's worth about {money})?",
+    "no_workers_title": "Hire your first worker"
   },
   "dialog": {
     "intro": [
@@ -2607,7 +2688,10 @@
     "going_to_post": "Off to work",
     "at_post_doctor": "Seeing patients",
     "at_post_engineer": "Working on the village's plans",
-    "at_post_researcher": "At work in the institute"
+    "at_post_researcher": "At work in the institute",
+    "waiting_materials": "Waiting for materials",
+    "repairing": "Repairing",
+    "buying_materials": "Buying materials"
   },
   "schedule": {
     "wake": "Wake up",
@@ -2853,7 +2937,7 @@
     "manager": "Manager"
   },
   "assignment": {
-    "idle": "Wait for orders",
+    "idle": "Any work",
     "gather_wood": "Gather wood",
     "gather_stone": "Gather stone",
     "build": "Build",
@@ -3071,7 +3155,8 @@
     "sponsored_by_player": "You paid for their studies in {settlement}.",
     "took_player_apprentice": "Took you on as an apprentice ({field}).",
     "taught_player": "Gave you a lesson in {field}.",
-    "player_journeyman": "Saw you through your apprenticeship ({field})."
+    "player_journeyman": "Saw you through your apprenticeship ({field}).",
+    "improved_building": "Had {building} improved."
   },
   "talk": {
     "deflect": [
@@ -3511,6 +3596,10 @@
       "player_journeyman": [
         "Proud of you. You were a good apprentice.",
         "You learned it properly. That's rare."
+      ],
+      "improved_building": [
+        "We finally had the house done up. You wouldn't know it.",
+        "Built on at last — there's room to breathe now."
       ]
     },
     "work": {
@@ -4383,7 +4472,8 @@
     "home": "a home for the family",
     "rental": "a house to let",
     "shop": "business premises",
-    "public": "for the whole village"
+    "public": "for the whole village",
+    "works": "improving the building"
   },
   "district": {
     "name": "{where} {type}",
@@ -5112,7 +5202,13 @@
     "waystation": {
       "name": "Old waystation",
       "desc": "A derelict inn on the old road out of the valley, where travellers once changed horses."
-    }
+    },
+    "hire_title": "Builders",
+    "hire_n": "Pay builders {money}",
+    "buy_mats_on": "They buy the materials ✓",
+    "buy_mats_off": "They buy the materials",
+    "budget_left": "Money left for the builders",
+    "hire_hint": "Put money down and the builders' firms ({n}) and people looking for work ({n2}) come and work on it by the hour — and buy the materials, if you tick that. What's left comes back to you when it's done."
   },
   "site_state": {
     "unknown": "Unexplored",
@@ -5305,7 +5401,25 @@
     "settlements_hint": "Trade journeys and caravans leave from the waymark on the west road. 🤝 = trading with the valley.",
     "known_for": "known for {list}",
     "university": "university: best at {field}",
-    "literacy": "literacy {n}%"
+    "literacy": "literacy {n}%",
+    "layer_normal": "Normal",
+    "layer_ownership": "Ownership",
+    "layer_value": "Property value",
+    "layer_land_use": "Land use",
+    "layer_infrastructure": "Roads & wells",
+    "layer_population": "Population",
+    "owner_player": "Yours",
+    "owner_village": "The village's",
+    "owner_npc": "Villagers'",
+    "owner_nobody": "Nobody's",
+    "for_sale": "Land for sale",
+    "value_low": "Cheaper",
+    "value_high": "Dearer",
+    "roads": "Roads",
+    "wells": "Wells",
+    "lamps": "Street lamps",
+    "people_hint": "People living there",
+    "click_hint": "Click a building on the map to see it."
   },
   "institution": {
     "market": {
@@ -5540,7 +5654,12 @@
     "rec_sites": "Places explored",
     "rec_deeds": "Deeds remembered",
     "perks": "Perks",
-    "ambitions": "Ambitions achieved"
+    "ambitions": "Ambitions achieved",
+    "props_n": "Properties",
+    "rent_week": "Rent / week",
+    "no_props_title": "No property yet",
+    "no_props_text": "Build a house on land of your own, or buy an empty one in the village — then let it and collect rent.",
+    "tax_week": "Taxes / week"
   },
   "ledger": {
     "jobs": "Jobs",
@@ -5941,5 +6060,422 @@
     "innovation": "Ability to innovate",
     "discoveries": "{n} discoveries",
     "hint": "Counted from the people themselves: schooling among grown-ups, reading among everyone from eight."
+  },
+  "structure": {
+    "level": {
+      "house": {
+        "1": "Small cottage",
+        "2": "Small house",
+        "3": "Medium house",
+        "4": "Large house",
+        "5": "Large residence",
+        "6": "Luxury residence"
+      },
+      "apartment": {
+        "1": "Apartment house",
+        "2": "Apartment building",
+        "3": "Large apartment building",
+        "4": "Residential complex"
+      },
+      "workshop": {
+        "1": "Lean-to workshop",
+        "2": "Workshop",
+        "3": "Proper workshop",
+        "4": "Two-storey workshop",
+        "5": "Master workshop"
+      },
+      "farm": {
+        "1": "Croft",
+        "2": "Farmhouse",
+        "3": "Farmstead",
+        "4": "Large farmstead",
+        "5": "Manor farm"
+      },
+      "shop": {
+        "1": "Market booth",
+        "2": "Shop",
+        "3": "Good shop",
+        "4": "Large shop",
+        "5": "Emporium"
+      },
+      "inn": {
+        "1": "Alehouse",
+        "2": "Tavern",
+        "3": "Inn",
+        "4": "Large inn",
+        "5": "Coaching inn"
+      },
+      "warehouse": {
+        "1": "Shed",
+        "2": "Storehouse",
+        "3": "Warehouse",
+        "4": "Two-storey warehouse",
+        "5": "Great warehouse"
+      },
+      "yard": {
+        "1": "Camp",
+        "2": "Yard",
+        "3": "Proper yard",
+        "4": "Large yard",
+        "5": "Works"
+      },
+      "school": {
+        "1": "Schoolroom",
+        "2": "School house",
+        "3": "Two-storey school",
+        "4": "Large school",
+        "5": "Fine school"
+      },
+      "civic": {
+        "1": "Plain building",
+        "2": "Solid building",
+        "3": "Two-storey building",
+        "4": "Fine building",
+        "5": "Grand building"
+      }
+    },
+    "none": "This is not a building that can be improved.",
+    "level_n": "Level {n} of {max}",
+    "level_short": "Lv {n}",
+    "quality": "Quality",
+    "size": "Size",
+    "size_v": "{w}×{h} tiles · floors: {n}",
+    "spec": "Specialized as",
+    "what": "Building",
+    "quality_hint": "Quality is how well it was built and kept: materials, the builder's skill, rooms and renovations. At this level it can be up to {n}%.",
+    "owner_decides": "Only the owner decides what's done to it.",
+    "nothing_more": "There's nothing more to do to it for now.",
+    "could_do": "What could be done",
+    "start": "Start",
+    "works_hint": "The money is paid now; the materials must be brought to the site and the hours put in — by you, your workers or hired builders. The building stays in use while the work goes on.",
+    "floors": "Floors"
+  },
+  "works": {
+    "level": "Build up to: {name}",
+    "module": "Add: {m}",
+    "spec": "Make it: {s}",
+    "renovate": "Renovate"
+  },
+  "works_fx": {
+    "cap": "room for {sign}{n}",
+    "floors": "{sign}{n} floor",
+    "staff": "{sign}{n} work places",
+    "output": "output {sign}{n}%",
+    "stock": "storage {sign}{n}%",
+    "appeal": "draws customers {sign}{n}",
+    "seats": "{sign}{n} seats",
+    "comfort": "comfort {sign}{n}",
+    "storage": "chest {sign}{n} kg",
+    "rent": "rent {sign}{n}%",
+    "quality": "quality +{n}",
+    "wider": "{n} tile(s) wider — needs free ground beside it",
+    "deeper": "{n} row(s) deeper at the back",
+    "health": "healthier to live in",
+    "warm": "warmer in winter"
+  },
+  "module": {
+    "bedroom": {
+      "name": "Bedroom",
+      "desc": "Another bedroom: room for two more people."
+    },
+    "kitchen": {
+      "name": "Kitchen",
+      "desc": "A proper kitchen with a range. More comfortable, and tenants like it."
+    },
+    "cellar": {
+      "name": "Cellar",
+      "desc": "A stone cellar: more storage, and it keeps the worst of the winter frost out."
+    },
+    "pantry": {
+      "name": "Pantry",
+      "desc": "Shelves and a cool corner for food and things."
+    },
+    "parlour": {
+      "name": "Parlour",
+      "desc": "A room for sitting and receiving guests. Comfort, and a better name for the house."
+    },
+    "washroom": {
+      "name": "Washroom",
+      "desc": "A room for washing, with water carried or piped from the well. Healthier and more pleasant."
+    },
+    "upper_floor": {
+      "name": "Upper floor",
+      "desc": "A second storey on top: room for three more people."
+    },
+    "cart_shed": {
+      "name": "Cart shed",
+      "desc": "A lean-to beside the house for a cart or a handcart. Takes a tile of ground beside it."
+    },
+    "garden": {
+      "name": "Garden",
+      "desc": "A fenced garden beside the house: vegetables, flowers, a fruit tree. Takes two tiles of ground."
+    },
+    "extra_bench": {
+      "name": "Extra workbench",
+      "desc": "Another bench and tools: one more person can work here."
+    },
+    "tool_racks": {
+      "name": "Tool racks",
+      "desc": "Everything in its place: a little more gets done."
+    },
+    "storeroom": {
+      "name": "Storeroom",
+      "desc": "More room for stock and supplies."
+    },
+    "yard_shed": {
+      "name": "Yard shed",
+      "desc": "A shed in the yard for timber, stone or goods. Takes a tile of ground beside it."
+    },
+    "barn": {
+      "name": "Barn",
+      "desc": "A big barn for hay, grain and tools. Takes two tiles of ground beside it."
+    },
+    "display": {
+      "name": "Display window",
+      "desc": "A glazed window with the goods on show. Draws customers in."
+    },
+    "stockroom": {
+      "name": "Stockroom",
+      "desc": "A back room for stock: the shelves can be kept fuller."
+    },
+    "guest_rooms": {
+      "name": "Guest rooms",
+      "desc": "Rooms upstairs for travellers."
+    },
+    "loading_bay": {
+      "name": "Loading bay",
+      "desc": "A covered bay for carts to load and unload: more stock, one more hand. Takes a tile of ground."
+    },
+    "classroom": {
+      "name": "Classroom",
+      "desc": "Another classroom: more seats."
+    },
+    "library_room": {
+      "name": "Library room",
+      "desc": "A room of books for the pupils."
+    },
+    "shop_floor": {
+      "name": "Shop on the ground floor",
+      "desc": "The ground floor made into business premises."
+    },
+    "courtyard": {
+      "name": "Courtyard",
+      "desc": "A paved yard with a tree for the residents. Takes a tile of ground."
+    },
+    "lift": {
+      "name": "Goods lift",
+      "desc": "A hoist to lift loads to the upper floors."
+    }
+  },
+  "spec": {
+    "family": {
+      "name": "Family home",
+      "desc": "Arranged for one family to live well."
+    },
+    "boarding": {
+      "name": "Boarding house",
+      "desc": "Rooms let separately: more people, cheaper rent, a little shabbier."
+    },
+    "luxury": {
+      "name": "Fine residence",
+      "desc": "Furnished and kept to a high standard: higher rent from those who can pay."
+    },
+    "workers": {
+      "name": "Workers' housing",
+      "desc": "Plain flats for working families: more people, lower rents."
+    },
+    "fine": {
+      "name": "Fine work",
+      "desc": "Less, but better."
+    },
+    "volume": {
+      "name": "Volume",
+      "desc": "More, if a little rougher."
+    },
+    "grain": {
+      "name": "Grain farm",
+      "desc": "Fields of wheat."
+    },
+    "market_garden": {
+      "name": "Market garden",
+      "desc": "Vegetables for the village."
+    },
+    "bargain": {
+      "name": "Bargain shop",
+      "desc": "Draws those who count every coin."
+    },
+    "alehouse": {
+      "name": "Alehouse",
+      "desc": "A place for locals."
+    },
+    "coaching": {
+      "name": "Coaching inn",
+      "desc": "Rooms and stabling for travellers."
+    }
+  },
+  "property": {
+    "tab_overview": "Overview",
+    "tab_building": "Building",
+    "tab_history": "History"
+  },
+  "bhist": {
+    "built": "Built",
+    "long_ago": "Long ago",
+    "first_owner": "First owner",
+    "upgrades": "Improvements",
+    "renovations": "Renovations",
+    "households": "Households that lived here",
+    "uses": "Used as",
+    "works": "Work done on it",
+    "no_works": "Nothing has been done to it yet.",
+    "line_built": "Built ({who}).",
+    "line_works_started": "Work started: {job} ({who}).",
+    "line_works_done": "Finished: {job}."
+  },
+  "use": {
+    "home": "a home",
+    "rented": "a rented home",
+    "shop": "a shop",
+    "workshop": "a workplace",
+    "school": "a school",
+    "public": "a public building",
+    "empty": "empty"
+  },
+  "cond": {
+    "healthy": "Good",
+    "worn": "Worn",
+    "damaged": "Damaged",
+    "critical": "Critical"
+  },
+  "tool_kind": {
+    "axe": "Axe",
+    "pickaxe": "Pickaxe",
+    "hammer": "Hammer",
+    "saw": "Saw",
+    "hoe": "Hoe",
+    "watering_can": "Watering can",
+    "fishing_rod": "Fishing rod",
+    "bow": "Bow"
+  },
+  "tool_use": {
+    "axe": "Fells trees for wood.",
+    "pickaxe": "Breaks rock for stone, coal and ore.",
+    "hammer": "Building, repairs and smithing.",
+    "saw": "Carpentry: furniture and bows.",
+    "hoe": "Tills soil for planting.",
+    "watering_can": "Waters crops (refill at a well or the river).",
+    "fishing_rod": "Fishing in the river and the lake.",
+    "bow": "Hunting game in the woods."
+  },
+  "station_where": {
+    "forge": "Made at a forge: the smithy lets you use theirs for a fee, or build your own.",
+    "workbench": "Made at the workbench in your home.",
+    "stove": "Made at the stove in your home."
+  },
+  "works_req": {
+    "room": "Free ground beside it ({n} tiles)",
+    "time": "≈ {n} h of work (about {d} days for one builder)",
+    "left": "≈ {n} h of work left",
+    "hands": "People on it: {n}",
+    "all_delivered": "All the materials are on site.",
+    "ready": "Ready",
+    "not_yet": "Not yet",
+    "now": "Now · level {n}",
+    "after": "After · level {n}",
+    "changes": "What changes",
+    "needs": "What it takes",
+    "better": "A better building all round",
+    "smaller": "Rooms, fittings and repairs"
+  },
+  "prop_state": {
+    "works": "Work under way",
+    "ruin": "Ruin",
+    "abandoned": "Abandoned",
+    "your_home": "Your home",
+    "business": "Business",
+    "rented": "Rented",
+    "owner_occupied": "Owner lives here",
+    "for_rent": "For rent",
+    "vacant": "Vacant",
+    "for_sale": "For sale",
+    "arrears": "Rent owed",
+    "needs_repair": "Needs repair"
+  },
+  "demand": {
+    "high": "High",
+    "normal": "Normal",
+    "low": "Low"
+  },
+  "rent_ui": {
+    "title": "Rent",
+    "asking": "You ask",
+    "per_week": "/ week",
+    "suggested": "Suggested",
+    "range": "Going rate for homes this size",
+    "demand": "Demand for homes"
+  },
+  "wstate": {
+    "working": "Working",
+    "moving": "On the way",
+    "seeking": "Looking for work",
+    "waiting": "Waiting",
+    "need_materials": "Needs materials",
+    "resting": "Resting",
+    "eating": "Eating",
+    "returning_home": "Going home",
+    "sleeping": "Sleeping",
+    "unavailable": "Unwell",
+    "failed": "Task failed",
+    "idle": "Idle"
+  },
+  "wtask": {
+    "build": "Building {what}",
+    "haul": "Bringing {item} to {what}",
+    "buy": "Buying {item} for {what}",
+    "gather_wood": "Felling trees",
+    "gather_stone": "Breaking stone",
+    "farm": "Working your fields",
+    "workshop": "Working in your workshop",
+    "haul_ws": "Carrying {item} to the workshop",
+    "repair": "Repairing {building}"
+  },
+  "jobcat": {
+    "construction": "Construction",
+    "hauling": "Carrying & buying materials",
+    "gathering": "Gathering wood and stone",
+    "farming": "Farming",
+    "workshop": "Workshop",
+    "maintenance": "Repairs"
+  },
+  "prio": {
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low",
+    "off": "Off"
+  },
+  "profession": {
+    "builder": "Builder",
+    "woodcutter": "Woodcutter",
+    "miner": "Miner",
+    "farmer": "Farmer",
+    "carpenter": "Carpenter",
+    "carrier": "Carrier",
+    "general": "General hand"
+  },
+  "workers": {
+    "at_work": "At work now",
+    "buy_title": "Buying materials",
+    "buy_hint": "Workers may buy what a site of yours is missing, with your money, up to a daily limit ({money} left today).",
+    "buy_on": "Allowed ✓",
+    "buy_off": "Not allowed",
+    "priorities": "What they do first",
+    "queue_add": "Put first:",
+    "queue": "First in line: {list}",
+    "next": "Next: {list}",
+    "done_n": "Tasks done: {n}",
+    "reliability": "Reliability",
+    "more": "Priorities…",
+    "less": "Hide",
+    "hire_line": "Age {age} · reliability {r} · works at {s}% pace"
   }
 }

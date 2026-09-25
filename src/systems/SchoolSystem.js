@@ -142,7 +142,8 @@ export class SchoolSystem {
   }
 
   seats(s) {
-    return this.def(s).seats + (s.extraSeats || 0);
+    // A school that's been enlarged (a classroom, a new level — StructureSystem) seats more.
+    return this.def(s).seats + (s.extraSeats || 0) + (this.sim.structures?.seatBonus(s.id) || 0);
   }
 
   /** How full it is: pupils per seat, and pupils per teacher's worth of teaching. */

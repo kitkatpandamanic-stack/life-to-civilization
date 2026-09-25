@@ -28,7 +28,7 @@ export class ConstructionViews {
     for (const c of sim.construction.sites()) this.createSite(c);
     this.unsubs = [
       sim.bus.on('land:changed', () => this.drawPlots()),
-      sim.bus.on('construction:changed', (c) => this.updateSite(c)),
+      sim.bus.on('construction:changed', (c) => (c.status === 'done' ? this.celebrate(c) : this.updateSite(c))),
       sim.bus.on('construction:stage', (c) => this.puff(c)),
       sim.bus.on('construction:removed', (c) => this.removeSite(c.id)),
       sim.bus.on('building:added', (id) => this.removeSite(id)),
@@ -60,6 +60,8 @@ export class ConstructionViews {
   }
 
   siteTexture(c) {
+    // Work on a standing building: the scaffolding shows what it will look like when it's done.
+    if (c.kind === 'works') return ensureSiteTexture(this.scene, c.type, c.variant || 0, this.sim.construction.stage(c), this.sim.structures?.lookAfter(c) || null);
     const type = c.kind === 'upgrade' ? `player_${c.toTier}` : c.kind === 'repair' ? c.type : this.sim.construction.isPlayers(c) ? c.type : this.visualOf(c);
     return ensureSiteTexture(this.scene, type, c.variant || 0, this.sim.construction.stage(c));
   }
@@ -70,9 +72,15 @@ export class ConstructionViews {
     const x = c.tx * TS;
     const bottom = (c.ty + c.h) * TS;
     const view = { c, piles: [], stage: -1 };
-    if (c.kind === 'upgrade' || c.kind === 'repair') {
+    if (c.kind === 'upgrade' || c.kind === 'repair' || c.kind === 'works') {
       // Scaffolding over the existing house.
       view.sprite = scene.add.image(x, bottom, this.siteTexture(c)).setOrigin(0, 1).setDepth(bottom + 2).setAlpha(0.55);
+      // Growing onto new ground: that ground is fenced off while the work goes on.
+      if (c.kind === 'works' && c.fp) {
+        view.zone = scene.add.zone(x + (c.w * TS) / 2, c.ty * TS + 10 + (c.h * TS - 10) / 2, c.w * TS, c.h * TS - 10);
+        scene.physics.add.existing(view.zone, true);
+        scene.solids.add(view.zone);
+      }
     } else if (c.w === 1 && c.h === 1) {
       view.sprite = scene.add.image(x + TS / 2, bottom, 'pile_stone').setOrigin(0.5, 1).setDepth(bottom);
     } else {
@@ -120,6 +128,20 @@ export class ConstructionViews {
     for (const p of view.piles) p.destroy();
     if (view.zone) this.scene.solids.remove(view.zone, true, true);
     this.sites.delete(id);
+  }
+
+  /** Finished: the scaffolding comes down in a cloud of dust and a few sparks. */
+  celebrate(c) {
+    if (c.celebrated) return;
+    c.celebrated = true;
+    const x = c.tx * TS + (c.w * TS) / 2;
+    const y = (c.ty + c.h) * TS - 24;
+    this.dust.explode(30, x, y);
+    const sparks = this.scene.add.particles(x, y - 30, 'spark', { speed: { min: 50, max: 150 }, lifespan: 800, scale: { start: 1.3, end: 0 }, tint: [0xffd65a, 0xffffff, 0xa0e08a], emitting: false });
+    sparks.setDepth(DEPTH.WORLD_UI);
+    sparks.explode(26);
+    this.scene.time.delayedCall(1000, () => sparks.destroy());
+    this.scene.ui?.floatWorld(x, y - 50, `✓ ${this.scene.ui.tr('ui.finished')}`, 'gain');
   }
 
   puff(c) {

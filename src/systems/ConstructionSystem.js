@@ -49,6 +49,7 @@ export class ConstructionSystem {
   }
   def(c) {
     if (c.kind === 'upgrade') return HOME_UPGRADES[c.toTier];
+    if (c.kind === 'works') return this.sim.structures?.cost(c.target, c.job);
     return this.isPlayers(c) ? BUILDABLES[c.type] : VILLAGE_BUILDINGS[c.type];
   }
 
@@ -60,6 +61,8 @@ export class ConstructionSystem {
       world.setRoad(x, y);
     }
     for (const c of this.list) {
+      // Work on a building that's growing: the ground it's growing onto is taken.
+      if (c.kind === 'works' && c.status === 'site' && c.fp) this.blockExtra(c, 1);
       if (c.kind !== 'building') continue;
       if (c.status === 'done') world.addBuilding(this.buildingRecord(c));
       else world.blockRect(c.tx, c.ty, c.w, c.h, 1);
@@ -98,6 +101,70 @@ export class ConstructionSystem {
     this.list.push(c);
     this.sim.bus.emit('construction:changed', c);
     return c;
+  }
+
+  /**
+   * Work on an existing building (StructureSystem): a new level, a module, a renovation…
+   * The site sits over the building; if it grows, the new ground is taken at once.
+   */
+  startWorks({ owner, target, job, required, laborNeeded, budget = 0, fp = null }) {
+    const b = this.sim.world.buildings[target];
+    const box = fp || { tx: b.tx, ty: b.ty, w: b.w, h: b.h };
+    const c = {
+      id: `wk${this.sim.state.settlement.nextBuildId++}`,
+      kind: 'works',
+      type: b.type,
+      target,
+      job,
+      tx: box.tx,
+      ty: box.ty,
+      w: box.w,
+      h: box.h,
+      fp,
+      status: 'site',
+      labor: 0,
+      laborNeeded: Math.max(60, laborNeeded),
+      required: { ...required },
+      delivered: {},
+      owner,
+      purpose: 'works',
+      budget,
+      createdDay: this.sim.time.day,
+      lastProgressDay: this.sim.time.day,
+      variant: b.variant || 0,
+    };
+    this.list.push(c);
+    if (fp) this.blockExtra(c, 1);
+    this.sim.bus.emit('construction:changed', c);
+    return c;
+  }
+
+  /** The ground a works site takes beyond the building it's working on. */
+  extraTiles(c) {
+    const b = this.sim.world.buildings[c.target];
+    const out = [];
+    if (!c.fp) return out;
+    for (let y = c.fp.ty; y < c.fp.ty + c.fp.h; y++) {
+      for (let x = c.fp.tx; x < c.fp.tx + c.fp.w; x++) {
+        if (b && x >= b.tx && x < b.tx + b.w && y >= b.ty && y < b.ty + b.h) continue;
+        out.push([x, y]);
+      }
+    }
+    return out;
+  }
+
+  blockExtra(c, v) {
+    const w = this.sim.world;
+    for (const [x, y] of this.extraTiles(c)) if (w.inBounds(x, y)) w.staticBlocked[w.idx(x, y)] = v;
+  }
+
+  /** Take a site off the ground (cancelled, abandoned): whatever it had taken is free again. */
+  release(c) {
+    if (c.kind === 'building') this.sim.world.blockRect(c.tx, c.ty, c.w, c.h, 0);
+    else if (c.kind === 'works') {
+      if (c.fp) this.blockExtra(c, 0);
+      this.sim.structures?.ended(c);
+    }
   }
 
   /**
@@ -195,6 +262,14 @@ export class ConstructionSystem {
   /** Start upgrading the player's own home to the next tier (built in place). */
   canUpgradeHome() {
     const p = this.sim.state.player;
+    // A house of yours grows level by level (StructureSystem) — the same as any building.
+    const S = this.sim.structures;
+    const r = p.homeId && S?.rec(p.homeId);
+    if (r) {
+      if (r.lvl >= S.maxLevel(p.homeId)) return { ok: false, reason: 'cant_upgrade' };
+      const chk = S.check(p.homeId, { type: 'level', to: r.lvl + 1 }, 'player');
+      return chk.ok ? { ...chk, structure: true, next: r.lvl + 1 } : chk;
+    }
     const next = this.sim.home.nextTier();
     const home = this.list.find((c) => c.id === p.homeId && c.status === 'done');
     if (!home || !next || !HOME_UPGRADES[next]) return { ok: false, reason: 'cant_upgrade' };
@@ -212,6 +287,7 @@ export class ConstructionSystem {
       this.sim.toast(`reason.${chk.reason}`, chk.params || {}, 'warn');
       return null;
     }
+    if (chk.structure) return this.sim.structures.start(this.sim.state.player.homeId, { type: 'level', to: chk.next }, 'player').site || null;
     const up = HOME_UPGRADES[chk.next];
     this.sim.state.player.money -= up.money;
     const c = {
@@ -361,9 +437,23 @@ export class ConstructionSystem {
     c.status = 'done';
     c.builtDay = this.sim.time.day;
     const sim = this.sim;
+    this.refund(c);
     if (c.kind === 'repair') {
       sim.disasters?.repaired(c);
       sim.bus.emit('construction:changed', c);
+      return;
+    }
+    if (c.kind === 'works') {
+      // The building changes (StructureSystem): a new level, a room, a wing, a renovation.
+      sim.structures?.finish(c);
+      if (this.isPlayers(c)) {
+        sim.progression.addXp(25 + Math.round(c.laborNeeded / 30));
+        sim.progression.addSkillXp('construction', 20);
+      }
+      this.list.splice(this.list.indexOf(c), 1); // the building's own history keeps the record
+      sim.bus.emit('construction:changed', c);
+      sim.bus.emit('construction:removed', c);
+      sim.bus.emit('building:changed', c.target);
       return;
     }
     if (c.kind === 'upgrade') {
@@ -372,6 +462,13 @@ export class ConstructionSystem {
       if (sim.state.player.homeId === c.target) sim.state.player.homeTier = c.toTier;
       const rec = sim.world.buildings[c.target];
       if (rec) rec.type = target.visual;
+      // (An upgrade started before buildings had levels: the building is now drawn as its new type, at that level.)
+      const sr = sim.structures?.rec(c.target);
+      if (sr) {
+        sr.lvl = sr.base = { house: 3, large_house: 4, estate: 5 }[c.toTier] ?? sr.lvl;
+        sim.structures.changed(c.target);
+        sim.structures.refreshLook(c.target, false);
+      }
       sim.progression.addReputation(HOME_TIERS[c.toTier].reputation);
       sim.toast('toast.upgrade_done', { tier: c.toTier }, 'good');
       sim.chronicle('chronicle.player_upgraded', { tier: c.toTier });
@@ -395,31 +492,67 @@ export class ConstructionSystem {
     sim.bus.emit('construction:changed', c);
   }
 
+  /**
+   * Pay builders to work on your site: money put down for them (and for day labourers) —
+   * and, if you like, for them to buy the materials too. What's left comes back when it's done.
+   */
+  hire(c, amount, { buyMaterials = false } = {}) {
+    const p = this.sim.state.player;
+    if (!c || c.status !== 'site' || !this.isPlayers(c)) return { ok: false, reason: 'nothing_here' };
+    if (p.money < amount) return { ok: false, reason: 'no_money', params: { money: amount } };
+    p.money -= amount;
+    c.budget = (c.budget || 0) + amount;
+    c.hired = true;
+    if (buyMaterials) c.buyMats = true;
+    this.sim.bus.emit('construction:changed', c);
+    this.sim.bus.emit('player:changed');
+    return { ok: true };
+  }
+
+  /** Money left over on a site of yours comes back to you. */
+  refund(c) {
+    if (!this.isPlayers(c) || !(c.budget > 0)) return;
+    this.sim.state.player.money += Math.floor(c.budget);
+    c.budget = 0;
+    this.sim.bus.emit('player:changed');
+  }
+
   /** Stop a construction; delivered materials go back to your chest. */
   cancel(c) {
     if (c.status !== 'site') return;
+    this.refund(c);
     for (const [id, qty] of Object.entries(c.delivered)) this.sim.home.store(id, qty, { force: true });
     this.list.splice(this.list.indexOf(c), 1);
-    if (c.kind === 'building') this.sim.world.blockRect(c.tx, c.ty, c.w, c.h, 0);
+    this.release(c);
     this.sim.toast('toast.site_cancelled', {}, 'info');
     this.sim.bus.emit('construction:removed', c);
   }
 
   // ------------------------------------------------------------------ what finished buildings do
 
-  /** Move into a house you built (you stop paying rent). */
+  /** Move into a house of yours — one you built, bought or inherited that nobody lives in (you stop paying rent). */
   canMoveIn(id) {
+    const p = this.sim.state.player;
+    if (p.homeId === id) return false;
     const c = this.byId(id);
-    return !!c && c.status === 'done' && c.type === 'small_house' && this.sim.state.player.homeId !== id;
+    if (c && c.status === 'done' && c.type === 'small_house') return true;
+    const P = this.sim.property;
+    const r = P.rec(id);
+    return !!r && r.owner === 'player' && P.isHome(id) && !r.ruined && id !== 'hall' && !this.sim.economy.businessAtBuilding(id) && P.occupants(id) === 0;
   }
 
   moveIn(id) {
     if (!this.canMoveIn(id)) return false;
     const p = this.sim.state.player;
     const c = this.byId(id);
+    const old = p.homeId;
     p.homeId = id;
-    p.homeTier = c.visual ? c.visual.replace('player_', '') : 'small_house';
+    p.homeTier = c?.visual ? c.visual.replace('player_', '') : c ? 'small_house' : p.homeTier;
     p.rent.amount = 0;
+    // Your family comes with you.
+    const family = [p.spouse, ...(p.children || [])].map((x) => this.sim.npcs.byId(x)).filter((n) => n && old && n.homeId === old);
+    if (family.length) this.sim.property.moveIn(family, id, 'moved');
+    this.sim.structures?.syncHome();
     this.sim.progression.addReputation(3);
     this.sim.toast('toast.moved_in', {}, 'good');
     this.sim.chronicle('chronicle.player_moved_in', {});

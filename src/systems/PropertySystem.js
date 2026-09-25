@@ -86,7 +86,8 @@ export class PropertySystem {
   }
 
   capacity(id) {
-    return HOME_CAPACITY[this.type(id)] || 0;
+    // A house that's been built up or given more bedrooms holds more (StructureSystem).
+    return this.sim.structures?.capacity(id) ?? HOME_CAPACITY[this.type(id)] ?? 0;
   }
 
   occupants(id) {
@@ -118,7 +119,9 @@ export class PropertySystem {
     const d = b ? Math.hypot(b.door.tx - (P.x1 + P.x2) / 2, b.door.ty - (P.y1 + P.y2) / 2) : 30;
     const location = 1.2 - Math.min(0.45, d / 90) + (b && this.nearRoad(b) ? 0.08 : 0);
     const cond = 0.25 + 0.75 * ((r?.condition ?? 100) / 100);
-    const v = Math.round(base * cond * location * this.demand() * (this.sim.growth?.valueFactor(id) ?? 1));
+    // Its level, rooms and quality (StructureSystem) — a fine Level 4 house is worth more than a shoddy one.
+    const build = this.sim.structures?.valueFactor(id) ?? 1;
+    const v = Math.round(base * build * cond * location * this.demand() * (this.sim.growth?.valueFactor(id) ?? 1));
     this.valueCache.set(id, { day, v });
     return v;
   }
@@ -212,6 +215,7 @@ export class PropertySystem {
     }
     this.sim.npcs.invalidateHouseholds();
     for (const n of npcs) this.sim.habits.derive(n);
+    this.sim.structures?.movedIn(id, npcs);
     this.sim.bus.emit('property:changed', id);
   }
 

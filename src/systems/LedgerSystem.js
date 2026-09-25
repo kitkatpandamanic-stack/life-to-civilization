@@ -45,6 +45,8 @@ const SOURCES = [
   ['land', 'buy', 'property'],
   ['construction', 'place', 'building'],
   ['construction', 'startHomeUpgrade', 'building'],
+  ['construction', 'hire', 'building'],
+  ['structures', 'start', 'building'],
   ['crafting', 'rentForge', 'crafting'],
   ['actions', 'eatAtTavern', 'food'],
   ['actions', 'payTavernBed', 'lodging'],

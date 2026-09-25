@@ -6,6 +6,10 @@
 import { BALANCE } from '../config/balance.js';
 import { getActions, targetName, targetSubtitle } from './Interactions.js';
 import { DEPTH } from './depth.js';
+import { escapeHtml } from '../ui/format.js';
+
+/** The tool each kind of work takes (the hotbar hints at it). */
+const TOOL_FOR = { chop: 'axe', mine: 'pickaxe', till: 'hoe', water: 'watering_can', fish: 'fishing_rod', hunt: 'bow', build: 'hammer' };
 
 const TS = BALANCE.tileSize;
 const FACING = { down: [0, 1], up: [0, -1], left: [-1, 0], right: [1, 0] };
@@ -134,32 +138,48 @@ export class InteractionSystem {
     }
     const name = targetName(this.scene, this.target);
     const sub = targetSubtitle(this.scene, this.target);
-    const title = sub ? `${name} — ${sub}` : name;
-    let text;
-    if (actions.every((a) => a.key)) {
-      // Direct hotkeys (e.g. villagers: E Talk · F Inspect)
-      text = `${title}\n${actions.map((a) => `${a.key}  ${a.label}`).join('     ')}`;
-    } else if (actions.length === 1) {
+    // The prompt: the thing's name, a line about it, and what the keys do.
+    let acts;
+    if (actions.every((a) => a.key)) acts = actions.map((a) => `<span class="${a.disabled ? 'off' : ''}"><kbd>${a.key}</kbd>${escapeHtml(a.label)}</span>`).join('');
+    else if (actions.length === 1) {
       const a = actions[0];
-      text = a.disabled ? `${title}\n${a.label} — ${a.reason}` : `${title}\nE  ${a.label}`;
-    } else {
-      text = `${title}\nE  ▾`;
+      acts = a.disabled ? `<span class="off">${escapeHtml(a.label)}</span><span class="why">${escapeHtml(a.reason)}</span>` : `<span><kbd>E</kbd>${escapeHtml(a.label)}</span>`;
+    } else acts = `<span><kbd>E</kbd>${escapeHtml(this.scene.ui.tr('ui.n_actions', { n: actions.length }))} ▾</span>`;
+    const html = `<div class="wp-name">${escapeHtml(name)}</div>${sub ? `<div class="wp-sub">${escapeHtml(sub)}</div>` : ''}<div class="wp-actions">${acts}</div>`;
+    const el = this.scene.ui.promptEl;
+    if (html !== this.promptText) {
+      this.promptText = html;
+      el.innerHTML = html;
     }
-    if (text !== this.promptText) {
-      this.promptText = text;
-      this.prompt.setText(text);
-      this.prompt.setColor(actions.length === 1 && actions[0].disabled ? '#d9c9b0' : '#fff6e0');
-    }
+    el.classList.remove('hidden');
+    this.scene.ui.setWantedTool(this.toolFor(this.target));
+    this.scene.buildings?.highlight(this.target.kind === 'building' ? this.target.id : null);
     const bob = Math.sin(this.scene.time.now / 200) * 2;
     const topY = this.target.y - this.target.labelY;
     this.marker.setVisible(true).setPosition(this.target.x, topY + bob);
-    this.prompt.setVisible(true).setPosition(this.target.x, topY - 14);
+    const p = this.scene.ui.worldToScreen(this.target.x, topY - 10);
+    el.style.left = `${Math.round(p.x)}px`;
+    el.style.top = `${Math.round(p.y)}px`;
+  }
+
+  /** The tool the thing in front of you takes, if any. */
+  toolFor(target) {
+    const sim = this.sim;
+    if (target.kind === 'object') return TOOL_FOR[sim.actions.actionFor(sim.state.objects[target.id])] || null;
+    if (target.kind === 'ground') return TOOL_FOR[sim.farming.actionFor(target.tx, target.ty)] || null;
+    if (target.kind === 'water') return 'fishing_rod';
+    if (target.kind === 'animal') return 'bow';
+    if (target.kind === 'site' || (target.kind === 'building' && sim.structures?.works(target.id))) return 'hammer';
+    return null;
   }
 
   hide() {
     this.target = null;
     this.prompt.setVisible(false);
     this.marker.setVisible(false);
+    this.scene.ui?.promptEl?.classList.add('hidden');
+    this.scene.ui?.setWantedTool?.(null);
+    this.scene.buildings?.highlight(null);
   }
 
   /** Called when the player presses E (key = 'E') or F (key = 'F'). */

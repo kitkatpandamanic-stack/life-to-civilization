@@ -7,8 +7,10 @@ import Phaser from 'phaser';
 import { BootScene } from './scenes/BootScene.js';
 import { GameScene } from './scenes/GameScene.js';
 import { getLanguage } from './i18n/i18n.js';
+import { applySettings } from './ui/settings.js';
 
 document.documentElement.lang = getLanguage();
+applySettings(); // the interface size you chose
 if (import.meta.env.DEV) import('./debug/devTools.js');
 
 function startGame() {

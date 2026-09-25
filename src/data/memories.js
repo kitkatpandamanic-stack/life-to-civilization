@@ -124,6 +124,7 @@ export const MEMORY_KINDS = {
   started_building: { imp: 4, val: 3 },
   helped_build: { imp: 3, val: 2, bond: { f: 8, t: 8 } },
   built_home: { imp: 5, val: 5 },
+  improved_building: { imp: 3, val: 3 },
   gave_up_building: { imp: 4, val: -4 },
   arrived_village: { imp: 5, val: 2 },
   friend_left: { imp: 3, val: -2 },

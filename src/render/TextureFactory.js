@@ -15,6 +15,7 @@ import { createTransportTextures } from './TransportArt.js';
 import { createSiteTextures } from './SiteArt.js';
 
 const TS = 32;
+const FLOOR_H = 30; // an upper storey adds this much wall
 export const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
 const EMOJI_FONT = '"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif';
 
@@ -467,12 +468,19 @@ function drawCrop(stage, season) {
  * Draws a building. Returns the canvas plus positions (relative to the
  * top-left of the sprite) of windows (for night lights) and the chimney (smoke).
  */
-export function drawBuilding(type, variant = 0) {
+export function drawBuilding(type, variant = 0, over = null) {
   const def = { ...BUILDING_TYPES[type] };
   if (type === 'house') Object.assign(def, HOUSE_VARIANTS[variant % HOUSE_VARIANTS.length]);
+  // A building that has grown (StructureSystem): wider, deeper, other walls and roof, more floors.
+  if (over) {
+    for (const [k, v] of Object.entries(over)) if (v !== null && v !== undefined) def[k] = v;
+    if (over.wall && !over.wallColor && over.wall !== BUILDING_TYPES[type].wall) def.wallColor = { wood: '#b58a5a', plaster: '#e8dcc0', stone: '#c9bfa8' }[over.wall] || def.wallColor;
+    if (over.roof && !over.roofColor && over.roof !== BUILDING_TYPES[type].roof) def.roofColor = { plank: '#6d4c33', thatch: '#c9a45a', tile: '#b0503a', slate: '#4f6a8f' }[over.roof] || def.roofColor;
+  }
+  const floors = Math.max(1, def.floors || 1);
   const W = def.w * TS;
   const extra = 30;
-  const H = def.h * TS + extra;
+  const H = def.h * TS + extra + (floors - 1) * FLOOR_H;
   const c = makeCanvas(W, H);
   const ctx = c.getContext('2d');
   const windows = [];
@@ -486,11 +494,33 @@ export function drawBuilding(type, variant = 0) {
     return { canvas: c, windows, chimney };
   }
 
-  const wallH = Math.min(62, Math.max(40, Math.round(def.h * TS * 0.48)));
+  const groundH = Math.min(62, Math.max(40, Math.round(def.h * TS * 0.48)));
+  const wallH = groundH + (floors - 1) * FLOOR_H;
   const wallTop = H - wallH - 6;
+  const groundTop = H - groundH - 6;
   const roofBottom = wallTop + 8;
 
   drawWall(ctx, 3, wallTop, W - 6, wallH, def);
+  // Upper floors: a band between storeys and a row of windows on each.
+  for (let f = 1; f < floors; f++) {
+    const band = groundTop - (f - 1) * FLOOR_H;
+    ctx.fillStyle = shade(def.wallColor, -36);
+    ctx.fillRect(3, band, W - 6, 3);
+    const wyU = band - FLOOR_H + 12;
+    const n = Math.max(1, Math.floor((W - 16) / 34));
+    for (let i = 0; i < n; i++) {
+      const x = Math.round(8 + ((W - 16) * (i + 0.5)) / n - 8);
+      drawWindow(ctx, x, wyU, 16, 13);
+      windows.push({ x, y: wyU, w: 16, h: 13 });
+    }
+    if (def.balcony && f === 1) {
+      const bx = Math.round(W / 2 - 22);
+      ctx.fillStyle = '#5a3a20';
+      ctx.fillRect(bx, band - 4, 44, 4);
+      for (let x = bx + 2; x < bx + 44; x += 6) ctx.fillRect(x, band - 14, 2, 10);
+      ctx.fillRect(bx, band - 15, 44, 2);
+    }
+  }
   // Foundation
   ctx.fillStyle = '#6f6a62';
   ctx.fillRect(1, H - 7, W - 2, 7);
@@ -517,7 +547,7 @@ export function drawBuilding(type, variant = 0) {
   // Windows (evenly spaced either side of the door)
   const winW = 16;
   const winH = 13;
-  const wy = wallTop + 14;
+  const wy = groundTop + 14;
   const leftSpan = [10, dx - 8];
   const rightSpan = [dx + doorW + 8, W - 10];
   for (const [a, b] of [leftSpan, rightSpan]) {
@@ -534,7 +564,7 @@ export function drawBuilding(type, variant = 0) {
   if (def.sign) {
     let sx = W / 2 - 14;
     let sy = dy - 21;
-    if (sy < wallTop + 9) {
+    if (sy < groundTop + 9) {
       sx = dx + doorW + 4;
       sy = dy + 2;
     }
@@ -1247,15 +1277,15 @@ export function createAllTextures(scene) {
  *   0 foundation (stone outline, stakes)  1 timber frame  2 walls going up  3 roof under scaffolding
  * Uses the finished building's own drawing, so every building type gets matching stages.
  */
-export function drawSite(type, variant, stage) {
-  const def = BUILDING_TYPES[type];
-  const { canvas: done } = drawBuilding(type, variant);
+export function drawSite(type, variant, stage, look = null) {
+  const def = { ...BUILDING_TYPES[type], ...(look ? { w: look.w, h: look.h } : {}) };
+  const { canvas: done } = drawStructure(type, variant, look);
   const W = done.width;
   const H = done.height;
   const footH = def.h * TS;
   const c = makeCanvas(W, H);
   const ctx = c.getContext('2d');
-  const wallH = def.wall === 'open' ? 50 : Math.min(62, Math.max(40, Math.round(def.h * TS * 0.48)));
+  const wallH = (def.wall === 'open' ? 50 : Math.min(62, Math.max(40, Math.round(def.h * TS * 0.48)))) + ((look?.floors || 1) - 1) * FLOOR_H;
   const groundTop = H - footH;
   const wallTop = H - wallH - 6;
 
@@ -1338,18 +1368,151 @@ export function drawSite(type, variant, stage) {
   return c;
 }
 
-export function ensureSiteTexture(scene, type, variant, stage) {
-  const key = `site_${type}_${variant}_${stage}`;
-  if (!scene.textures.exists(key)) addCanvas(scene, key, drawSite(type, variant, stage));
+export function ensureSiteTexture(scene, type, variant, stage, look = null) {
+  const key = `site_${type}_${variant}_${stage}${look ? `_${lookKey(look)}` : ''}`;
+  if (!scene.textures.exists(key)) addCanvas(scene, key, drawSite(type, variant, stage, look));
   return key;
+}
+
+/** A short key for a building's look (so each look gets its own texture). */
+export function lookKey(look) {
+  if (!look) return '';
+  const parts = (list) => (list || []).map((a) => `${a.m}${a.cols}`).join('+');
+  return `${look.w}x${look.h}.${look.wall || ''}.${look.roof || ''}.${look.floors || 1}.${look.wallColor || ''}${look.roofColor || ''}.${look.flag ? 'f' : ''}${look.balcony ? 'b' : ''}.${parts(look.left)}|${parts(look.right)}`;
+}
+
+/**
+ * A building as it is now (StructureSystem look): the main building — maybe wider, taller,
+ * in stone — with whatever has been built out beside it: a garden, a cart shed, a barn…
+ */
+export function drawStructure(type, variant = 0, look = null) {
+  if (!look || !look.w) return drawBuilding(type, variant);
+  const left = look.left || [];
+  const right = look.right || [];
+  const lc = left.reduce((s, a) => s + a.cols, 0);
+  const rc = right.reduce((s, a) => s + a.cols, 0);
+  const mainW = Math.max(1, look.w - lc - rc);
+  const main = drawBuilding(type, variant, { w: mainW, h: look.h, wall: look.wall, roof: look.roof, wallColor: look.wallColor, roofColor: look.roofColor, floors: look.floors, flag: look.flag, balcony: look.balcony });
+  const W = look.w * TS;
+  const H = main.canvas.height;
+  const c = makeCanvas(W, H);
+  const ctx = c.getContext('2d');
+  const def = { ...BUILDING_TYPES[type], wallColor: look.wallColor || BUILDING_TYPES[type].wallColor, roofColor: look.roofColor || BUILDING_TYPES[type].roofColor };
+  let x = 0;
+  for (const a of left) {
+    drawAnnex(ctx, a.m, x, a.cols * TS, H, look.h * TS, def);
+    x += a.cols * TS;
+  }
+  const mx = x;
+  x += mainW * TS;
+  for (const a of right) {
+    drawAnnex(ctx, a.m, x, a.cols * TS, H, look.h * TS, def);
+    x += a.cols * TS;
+  }
+  ctx.drawImage(main.canvas, mx, 0);
+  return {
+    canvas: c,
+    windows: main.windows.map((w) => ({ ...w, x: w.x + mx })),
+    chimney: main.chimney ? { x: main.chimney.x + mx, y: main.chimney.y } : null,
+  };
+}
+
+/** Something built out beside a building: a garden, a lean-to shed, a barn, a paved yard. */
+function drawAnnex(ctx, m, x0, w, H, footH, def) {
+  const top = H - footH;
+  if (m === 'garden') {
+    ctx.fillStyle = '#6f9a48';
+    ctx.fillRect(x0 + 2, top + 10, w - 4, footH - 14);
+    // Beds of vegetables and flowers.
+    for (let y = top + 18; y < H - 12; y += 12) {
+      ctx.fillStyle = '#7a5a3a';
+      ctx.fillRect(x0 + 8, y, w - 16, 6);
+      for (let xx = x0 + 11; xx < x0 + w - 10; xx += 7) circle(ctx, xx, y + 1, 2.5, ['#4f8c37', '#e05a8a', '#f7e26b', '#5e9a45'][(xx + y) % 4]);
+    }
+    // A little fruit tree.
+    ctx.fillStyle = '#6b4a2b';
+    ctx.fillRect(x0 + w - 16, top + 6, 4, 16);
+    circle(ctx, x0 + w - 14, top + 4, 10, '#4d853a');
+    circle(ctx, x0 + w - 18, top + 2, 2, '#d94a3a');
+    circle(ctx, x0 + w - 10, top + 6, 2, '#d94a3a');
+    // Fence.
+    ctx.fillStyle = '#8a6440';
+    ctx.fillRect(x0 + 1, top + 8, w - 2, 2);
+    ctx.fillRect(x0 + 1, H - 6, w - 2, 2);
+    for (let xx = x0 + 1; xx < x0 + w; xx += 8) ctx.fillRect(xx, top + 6, 2, footH - 6);
+    return;
+  }
+  if (m === 'courtyard') {
+    ctx.fillStyle = '#b8b2a6';
+    ctx.fillRect(x0 + 1, top + 6, w - 2, footH - 8);
+    ctx.fillStyle = '#9a9488';
+    for (let y = top + 10; y < H - 4; y += 8) for (let xx = x0 + 2 + ((y / 8) % 2) * 4; xx < x0 + w - 2; xx += 8) ctx.fillRect(xx, y, 6, 1);
+    circle(ctx, x0 + w / 2, top + 14, 9, '#5d9444');
+    ctx.fillStyle = '#6b4a2b';
+    ctx.fillRect(x0 + w / 2 - 2, top + 18, 4, 10);
+    return;
+  }
+  // Sheds and barns: posts, a sloping roof, something inside.
+  const barn = m === 'barn';
+  const roofTop = barn ? top - 16 : top + 2;
+  const wallC = barn ? '#9c5a3a' : '#8a6440';
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.fillRect(x0 + 2, H - 7, w - 2, 7);
+  ctx.fillStyle = shade(wallC, -20);
+  ctx.fillRect(x0 + 2, roofTop + 14, w - 4, H - roofTop - 20);
+  if (barn) {
+    ctx.fillStyle = wallC;
+    ctx.fillRect(x0 + 2, roofTop + 14, w - 4, H - roofTop - 20);
+    ctx.strokeStyle = '#e8dcc0';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x0 + w / 2 - 12, H - 36, 24, 30);
+    ctx.beginPath();
+    ctx.moveTo(x0 + w / 2 - 12, H - 36);
+    ctx.lineTo(x0 + w / 2 + 12, H - 6);
+    ctx.moveTo(x0 + w / 2 + 12, H - 36);
+    ctx.lineTo(x0 + w / 2 - 12, H - 6);
+    ctx.stroke();
+  } else if (m === 'cart_shed') {
+    // A cart under the roof.
+    ctx.fillStyle = '#a07040';
+    ctx.fillRect(x0 + 6, H - 22, w - 12, 8);
+    circle(ctx, x0 + 10, H - 10, 6, '#5a3a20');
+    circle(ctx, x0 + 10, H - 10, 3, '#a07040');
+    circle(ctx, x0 + w - 10, H - 10, 6, '#5a3a20');
+    circle(ctx, x0 + w - 10, H - 10, 3, '#a07040');
+  } else {
+    // Crates and sacks.
+    for (let i = 0; i < Math.floor(w / 14); i++) {
+      ctx.fillStyle = i % 2 ? '#b08d5f' : '#9a7650';
+      ctx.fillRect(x0 + 5 + i * 14, H - 20, 11, 11);
+      ctx.strokeStyle = '#6b4a2b';
+      ctx.strokeRect(x0 + 5.5 + i * 14, H - 19.5, 10, 10);
+    }
+  }
+  ctx.fillStyle = '#5a3f28';
+  for (const xx of [x0 + 3, x0 + w - 7]) ctx.fillRect(xx, roofTop + 12, 4, H - roofTop - 16);
+  // Lean-to roof
+  const g = ctx.createLinearGradient(0, roofTop, 0, roofTop + 18);
+  g.addColorStop(0, shade(def.roofColor, 20));
+  g.addColorStop(1, shade(def.roofColor, -20));
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.moveTo(x0, roofTop + 16);
+  ctx.lineTo(x0 + 4, roofTop);
+  ctx.lineTo(x0 + w - 4, roofTop);
+  ctx.lineTo(x0 + w, roofTop + 16);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(30,20,15,0.55)';
+  ctx.stroke();
 }
 
 /** Builds (or reuses) the texture for a specific building instance. */
 export function ensureBuildingTexture(scene, building) {
-  // Player buildings change look when upgraded, so their key includes the type.
-  const key = building.player ? `bld_${building.id}_${building.type}` : `bld_${building.id}`;
+  // Buildings change look when upgraded or built out, so the key includes the type and the look.
+  const key = building.player || building.look ? `bld_${building.id}_${building.type}${building.look ? `_${lookKey(building.look)}` : ''}` : `bld_${building.id}`;
   if (!scene.textures.exists(key)) {
-    const { canvas, windows, chimney } = drawBuilding(building.type, building.variant);
+    const { canvas, windows, chimney } = drawStructure(building.type, building.variant, building.look || null);
     addCanvas(scene, key, canvas);
     BUILDING_META[key] = { windows, chimney, width: canvas.width, height: canvas.height };
   }

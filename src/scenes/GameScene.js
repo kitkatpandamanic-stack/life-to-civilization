@@ -33,6 +33,9 @@ import { AnimalViews } from '../game/AnimalViews.js';
 import { CartViews } from '../game/CartViews.js';
 import { FireViews } from '../game/FireViews.js';
 import { UIManager } from '../ui/UIManager.js';
+import { icon } from '../ui/widgets.js';
+import { escapeHtml } from '../ui/format.js';
+import { itemName } from '../i18n/i18n.js';
 import { STUDY_PLAYER } from '../data/study.js';
 
 const TS = BALANCE.tileSize;
@@ -93,7 +96,9 @@ export class GameScene extends Phaser.Scene {
       sim.bus.on('time:season', (s) => this.terrain.applySeason(s)),
       sim.bus.on('player:passout', () => this.passOut()),
       sim.bus.on('player:collapse', () => this.collapse()),
-      sim.bus.on('player:xp', (amount) => this.floatText(`+${amount} XP`, '#ffe28a')),
+      sim.bus.on('player:xp', (amount) => this.floatText(`+${amount} XP`, 'xp')),
+      // Things coming into (or going out of) your pockets float up beside you: +3 Wood, −10 Stone.
+      sim.bus.on('inventory:delta', ({ id, qty }) => this.itemDelta(id, qty)),
       sim.bus.on('player:levelup', () => this.levelUpBurst()),
       sim.bus.on('player:succeeded', (info) => this.succession(info)),
       sim.bus.on('expedition:departed', (trip) => this.travel(trip)),
@@ -591,15 +596,28 @@ export class GameScene extends Phaser.Scene {
 
   // ---------------------------------------------------------------- effects
 
-  floatText(text, color) {
-    const now = this.time.now;
-    if (now - this.floatY < 250) return; // avoid stacking many at once
-    this.floatY = now;
-    const t = this.add
-      .text(this.player.x, this.player.y - 60, text, { fontFamily: 'Nunito, sans-serif', fontSize: '14px', fontStyle: 'bold', color, stroke: '#2a1a08', strokeThickness: 4 })
-      .setOrigin(0.5)
-      .setDepth(DEPTH.PROMPT);
-    this.tweens.add({ targets: t, y: t.y - 36, alpha: 0, duration: 1300, ease: 'Cubic.out', onComplete: () => t.destroy() });
+  /** A short line floating up from the player ("+25 XP"). cls: xp · gain · loss · money. */
+  floatText(text, cls = 'xp') {
+    if (!this.player || !this.ui) return;
+    this.ui.floatWorld(this.player.x, this.player.y - 60, text, cls.startsWith('#') ? 'xp' : cls);
+  }
+
+  /** Pockets changed: gather what came and went for a moment, then show it (+3 Wood). */
+  itemDelta(id, qty) {
+    if (!qty || this.inside === undefined) return;
+    this.pendingItems ??= {};
+    this.pendingItems[id] = (this.pendingItems[id] || 0) + qty;
+    if (this.itemTimer) return;
+    this.itemTimer = this.time.delayedCall(260, () => {
+      this.itemTimer = null;
+      const all = this.pendingItems;
+      this.pendingItems = {};
+      for (const [item, n] of Object.entries(all)) {
+        if (!n) continue;
+        const html = `${n > 0 ? '+' : '−'}${Math.abs(n)} ${icon(item, 18)}<span>${escapeHtml(itemName(item))}</span>`;
+        this.ui.floatWorld(this.player.x, this.player.y - 44, html, n > 0 ? 'gain' : 'loss', true);
+      }
+    });
   }
 
   levelUpBurst() {

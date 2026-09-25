@@ -742,7 +742,10 @@ export class NPCSystem {
   /** How many staff a business may have (it grows when business is good). */
   maxStaff(bizId) {
     const E = this.sim.economy;
-    return E.biz(bizId)?.maxWorkers ?? E.def(bizId)?.maxWorkers ?? 0;
+    const b = E.biz(bizId);
+    // Bigger premises (a new level, another workbench — StructureSystem) make room for more hands.
+    const room = b ? this.sim.structures?.staffBonus(b.building) || 0 : 0;
+    return Math.max(0, (b?.maxWorkers ?? E.def(bizId)?.maxWorkers ?? 0) + room);
   }
 
   staffOf(bizId) {

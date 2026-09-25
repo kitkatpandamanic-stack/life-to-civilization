@@ -56,6 +56,7 @@ export class InventorySystem {
     if (n <= 0) return 0;
     addTo(this.slots, id, n, q, extra);
     this.changed();
+    this.sim.bus.emit('inventory:delta', { id, qty: n });
     return n;
   }
 
@@ -66,7 +67,10 @@ export class InventorySystem {
   remove(id, qty = 1, { prefer = 'low' } = {}) {
     const taken = removeFrom(this.slots, id, qty, prefer);
     this.lastRemoved = taken;
-    if (taken.length) this.changed();
+    if (taken.length) {
+      this.changed();
+      this.sim.bus.emit('inventory:delta', { id, qty: -taken.length });
+    }
     return taken.length;
   }
 
@@ -78,8 +82,33 @@ export class InventorySystem {
     return s;
   }
 
-  /** The best tool of a kind (highest efficiency, then durability). */
+  /** Your tools, in hotbar order (axe, pickaxe, hammer, saw, hoe, watering can, rod, bow). */
+  tools() {
+    const order = ['axe', 'pickaxe', 'hammer', 'saw', 'hoe', 'watering_can', 'fishing_rod', 'bow'];
+    return this.slots
+      .filter((s) => ITEMS[s.id]?.tool)
+      .sort((a, b) => order.indexOf(ITEMS[a.id].tool.kind) - order.indexOf(ITEMS[b.id].tool.kind) || this.toolEfficiency(b) - this.toolEfficiency(a));
+  }
+
+  /** The tool in your hand. */
+  held() {
+    return this.slots.find((s) => s.held && ITEMS[s.id]?.tool) || null;
+  }
+
+  /** Take a tool in hand (from the hotbar): it's the one used for its kind of work. */
+  hold(slot) {
+    if (!slot || !ITEMS[slot.id]?.tool) return false;
+    for (const s of this.slots) if (s !== slot) delete s.held;
+    slot.held = true;
+    this.changed();
+    this.sim.bus.emit('tool:held', slot);
+    return true;
+  }
+
+  /** The best tool of a kind (highest efficiency, then durability) — or the one in your hand, if it's that kind. */
   bestTool(kind) {
+    const inHand = this.held();
+    if (inHand && ITEMS[inHand.id].tool.kind === kind && inHand.dur > 0) return inHand;
     let best = null;
     for (const s of this.slots) {
       const tool = ITEMS[s.id]?.tool;

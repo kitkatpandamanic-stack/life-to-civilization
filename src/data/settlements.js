@@ -39,12 +39,12 @@ export const SETTLEMENTS = {
   },
   market_town: {
     region: 'market_town', character: 'market', pop: 420,
-    produces: { bricks: 20, pie: 10, saw: 2, hammer: 2, iron_axe: 1 },
+    produces: { bricks: 20, glass: 10, pie: 10, saw: 2, hammer: 2, iron_axe: 1 },
     wants: { wheat: 40, flour: 20, wood: 30, fish: 20, meat: 16, hide: 10, table: 3, chair: 4, gemstone: 2 },
   },
   saltmere: {
     region: 'far_coast', character: 'port', pop: 260, water: true,
-    produces: { fish: 50, bricks: 8 },
+    produces: { fish: 50, bricks: 8, glass: 6 },
     wants: { planks: 24, iron_ingot: 8, wood: 20, bread: 20, gemstone: 3, cabinet: 1 },
   },
 };

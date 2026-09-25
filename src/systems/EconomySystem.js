@@ -117,7 +117,9 @@ export class EconomySystem {
   }
 
   target(id, item) {
-    return this.def(id)?.targets?.[item] ?? 10;
+    // Bigger premises hold more (a storeroom, a barn, a warehouse's upper floor — StructureSystem).
+    const room = this.sim.structures?.stockMult(this.biz(id)?.building) ?? 1;
+    return (this.def(id)?.targets?.[item] ?? 10) * room;
   }
   stock(id, item) {
     return this.biz(id)?.stock[item] || 0;
@@ -322,6 +324,8 @@ export class EconomySystem {
       const priceW = poor ? 9 : rich ? 4 : 6;
       const qualityW = rich ? 2.5 : poor ? 0.4 : 1.2;
       let score = 10 - avgFactor * priceW + have.length * 0.6 + (this.biz(id).reputation ?? 50) / 25 + ((this.biz(id).quality ?? 1) - 1) * qualityW;
+      // A fine shop with a window display draws people in (StructureSystem) — the well-off most of all.
+      score += (this.sim.structures?.appeal(this.biz(id).building) || 0) * (rich ? 1.2 : poor ? 0.4 : 0.8);
       const bld = this.sim.world.buildings[this.biz(id).building];
       if (home && bld) score -= Math.hypot(home.door.tx - bld.door.tx, home.door.ty - bld.door.ty) / 12;
       score += Math.min(3, (npc.visits?.[this.biz(id).building] || 0) * 0.3);
@@ -518,7 +522,8 @@ export class EconomySystem {
     b.madeToday = 0;
     for (const [item, r] of Object.entries(def.recipes)) {
       const limit = Math.round(this.target(id, item) * (r.cap ?? 1.5));
-      const know = this.sim.tech?.outputMod(b.type) ?? 1; // crop rotation, better tools, the mill
+      // Crop rotation, better tools, the mill — and the premises themselves (a master workshop, a granary).
+      const know = (this.sim.tech?.outputMod(b.type) ?? 1) * (this.sim.structures?.outputMult(b.building) ?? 1);
       let capacity = ((r.perDay || 0) * ownerHere + (r.perWorker || 0) * staffPower) * know + (b.progress[item] || 0);
       let made = 0;
       let blocked = null;

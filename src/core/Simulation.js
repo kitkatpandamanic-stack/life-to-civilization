@@ -18,6 +18,7 @@
  *    ├── npcs         NPCSystem
  *    ├── family       FamilySystem (kinship, courtship, marriage, births, aging, death, inheritance)
  *    ├── property     PropertySystem (ownership, values, rent, the housing market, decay)
+ *    ├── structures   StructureSystem (every building's level, quality, modules, footprint, upgrades and history)
  *    ├── enterprise   EnterpriseSystem (villager businesses: prices, wages, staff, startups, closures)
  *    ├── growth       GrowthSystem (villagers build, newcomers arrive, people leave, districts form)
  *    ├── disasters    DisasterSystem (floods, storms, fires and the repairs afterwards)
@@ -113,6 +114,7 @@ import { AcademiaSystem } from '../systems/AcademiaSystem.js';
 import { KnowHowSystem } from '../systems/KnowHowSystem.js';
 import { StudySystem } from '../systems/StudySystem.js';
 import { EducationWorldSystem } from '../systems/EducationWorldSystem.js';
+import { StructureSystem, restoreStructures } from '../systems/StructureSystem.js';
 import { rand } from './rng.js';
 
 const MAX_CHRONICLE = 200;
@@ -146,11 +148,13 @@ export class Simulation {
     this.crafting = new CraftingSystem(this);
     this.land = new LandSystem(this);
     this.construction = new ConstructionSystem(this);
+    restoreStructures(this); // grown, converted and demolished buildings, before anyone looks at them
     this.nature = new NatureSystem(this);
     this.farming = new FarmingSystem(this);
     this.workers = new WorkerSystem(this);
     this.businesses = new BusinessSystem(this);
     this.property = new PropertySystem(this);
+    this.structures = new StructureSystem(this);
     this.enterprise = new EnterpriseSystem(this);
     this.growth = new GrowthSystem(this);
     this.disasters = new DisasterSystem(this);

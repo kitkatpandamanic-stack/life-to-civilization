@@ -108,6 +108,17 @@ export class World {
     return rec;
   }
 
+  /** Take a building out of the world (demolished): its ground is free again. */
+  removeBuilding(id) {
+    const rec = this.buildings[id];
+    if (!rec) return null;
+    this.blockRect(rec.tx, rec.ty, rec.w, rec.h, 0);
+    delete this.buildings[id];
+    const i = this.buildingList.indexOf(rec);
+    if (i >= 0) this.buildingList.splice(i, 1);
+    return rec;
+  }
+
   blockRect(tx, ty, w, h, value) {
     for (let y = ty; y < ty + h; y++) for (let x = tx; x < tx + w; x++) if (this.inBounds(x, y)) this.staticBlocked[this.idx(x, y)] = value;
   }

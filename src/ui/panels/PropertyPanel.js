@@ -7,14 +7,17 @@ import { FINANCE } from '../../systems/FinanceSystem.js';
 import { Panel } from '../Panel.js';
 import { t, npcName, fmtMoney, itemName } from '../../i18n/i18n.js';
 import { tr, escapeHtml, buildingLabel, dateString, npcRole, districtLabel } from '../format.js';
-import { bar, button, portrait } from '../widgets.js';
+import { bar, button, portrait, tabs, stat, statGrid, status, condBar, emptyState, notice } from '../widgets.js';
+import { propBadges, rentMarket } from '../property.js';
+import { structureHtml, structureParts, structureAction, jobLabel, levelName } from '../structure.js';
 import { RENT_LEVELS } from '../../systems/PropertySystem.js';
 import { LETTING } from '../../systems/LettingSystem.js';
 
 export class PropertyPanel extends Panel {
-  constructor(ui, buildingId) {
+  constructor(ui, buildingId, tab = 'overview') {
     super(ui);
     this.bid = buildingId;
+    this.tab = tab;
   }
   get id() {
     return 'property';
@@ -61,10 +64,68 @@ export class PropertyPanel extends Panel {
   }
 
   render() {
+    const r = this.sim.property.rec(this.bid);
+    if (!r) return `<div class="muted">—</div>`;
+    const pages = [['overview', t('property.tab_overview')]];
+    if (this.sim.structures.rec(this.bid)) pages.push(['building', t('property.tab_building')]);
+    pages.push(['history', t('property.tab_history')]);
+    if (!pages.some(([p]) => p === this.tab)) this.tab = 'overview';
+    const parts = this.tab === 'building' ? structureParts(this.sim, this.bid) : null;
+    const body = parts ? `<div class="char-cols"><div class="col">${parts.info}</div><div class="col">${parts.actions}</div></div>` : this.tab === 'history' ? this.historyHtml() : this.overview();
+    return tabs(pages, this.tab) + body;
+  }
+
+  /** Who owned it, what's been done to it, what it's been used for, who has lived there. */
+  historyHtml() {
+    const sim = this.sim;
+    const r = sim.property.rec(this.bid);
+    const S = sim.structures;
+    const s = S.rec(this.bid);
+    const kv = (k, v) => `<div class="kv"><span>${escapeHtml(k)}</span><b>${v}</b></div>`;
+    const owners = r.history
+      .slice()
+      .reverse()
+      .map((h) => `<div class="chron"><span class="chron-date">${escapeHtml(dateString(h.from))}</span>${escapeHtml(this.ownerLabel(h.owner))} — ${escapeHtml(t(`acquired.${h.how}`))}${h.price ? ` (${fmtMoney(h.price)})` : ''}</div>`)
+      .join('');
+    let left = '';
+    if (s) {
+      const first = r.history[0];
+      left += kv(t('bhist.built'), escapeHtml(s.built ? dateString(s.built) : t('bhist.long_ago')));
+      if (first) left += kv(t('bhist.first_owner'), escapeHtml(this.ownerLabel(first.owner)));
+      left += kv(t('bhist.upgrades'), String(s.ups || 0));
+      left += kv(t('bhist.renovations'), String(s.ren || 0));
+      left += kv(t('bhist.households'), String(s.hh || 0));
+      if (s.uses.length) left += kv(t('bhist.uses'), escapeHtml(s.uses.map((u) => t(`use.${u.u}`)).filter((x, i, a) => a.indexOf(x) === i).join(' → ')));
+      const events = s.hist
+        .slice()
+        .reverse()
+        .map((h) => `<div class="chron"><span class="chron-date">${escapeHtml(dateString(h.d))}</span>${escapeHtml(this.histLine(h))}</div>`)
+        .join('');
+      left += `<h3>${escapeHtml(t('bhist.works'))}</h3><div class="chronicle">${events || `<div class="muted small">${escapeHtml(t('bhist.no_works'))}</div>`}</div>`;
+    }
+    return `<div class="char-cols"><div class="col">${left}</div><div class="col"><h3>${escapeHtml(t('ui.ownership_history'))}</h3><div class="chronicle">${owners}</div></div></div>`;
+  }
+
+  histLine(h) {
+    const job = this.jobOf(h.p?.job);
+    const who = h.p?.who ? this.ownerLabel(h.p.who) : '';
+    if (h.k === 'built') return t('bhist.line_built', { who });
+    if (!job) return t(`bhist.line_${h.k}`, { who, job: '' });
+    return t(`bhist.line_${h.k}`, { who, job: jobLabel(this.sim, this.bid, job) });
+  }
+
+  jobOf(key) {
+    if (!key) return null;
+    if (key.startsWith('level_')) return { type: 'level', to: Number(key.slice(6)) };
+    if (key.startsWith('module_')) return { type: 'module', m: key.slice(7) };
+    if (key.startsWith('spec_')) return { type: 'spec', s: key.slice(5) };
+    return { type: key };
+  }
+
+  overview() {
     const sim = this.sim;
     const P = sim.property;
     const r = P.rec(this.bid);
-    if (!r) return `<div class="muted">—</div>`;
     const kv = (k, v) => `<div class="kv"><span>${escapeHtml(k)}</span><b>${v}</b></div>`;
     const tags = [];
     if (r.ruined) tags.push(`<span class="chip neg">${escapeHtml(t('ui.ruin_tag'))}</span>`);
@@ -78,7 +139,7 @@ export class PropertyPanel extends Panel {
     const bizId = sim.economy.businessAtBuilding(this.bid);
     const business = bizId ? this.businessHtml(bizId, kv) : '';
     const history = r.history
-      .slice()
+      .slice(-4) // the full story is on the History tab
       .reverse()
       .map((h) => `<div class="chron"><span class="chron-date">${escapeHtml(dateString(h.from))}</span>${escapeHtml(this.ownerLabel(h.owner))} — ${escapeHtml(t(`acquired.${h.how}`))}${h.price ? ` (${fmtMoney(h.price)})` : ''}</div>`)
       .join('');
@@ -125,23 +186,31 @@ export class PropertyPanel extends Panel {
         const needs = Object.entries(cost.materials).map(([i, q]) => `${itemName(i)} ×${q}`).join(', ');
         btns.push(button(t('ui.restore_for', { money: fmtMoney(cost.money) }), 'restore', {}, { disabled: !chk.ok, title: `${t('ui.restore_needs', { list: needs })}${chk.ok ? '' : ` — ${tr(sim, `reason.${chk.reason}`, chk.params || {})}`}` }));
       }
-      if (isHome && this.bid !== sim.state.player.homeId) {
-        btns.push(`<span class="muted small">${escapeHtml(t('ui.set_rent'))}:</span>`);
-        for (const lvl of Object.keys(RENT_LEVELS)) btns.push(button(t(`rent_level.${lvl}`), 'rent_level', { level: lvl }, { cls: r.rentLevel === lvl ? 'primary' : '' }));
-        if (!r.forSale) btns.push(button(t('ui.put_on_market'), 'sell'));
+      if (sim.structures.rec(this.bid)) btns.push(button(`⬆ ${t('ui.improve')}`, 'tab', { tab: 'building' }));
+      if (isHome && this.bid !== sim.state.player.homeId && !r.forSale) {
+        // Selling is a big step: ask first.
+        if (this.confirmSell) btns.push(`<span class="warn small">${escapeHtml(t('ui.sell_confirm', { money: fmtMoney(P.value(this.bid)) }))}</span>`, button(t('ui.yes'), 'sell', {}, { cls: 'danger' }), button(t('ui.no'), 'sell_no', {}, { cls: 'ghost' }));
+        else btns.push(button(t('ui.put_on_market'), 'sell_ask', {}, { cls: 'ghost' }));
       }
     }
 
+    const S = sim.structures;
+    const value = P.value(this.bid);
+    const tiles = [];
+    tiles.push(stat(t('ui.condition'), `${Math.round(r.condition)}%`, r.condition < 40 ? 'neg' : ''));
+    if (S.rec(this.bid)) tiles.push(stat(t('structure.quality'), `${S.quality(this.bid)}%`));
+    if (isHome) tiles.push(stat(t('ui.residents'), `${P.occupants(this.bid)} / ${P.capacity(this.bid)}`));
+    if (value) tiles.push(stat(t('ui.market_value'), fmtMoney(value)));
+    if (isHome && !bizId && this.bid !== 'hall') tiles.push(stat(t('ui.weekly_rent'), fmtMoney(P.weeklyRent(this.bid))));
     return `
-      <div class="chips">${tags.join('')}</div>
+      <div class="chips" style="gap:6px">${propBadges(sim, this.bid)}</div>
+      ${statGrid(tiles)}
       <div class="char-cols">
         <div class="col">
           ${kv(t('ui.owner'), escapeHtml(this.ownerLabel(r.owner)))}
+          ${sim.structures.rec(this.bid) ? kv(t('structure.what'), `<span class="clickable" data-action="tab" data-tab="building">${escapeHtml(levelName(sim, this.bid))} · ${escapeHtml(t('structure.level_short', { n: sim.structures.level(this.bid) }))} · ${escapeHtml(t('structure.quality'))} ${sim.structures.quality(this.bid)}%</span>`) : ''}
           ${this.districtRow(kv)}
-          <div class="need-row"><span>${escapeHtml(t('ui.condition'))}</span>${bar(r.condition, r.condition < 40 ? 'warn' : 'health', `${Math.round(r.condition)}%`)}</div>
-          ${P.value(this.bid) ? kv(t('ui.market_value'), fmtMoney(P.value(this.bid))) : ''}
-          ${isHome && !bizId ? kv(t('ui.weekly_rent'), fmtMoney(P.weeklyRent(this.bid))) : ''}
-          ${r.arrears > 0 ? `<div class="warn small">${escapeHtml(t('ui.rent_arrears', { n: r.arrears }))}</div>` : ''}
+          <div class="bar-label"><span>${escapeHtml(t('ui.condition'))}</span></div>${condBar(r.condition)}
           ${isHome ? `<h3>${escapeHtml(t('ui.residents'))} <span class="muted small">${escapeHtml(t('ui.capacity_n', { n: P.occupants(this.bid), cap: P.capacity(this.bid) }))}</span></h3>
           ${people ? `<div class="people">${people}</div>` : `<div class="muted small">${escapeHtml(t('ui.nobody_lives_here'))}</div>`}` : ''}
           ${business}
@@ -149,12 +218,28 @@ export class PropertyPanel extends Panel {
           ${this.bid === 'hall' ? this.villageFundHtml(kv) : ''}
         </div>
         <div class="col">
-          ${r.owner === 'player' && isHome && this.bid !== sim.state.player.homeId && !bizId ? this.lettingHtml(kv) : ''}
+          ${r.owner === 'player' && isHome && this.bid !== sim.state.player.homeId && !bizId ? this.rentHtml(kv) + this.lettingHtml(kv) : ''}
+          ${sim.structures.works(this.bid) ? structureHtml(sim, this.bid, { compact: true }) : ''}
           <h3>${escapeHtml(t('ui.ownership_history'))}</h3>
           <div class="chronicle">${history}</div>
         </div>
       </div>
       <div class="btn-row">${btns.join(' ')}</div>`;
+  }
+
+  /** Your rent: what you ask, what the market suggests, the going range, demand — and the level you set. */
+  rentHtml(kv) {
+    const sim = this.sim;
+    const r = sim.property.rec(this.bid);
+    const m = rentMarket(sim, this.bid);
+    const demand = status(t(`demand.${m.demand}`), m.demand === 'high' ? 'good' : m.demand === 'low' ? 'warn' : 'neutral', m.demand === 'high' ? '📈' : m.demand === 'low' ? '📉' : '➖');
+    return `<h3>💰 ${escapeHtml(t('rent_ui.title'))}</h3>
+      ${kv(t('rent_ui.asking'), `${fmtMoney(sim.property.weeklyRent(this.bid))} ${escapeHtml(t('rent_ui.per_week'))}`)}
+      ${kv(t('rent_ui.suggested'), fmtMoney(m.suggested))}
+      ${kv(t('rent_ui.range'), m.range)}
+      ${kv(t('rent_ui.demand'), demand)}
+      <div class="btn-row"><span class="hint">${escapeHtml(t('ui.set_rent'))}</span>${Object.keys(RENT_LEVELS).map((lvl) => button(t(`rent_level.${lvl}`), 'rent_level', { level: lvl }, { cls: `sm ${r.rentLevel === lvl ? 'selected' : 'ghost'}` })).join('')}</div>
+      ${r.arrears > 0 ? notice('danger', escapeHtml(t('ui.rent_arrears', { n: r.arrears }))) : ''}`;
   }
 
   /** Finding tenants for a house of yours: the sign, who might be interested, viewings, advertisements. */
@@ -240,6 +325,11 @@ export class PropertyPanel extends Panel {
 
   onAction(action, data) {
     const P = this.sim.property;
+    if (action === 'tab') {
+      this.tab = data.tab;
+      return;
+    }
+    if (structureAction(this.ui, this.bid, action, data)) return;
     switch (action) {
       case 'buy': {
         const r = P.playerBuy(this.bid);
@@ -319,7 +409,14 @@ export class PropertyPanel extends Panel {
           this.sim.chronicle('chronicle.relic_donated', { building: this.bid });
         }
         break;
+      case 'sell_ask':
+        this.confirmSell = true;
+        break;
+      case 'sell_no':
+        this.confirmSell = false;
+        break;
       case 'sell':
+        this.confirmSell = false;
         P.playerSell(this.bid);
         break;
       case 'inspect_npc':

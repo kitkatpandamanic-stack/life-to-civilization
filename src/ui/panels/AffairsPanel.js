@@ -13,7 +13,8 @@
 import { Panel } from '../Panel.js';
 import { t, fmtMoney, npcName, itemName } from '../../i18n/i18n.js';
 import { escapeHtml, buildingLabel, villageName } from '../format.js';
-import { bar, icon, tabs, portrait } from '../widgets.js';
+import { bar, icon, tabs, portrait, stat, statGrid, emptyState } from '../widgets.js';
+import { propBadges } from '../property.js';
 import { ITEMS } from '../../data/items.js';
 import { SKILLS } from '../../data/skills.js';
 import { PLAYER_TRANSPORT } from '../../data/settlements.js';
@@ -235,12 +236,17 @@ export class AffairsPanel extends Panel {
     const P = sim.property;
     const E = sim.economy;
     const H = sim.holdings;
-    const buildings = Object.entries(P.all)
-      .filter(([, r]) => r.owner === 'player')
-      .map(([id, r]) => {
-        const people = sim.npcs.residentsOf(id).length;
-        const rent = people && id !== sim.state.player.homeId ? t('affairs.rented', { n: people, money: fmtMoney(P.weeklyRent(id)) }) : id === sim.state.player.homeId ? t('affairs.your_home') : t('affairs.empty');
-        return `<div class="aff-row clickable" data-action="building" data-id="${id}"><span>${escapeHtml(buildingLabel(sim, id))}</span><span class="muted small">${escapeHtml(rent)}${r.condition < 60 ? ` · ${escapeHtml(t('affairs.condition', { n: Math.round(r.condition) }))}` : ''}</span><b>${escapeHtml(fmtMoney(P.value(id)))}</b></div>`;
+    // Your properties: what they bring in, what they cost, and each one's state at a glance.
+    const mine = Object.entries(P.all).filter(([, r]) => r.owner === 'player').map(([id]) => id);
+    const rented = mine.filter((id) => id !== sim.state.player.homeId && P.isHome(id) && sim.npcs.residentsOf(id).some((n) => P.landlord(n) === 'player'));
+    const income = rented.reduce((s, id) => s + P.weeklyRent(id), 0);
+    const upkeep = mine.reduce((s, id) => s + (sim.finance?.propertyTax?.(id) || 0), 0);
+    const summary = mine.length ? statGrid([stat(t('affairs.props_n'), String(mine.length)), stat(t('affairs.rent_week'), fmtMoney(income), 'pos'), stat(t('affairs.tax_week'), fmtMoney(upkeep), upkeep ? 'neg' : ''), stat(t('affairs.net'), this.money(income - upkeep))]) : '';
+    const buildings = mine
+      .map((id) => {
+        const lvl = sim.structures?.rec(id) ? ` · ${t('structure.level_short', { n: sim.structures.level(id) })}` : '';
+        const rent = rented.includes(id) ? `${fmtMoney(P.weeklyRent(id))} ${t('rent_ui.per_week')}` : '';
+        return `<div class="prop-row" data-action="building" data-id="${id}"><div><div class="prop-name">${escapeHtml(buildingLabel(sim, id))}<span class="muted small">${escapeHtml(lvl)}</span></div><div>${propBadges(sim, id)}</div></div><span class="muted small">${escapeHtml(rent)}</span><b>${escapeHtml(fmtMoney(P.value(id)))}</b></div>`;
       })
       .join('');
     const land = (sim.land.owned || []).map((id) => this.kv(t(`plot.${id}`), escapeHtml(fmtMoney(sim.land.price(id))))).join('');
@@ -266,7 +272,7 @@ export class AffairsPanel extends Panel {
     return `
       <div class="char-cols">
         <div class="col">
-          <h3>${escapeHtml(t('affairs.buildings'))}</h3>${buildings || none}
+          <h3>${escapeHtml(t('affairs.buildings'))}</h3>${summary}${buildings || emptyState('🏠', t('affairs.no_props_title'), t('affairs.no_props_text'))}
           <h3>${escapeHtml(t('affairs.land'))}</h3>${land || none}
           <h3>${escapeHtml(t('affairs.outposts'))}</h3>${outposts || none}
         </div>

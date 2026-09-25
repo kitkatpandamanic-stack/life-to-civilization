@@ -25,9 +25,9 @@ export const BUSINESS_TYPES = {
   general_store: {
     kind: 'shop', sector: 'grocery', icon: '🧺', openHours: [8, 19],
     ownerOccupation: 'shopkeeper', workerOccupation: 'store_clerk', maxWorkers: 1,
-    sells: ['bread', 'apple', 'cheese', 'potato', 'carrot', 'cabbage', 'fish', 'wheat_seeds', 'carrot_seeds', 'potato_seeds', 'cabbage_seeds', 'pumpkin_seeds', 'watering_can', 'fishing_rod', 'bow'],
+    sells: ['bread', 'apple', 'cheese', 'potato', 'carrot', 'cabbage', 'fish', 'wheat_seeds', 'carrot_seeds', 'potato_seeds', 'cabbage_seeds', 'pumpkin_seeds', 'watering_can', 'fishing_rod', 'bow', 'bricks', 'glass'],
     buys: ['wood', 'stone', 'clay', 'wheat', 'berries', 'apple', 'carrot', 'potato', 'cabbage', 'pumpkin', 'planks', 'stool', 'chair', 'table', 'fish', 'meat', 'hide'],
-    targets: { bread: 20, apple: 14, cheese: 8, potato: 12, carrot: 12, cabbage: 8, fish: 6, wheat_seeds: 20, carrot_seeds: 20, potato_seeds: 20, cabbage_seeds: 12, pumpkin_seeds: 8, watering_can: 2, fishing_rod: 2, bow: 1, wood: 20, stone: 16, clay: 10, wheat: 20, berries: 10, pumpkin: 4, planks: 12, stool: 3, chair: 3, table: 2 },
+    targets: { bread: 20, apple: 14, cheese: 8, potato: 12, carrot: 12, cabbage: 8, fish: 6, wheat_seeds: 20, carrot_seeds: 20, potato_seeds: 20, cabbage_seeds: 12, pumpkin_seeds: 8, watering_can: 2, fishing_rod: 2, bow: 1, bricks: 14, glass: 6, wood: 20, stone: 16, clay: 10, wheat: 20, berries: 10, pumpkin: 4, planks: 12, stool: 3, chair: 3, table: 2 },
     // Bread from the mill's flour; without flour, grinding wheat by hand is slow work.
     recipes: { bread: { alts: [{ in: { flour: 1 }, out: 2 }, { in: { wheat: 1 }, out: 1, cost: 1.5 }], perDay: 9, perWorker: 3, import: true } },
     startCost: 360, openable: true,

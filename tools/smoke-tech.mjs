@@ -101,6 +101,8 @@ check('a master who taught no one takes know-how to the grave', sim.state.knowle
 
 // 7. The library, and the civic buildings that follow.
 let lib = sim.construction.list.find((c) => c.type === 'library' && c.status === 'site');
+// (A library needs a village of 24: make sure there are enough people — the random course of events varies.)
+while (sim.state.npcs.length + 1 < 24) sim.npcs.spawn({ age: 30, occupation: 'unemployed', look: sim.state.npcs[0].look });
 check('with a school and enough knowledge, the village wants a library', !!lib || T.civicWanted() === 'library', lib ? 'already building one' : T.civicWanted());
 lib ??= sim.growth.start('village', 'library', 'public', { tx: 50, ty: 40 });
 finish(sim, lib);

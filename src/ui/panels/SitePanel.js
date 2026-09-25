@@ -2,8 +2,9 @@
  * Construction site — progress, materials delivered vs. needed, who's working on it.
  */
 import { Panel } from '../Panel.js';
-import { t, itemName, npcName, cap } from '../../i18n/i18n.js';
-import { escapeHtml } from '../format.js';
+import { t, itemName, npcName, cap, fmtMoney } from '../../i18n/i18n.js';
+import { escapeHtml, buildingLabel } from '../format.js';
+import { jobLabel } from '../structure.js';
 import { bar, button, icon } from '../widgets.js';
 
 export class SitePanel extends Panel {
@@ -21,6 +22,7 @@ export class SitePanel extends Panel {
   title() {
     const c = this.c;
     const theirs = c && !this.sim.construction.isPlayers(c);
+    if (c?.kind === 'works') return `🏗️ ${escapeHtml(buildingLabel(this.sim, c.target))} — ${escapeHtml(jobLabel(this.sim, c.target, c.job))}`;
     const name = c?.kind === 'upgrade' ? t(`home_tier.${c.toTier}`) : theirs ? t(`vbuilding.${c.type}`) : t(`buildable.${c?.type}.name`);
     return `🏗️ ${escapeHtml(t('ui.site_of', { name }))}`;
   }
@@ -48,6 +50,7 @@ export class SitePanel extends Panel {
     return `
       ${ownerLine}
       <div class="stages">${stages}</div>
+      ${theirs ? '' : this.hireHtml(c)}
       <h3>${escapeHtml(t('ui.work_progress'))}</h3>
       ${bar((c.labor / c.laborNeeded) * 100, 'xp', t('ui.hours_left', { h: hoursLeft }))}
       <div class="muted small">${escapeHtml(t('ui.your_rate', { h: (cons.playerLaborPerHour() / 60).toFixed(2) }))}</div>
@@ -64,10 +67,34 @@ export class SitePanel extends Panel {
       <div class="muted small">${escapeHtml(t(theirs ? 'ui.site_hint_theirs' : 'ui.site_hint'))}</div>`;
   }
 
-  onAction(action) {
+  /** Pay builders (or day labourers) to do the work for you — and to fetch the materials, if you like. */
+  hireHtml(c) {
+    const sim = this.sim;
+    const p = sim.state.player;
+    const E = sim.economy;
+    const firms = E.ofType('builders').filter((id) => !E.biz(id).closed).length;
+    const idle = sim.state.npcs.filter((n) => n.occupation === 'unemployed' && n.age >= 16 && n.age < 62 && !n.leaving).length;
+    const btns = [50, 150].map((m) => button(t('site.hire_n', { money: fmtMoney(m) }), 'hire', { n: m }, { disabled: p.money < m }));
+    btns.push(button(t(c.buyMats ? 'site.buy_mats_on' : 'site.buy_mats_off'), 'buy_mats', {}, { cls: c.buyMats ? 'primary' : '' }));
+    return `<h3>${escapeHtml(t('site.hire_title'))}</h3>
+      ${c.budget > 0 ? `<div class="kv"><span>${escapeHtml(t('site.budget_left'))}</span><b>${fmtMoney(Math.floor(c.budget))}</b></div>` : ''}
+      <div class="muted small">${escapeHtml(t('site.hire_hint', { n: firms, n2: idle }))}</div>
+      <div class="btn-row">${btns.join(' ')}</div>`;
+  }
+
+  onAction(action, data = {}) {
     const sim = this.sim;
     const c = this.c;
     if (!c) return;
+    if (action === 'hire') {
+      const r = sim.construction.hire(c, Number(data.n), { buyMaterials: !!c.buyMats });
+      if (!r.ok) sim.toast(`reason.${r.reason}`, r.params || {}, 'warn');
+      return;
+    }
+    if (action === 'buy_mats') {
+      c.buyMats = !c.buyMats;
+      return;
+    }
     if (action === 'deliver') sim.toast('toast.delivered', { qty: sim.construction.deliver(c, 'inventory') }, 'gain');
     else if (action === 'deliver_chest') {
       // The chest is at home — you can only do this if you're there, or a worker hauls it.

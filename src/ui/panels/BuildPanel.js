@@ -9,6 +9,7 @@ import { tr, escapeHtml } from '../format.js';
 import { button, icon, tabs } from '../widgets.js';
 import { BUILDABLES, BUILD_CATEGORIES, HOME_UPGRADES, ROAD_COST } from '../../data/buildables.js';
 import { skill } from '../../systems/Modifiers.js';
+import { structureHtml, structureAction } from '../structure.js';
 
 export class BuildPanel extends Panel {
   constructor(ui, tab = null) {
@@ -71,7 +72,9 @@ export class BuildPanel extends Panel {
       const up = next && HOME_UPGRADES[next];
       const chk = sim.construction.canUpgradeHome();
       body = `<div class="kv"><span>${escapeHtml(t('ui.current_home'))}</span><b>${escapeHtml(t(`home_tier.${sim.home.tierId}`))} · ${escapeHtml(t('stat.comfort'))} ${sim.home.comfort()}</b></div>`;
-      if (sim.home.tierId === 'shack') body += `<div class="rumor">${escapeHtml(t('ui.home_shack_hint'))}</div>`;
+      const homeId = sim.state.player.homeId;
+      if (homeId && sim.structures.rec(homeId) && sim.property.rec(homeId)?.owner === 'player') body += structureHtml(sim, homeId); // levels, rooms, a garden… (StructureSystem)
+      else if (sim.home.tierId === 'shack') body += `<div class="rumor">${escapeHtml(t('ui.home_shack_hint'))}</div>`;
       else if (up) {
         body += `<div class="build-card${chk.ok ? '' : ' unavailable'}">
           <div class="job-top"><div class="job-name">⬆ ${escapeHtml(t(`home_tier.${next}`))}</div><div class="job-pay">${fmtMoney(up.money)} · ⏱ ${up.labor} ${escapeHtml(t('ui.hours_short'))}</div></div>
@@ -85,6 +88,7 @@ export class BuildPanel extends Panel {
   }
 
   onAction(action, data) {
+    if (structureAction(this.ui, this.sim.state.player.homeId, action, data)) return;
     if (action === 'tab') this.tab = data.tab;
     else if (action === 'place') {
       this.ui.closePanel();

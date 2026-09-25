@@ -21,7 +21,14 @@ export class HomeSystem {
     return this.sim.state.player;
   }
   get tierId() {
-    return this.p.homeTier || 'shack';
+    // A house of yours: its level decides the tier (StructureSystem); a rented room keeps what it was.
+    return this.sim.structures?.homeTier() || this.p.homeTier || 'shack';
+  }
+
+  /** Your home's structure effects (modules, quality) — or nothing, for the shack you rent. */
+  homeFx() {
+    const id = this.p.homeId;
+    return (id && this.sim.structures?.fx(id)) || null;
   }
   get tier() {
     return HOME_TIERS[this.tierId];
@@ -37,7 +44,7 @@ export class HomeSystem {
 
   storageCapacity() {
     // Storage sheds you build add capacity (see ConstructionSystem).
-    return this.tier.storage + (this.sim.construction?.extraStorage() || 0);
+    return this.tier.storage + (this.sim.construction?.extraStorage() || 0) + (this.homeFx()?.storage || 0);
   }
 
   storageWeight() {
@@ -56,7 +63,10 @@ export class HomeSystem {
   comfort() {
     let bonus = 0;
     for (const s of this.storage) bonus += (ITEMS[s.id]?.comfort || 0) * Q(s.q).comfort * s.qty; // finer furniture, more comfort
-    return this.tier.comfort + Math.min(FURNITURE_COMFORT_CAP, bonus) - this.cold();
+    // A kitchen, a parlour, a garden (modules) — and how well the house was built.
+    const fx = this.homeFx();
+    const built = fx ? fx.comfort + Math.round((this.sim.structures.quality(this.p.homeId) - 50) / 10) : 0;
+    return this.tier.comfort + Math.min(FURNITURE_COMFORT_CAP, bonus) + built - this.cold();
   }
 
   /** Add to storage (respects capacity unless force). Returns amount stored. */
@@ -128,7 +138,8 @@ export class HomeSystem {
     if (this.sim.time.season !== 'winter') return 0;
     const furn = this.tier.furniture.map((f) => f.type);
     if (furn.includes('fireplace')) return 0;
-    return furn.includes('stove') ? WINTER_COLD.stove : WINTER_COLD.none;
+    const cold = furn.includes('stove') ? WINTER_COLD.stove : WINTER_COLD.none;
+    return this.homeFx()?.warm ? Math.round(cold / 2) : cold; // a cellar keeps the worst of the frost out
   }
 
   /** Reading at your bookshelf: you learn (a few times a day, then it stops sinking in). */

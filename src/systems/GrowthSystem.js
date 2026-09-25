@@ -45,6 +45,11 @@ export class GrowthSystem {
     return this.cons.sites().filter((c) => !this.cons.isPlayers(c));
   }
 
+  /** Your own sites where you've put money down for builders (ConstructionSystem.hire). */
+  contracted() {
+    return this.cons.playerSites().filter((c) => c.hired && c.budget > 0);
+  }
+
   projectOf(npc) {
     return this.projects().find((c) => c.owner === npc.id) || null;
   }
@@ -128,7 +133,11 @@ export class GrowthSystem {
 
   /** Who pays: the owner's purse (or the village treasury). */
   purse(c) {
+    // Your sites: the builders are paid only from the money you put down.
+    if (this.cons.isPlayers(c)) return { get: () => 0, pay: () => {} };
     if (c.owner === 'village') return { get: () => this.sim.state.village.treasury, pay: (x) => (this.sim.state.village.treasury -= x) };
+    // Improvements to a building are paid by its owner — business premises from the till (StructureSystem).
+    if (c.kind === 'works' && this.sim.structures) return this.sim.structures.purseOf(c.target, c.owner);
     // Repairs to business premises come out of the business's till.
     if (c.kind === 'repair') {
       const E = this.sim.economy;
@@ -328,7 +337,7 @@ export class GrowthSystem {
     const sim = this.sim;
     const day = sim.time.day;
     const pool = sim.state.npcs.filter((n) => n.occupation === 'unemployed' && n.age >= 16 && n.age < 62 && !n.leaving && n.dayLabour?.day !== day);
-    for (const c of this.projects()) {
+    for (const c of [...this.projects(), ...this.contracted()]) {
       if (c.labor >= this.cons.maxLabor(c) - 1 || !pool.length) continue;
       const purse = this.purse(c);
       if (!purse || c.budget + purse.get() < G.dayWage * 2 + 20) continue;
@@ -394,7 +403,7 @@ export class GrowthSystem {
 
   /** The site a builder should work on next (with materials to work with). */
   siteForBuilder() {
-    return this.projects()
+    return [...this.projects(), ...this.contracted()]
       .filter((c) => c.labor < this.cons.maxLabor(c) - 0.5)
       .sort((a, b) => a.createdDay - b.createdDay)[0];
   }
@@ -731,6 +740,8 @@ export class GrowthSystem {
     const sim = this.sim;
     this.payLabour();
     this.hireLabour();
+    // Builders you've paid to get the materials for you buy them like anyone else's.
+    for (const c of this.contracted()) if (c.buyMats) this.buyMaterials(c);
     for (const c of this.projects()) {
       this.buyMaterials(c);
       // A project nobody works on (and nobody can pay for) is eventually given up.
@@ -766,8 +777,9 @@ export class GrowthSystem {
       sim.civic.V.project = c.institution;
     } else if (c.owner === 'village') sim.state.village.treasury += Math.max(0, c.budget);
     this.cons.list.splice(this.cons.list.indexOf(c), 1);
-    if (c.kind === 'building') sim.world.blockRect(c.tx, c.ty, c.w, c.h, 0);
-    sim.chronicle('chronicle.building_abandoned_site', { npc: c.owner !== 'village' ? c.owner : undefined, vbuilding: c.type });
+    this.cons.release(c);
+    if (c.kind === 'works') sim.chronicle('chronicle.works_abandoned', { npc: c.owner !== 'village' ? c.owner : undefined, building: c.target });
+    else sim.chronicle('chronicle.building_abandoned_site', { npc: c.owner !== 'village' ? c.owner : undefined, vbuilding: c.type });
     sim.bus.emit('construction:removed', c);
   }
 }

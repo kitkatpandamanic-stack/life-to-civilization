@@ -84,6 +84,18 @@ export const EXTRA_ICONS = {
       }
     }
   },
+  glass(ctx) {
+    // Two panes leaning on each other.
+    for (const [x, y] of [[6, 8], [12, 11]]) {
+      ctx.fillStyle = 'rgba(160,210,235,0.75)';
+      ctx.fillRect(x, y, 14, 16);
+      ctx.strokeStyle = '#5e8fb3';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(x + 0.5, y + 0.5, 13, 15);
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.fillRect(x + 3, y + 3, 2, 8);
+    }
+  },
   clay(ctx) {
     ellipse(ctx, 16, 20, 11, 7, '#b0764a');
     ellipse(ctx, 14, 17, 7, 4, '#c98a5a');

@@ -203,7 +203,7 @@ function playerBuildingActions(scene, id, add) {
   if (p.homeId === id) {
     const upgrade = cons.sites().find((s) => s.kind === 'upgrade' && s.target === id);
     if (upgrade) siteActions(scene, upgrade, add);
-    else if (sim.home.nextTier()) add('action.upgrade_home', {}, () => ui.openBuild('home'));
+    else if (sim.home.nextTier() && !sim.structures?.rec(id)) add('action.upgrade_home', {}, () => ui.openBuild('home'));
   }
   if (c.type === 'storage_shed') add('action.open_storage', {}, () => ui.openStorage());
   if (c.type === 'forge') add('action.use_own_forge', {}, () => ui.openCraft('forge'));
@@ -311,6 +311,14 @@ function buildingActions(scene, id, add) {
       add('action.contract_deliver', { qty: n || c.qty - c.delivered, item: c.item }, () => sim.contracts.deliver(c.id), n > 0 ? OK : { ok: false, reason: c.minQ !== undefined ? 'contract_quality' : 'contract_nothing', params: { item: c.item } });
     }
   }
+
+  // Work going on at this building (a new level, a room, a renovation — yours or a villager's): lend a hand.
+  const works = sim.structures?.works(id);
+  if (works) siteActions(scene, works, add);
+  // Your own building: see what could be done to it.
+  if (sim.structures?.rec(id) && sim.property.rec(id)?.owner === 'player' && !works) add('action.improve_building', {}, () => ui.openProperty(id, 'building'));
+  // A house of yours that stands empty: move in.
+  if (!sim.world.buildings[id]?.player && sim.construction.canMoveIn(id)) add('action.move_in', {}, () => sim.construction.moveIn(id));
 
   // Job steps first — they're usually the reason you came.
   if (jobs.canPickup(id)) {

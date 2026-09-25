@@ -21,6 +21,7 @@ export const ITEMS = {
   // Processed materials
   planks: { category: 'material', weight: 1.5, basePrice: 8 },
   bricks: { category: 'material', weight: 2.5, basePrice: 9 },
+  glass: { category: 'material', weight: 1.5, basePrice: 14 }, // panes for windows (from the towns, by caravan)
   hide: { category: 'material', weight: 1.5, basePrice: 9 },
   iron_ingot: { category: 'material', weight: 1.5, basePrice: 26 },
 

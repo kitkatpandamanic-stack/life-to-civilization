@@ -11,7 +11,7 @@
  * All text comes from the locale files and re-renders when the language changes.
  */
 import { EnterprisePanel } from './panels/EnterprisePanel.js';
-import { t, fmtMoney, onLanguageChange, npcName } from '../i18n/i18n.js';
+import { t, fmtMoney, onLanguageChange, npcName, itemName } from '../i18n/i18n.js';
 import { tr, escapeHtml } from './format.js';
 import { WEATHER_ICONS } from '../systems/WeatherSystem.js';
 import { BALANCE } from '../config/balance.js';
@@ -38,8 +38,37 @@ import { HallPanel } from './panels/HallPanel.js';
 import { SchoolPanel } from './panels/SchoolPanel.js';
 import { InstitutePanel } from './panels/InstitutePanel.js';
 import { AffairsPanel } from './panels/AffairsPanel.js';
+import { itemTip } from './items.js';
+import { icon, condState } from './widgets.js';
+import { applySettings, uiScale } from './settings.js';
+import { ITEMS } from '../data/items.js';
 
-const REFRESH_EVENTS = ['inventory:changed', 'storage:changed', 'construction:changed', 'land:changed', 'workers:changed', 'business:changed', 'player:changed', 'jobs:changed', 'economy:changed', 'social:changed', 'player:levelup', 'player:skillup', 'chronicle'];
+/** The dock: the screens you open most, with their keys. */
+const DOCK = [
+  ['inventory', '🎒', 'I', 'ui.inventory'],
+  ['character', '👤', 'C', 'ui.character'],
+  ['journal', '📖', 'J', 'ui.journal'],
+  ['map', '🗺️', 'M', 'ui.map'],
+  ['build', '🔨', 'B', 'ui.key_build'],
+  ['workers', '👷', 'K', 'ui.workers'],
+  ['affairs', '💼', 'L', 'affairs.title'],
+  null,
+  ['menu', '⚙️', 'Esc', 'ui.menu'],
+];
+/** Icons for notifications, by what they're about (the first match wins). */
+const TOAST_ICONS = [
+  [/rent|dividend|paid|sold|earn|wage|gain|money/, '💰'],
+  [/tenant|moved_in|viewing|let_|house|home/, '🏠'],
+  [/works|site|built|building|construct|upgrade|restor/, '🏗️'],
+  [/level|skill|perk/, '⭐'],
+  [/tool|broke/, '🔧'],
+  [/ate|food|hungry/, '🍞'],
+  [/job|shift|contract|order/, '📋'],
+  [/fire|flood|storm|danger/, '🔥'],
+  [/save|load/, '💾'],
+];
+
+const REFRESH_EVENTS = ['inventory:changed', 'storage:changed', 'construction:changed', 'land:changed', 'workers:changed', 'business:changed', 'player:changed', 'jobs:changed', 'economy:changed', 'social:changed', 'player:levelup', 'player:skillup', 'chronicle', 'building:changed', 'property:changed'];
 
 export class UIManager {
   constructor(scene, sim) {
@@ -79,6 +108,11 @@ export class UIManager {
     this.hudLeft = el('hud hud-left', this.leftCol);
     this.objectiveEl = el('hud objective hidden', this.leftCol);
     this.hudRight = el('hud hud-right');
+    this.floatEl = el('float-layer');
+    this.promptEl = el('world-prompt hidden');
+    this.bottomEl = el('hud-bottom');
+    this.hotbarEl = el('hotbar', this.bottomEl);
+    this.dockEl = el('dock', this.bottomEl);
     this.hotkeysEl = el('hotkeys');
     this.toastsEl = el('toasts');
     this.levelUpEl = el('levelup hidden');
@@ -89,6 +123,8 @@ export class UIManager {
       if (e.target.closest('[data-cancel-build]')) this.scene.buildMode.cancel();
     });
     this.modalEl = el('modal-root hidden');
+    this.tipEl = el('tooltip');
+    applySettings();
 
     this.hudLeft.innerHTML = `
       <div class="portrait-ring"><span class="lvl"></span></div>
@@ -97,9 +133,9 @@ export class UIManager {
         <div class="xpbar"><div class="fill"></div><span class="label"></span></div>
         <div class="money-row"><span class="money"></span><span class="points hidden" data-open="character"></span></div>
         <div class="needs">
-          <div class="need health"><span class="ico">❤️</span><div class="bar"><div class="fill"></div></div></div>
-          <div class="need energy"><span class="ico">⚡</span><div class="bar"><div class="fill"></div></div></div>
-          <div class="need hunger"><span class="ico">🍞</span><div class="bar"><div class="fill"></div></div></div>
+          <div class="need health"><span class="ico">❤️</span><div class="bar"><div class="fill"></div></div><span class="val"></span></div>
+          <div class="need energy"><span class="ico">⚡</span><div class="bar"><div class="fill"></div></div><span class="val"></span></div>
+          <div class="need hunger"><span class="ico">🍞</span><div class="bar"><div class="fill"></div></div><span class="val"></span></div>
         </div>
       </div>`;
     this.hudRight.innerHTML = `
@@ -125,11 +161,25 @@ export class UIManager {
       weather: this.hudRight.querySelector('.weather'),
     };
     this.q.points.addEventListener('click', () => this.togglePanel('character'));
+    this.hudLeft.querySelector('.portrait-ring').addEventListener('click', () => this.togglePanel('character'));
+    this.q.healthVal = this.hudLeft.querySelector('.health .val');
+    this.q.energyVal = this.hudLeft.querySelector('.energy .val');
+    this.q.hungerVal = this.hudLeft.querySelector('.hunger .val');
 
-    this.hotkeysEl.addEventListener('click', (e) => {
+    this.dockEl.addEventListener('click', (e) => {
       const k = e.target.closest('[data-open]');
       if (k) this.togglePanel(k.dataset.open);
     });
+    this.hotbarEl.addEventListener('click', (e) => {
+      const k = e.target.closest('[data-slot]');
+      if (k) this.holdTool(Number(k.dataset.slot));
+    });
+    // Tooltips: anything with data-tip, shown after a moment's hover.
+    this.root.addEventListener('mouseover', (e) => this.onTipOver(e));
+    this.root.addEventListener('mouseout', (e) => {
+      if (this.tipAnchor && !this.tipAnchor.contains(e.relatedTarget)) this.hideTip();
+    });
+    this.root.addEventListener('mousemove', (e) => this.moveTip(e));
     this.modalEl.addEventListener('click', (e) => this.onModalClick(e));
     this.contextEl.addEventListener('click', (e) => {
       const opt = e.target.closest('[data-index]');
@@ -155,6 +205,11 @@ export class UIManager {
     this.hotkeysEl.innerHTML = keys
       .map(([k, label, open]) => `<span class="hk${open ? ' clickable' : ''}"${open ? ` data-open="${open}"` : ''}><kbd>${k}</kbd>${escapeHtml(t(label))}</span>`)
       .join('');
+    this.dockEl.innerHTML = DOCK.map((d) =>
+      d ? `<button class="dock-btn" data-open="${d[0]}" data-tip="${escapeHtml(`<div class='tip-title'>${escapeHtml(t(d[3]))}</div><div class='tip-sub'>${escapeHtml(t('ui.key_n', { key: d[2] }))}</div>`)}">${d[1]}<span class="key">${d[2] === 'Esc' ? '' : d[2]}</span></button>` : '<span class="dock-sep"></span>',
+    ).join('');
+    this.hotbarKey = null;
+    this.renderHotbar();
     this.q.healthRow.title = t('stat.health');
     this.q.energyRow.title = t('stat.energy');
     this.q.hungerRow.title = t('stat.hunger');
@@ -183,6 +238,16 @@ export class UIManager {
     q.title.textContent = `· ${t(`title.${sim.progression.title()}`)}`;
     q.xpFill.style.width = `${Math.min(100, (p.xp / need) * 100)}%`;
     q.xpLabel.textContent = t('ui.xp_progress', { xp: Math.floor(p.xp), need });
+    // Money: the total moves, and the change floats up beside it.
+    const money = Math.round(p.money);
+    if (this.lastMoney !== undefined && money !== this.lastMoney) {
+      const d = money - this.lastMoney;
+      q.money.classList.remove('bump-up', 'bump-down');
+      void q.money.offsetWidth;
+      q.money.classList.add(d > 0 ? 'bump-up' : 'bump-down');
+      if (Math.abs(d) >= 1) this.floatAtElement(q.money, `${d > 0 ? '+' : '−'}${fmtMoney(Math.abs(d))}`, 'money');
+    }
+    this.lastMoney = money;
     q.money.textContent = `💰 ${fmtMoney(p.money)}`;
     const pts = p.attributePoints + p.skillPoints;
     q.points.classList.toggle('hidden', pts <= 0);
@@ -193,9 +258,16 @@ export class UIManager {
     q.healthRow.classList.toggle('low', p.health < 30);
     q.energyRow.classList.toggle('low', p.energy < BALANCE.needs.lowThreshold);
     q.hungerRow.classList.toggle('low', p.hunger < BALANCE.needs.lowThreshold);
-    q.healthRow.dataset.value = Math.round(p.health);
-    q.energyRow.dataset.value = Math.round(p.energy);
-    q.hungerRow.dataset.value = Math.round(p.hunger);
+    q.healthVal.textContent = Math.round(p.health);
+    q.energyVal.textContent = Math.round(p.energy);
+    q.hungerVal.textContent = Math.round(p.hunger);
+    // The dock shows which screen is open.
+    const open = this.panel?.id;
+    if (this.dockOpen !== open) {
+      this.dockOpen = open;
+      for (const b of this.dockEl.querySelectorAll('.dock-btn')) b.classList.toggle('active', b.dataset.open === open);
+    }
+    this.renderHotbar();
 
     q.clock.textContent = time.clockString();
     q.date.textContent = t('ui.date_long', {
@@ -229,25 +301,171 @@ export class UIManager {
   // ------------------------------------------------------------------ toasts
 
   toast({ key, params, type, text }) {
-    this.toastText(text ?? tr(this.sim, key, params), type);
+    this.toastText(text ?? tr(this.sim, key, params), type, key || '');
   }
 
-  toastText(text, type = 'info') {
+  /**
+   * A notification: an icon, a short line, gone after a few seconds — except danger,
+   * which stays until you click it. The same message twice in a row just counts up.
+   */
+  toastText(text, type = 'info', key = '') {
+    const last = this.toastsEl.lastElementChild;
+    if (last && last.dataset.text === text && !last.classList.contains('fade')) {
+      last.dataset.n = String(Number(last.dataset.n || 1) + 1);
+      last.querySelector('.t-text').textContent = `${text} ×${last.dataset.n}`;
+      clearTimeout(last.fadeTimer);
+      if (!last.classList.contains('sticky')) this.scheduleFade(last);
+      return;
+    }
     const el = document.createElement('div');
-    el.className = `toast toast-${type}`;
-    el.textContent = text;
+    const sticky = type === 'danger';
+    el.className = `toast toast-${type}${sticky ? ' sticky' : ''}`;
+    el.dataset.text = text;
+    const TYPE_ICONS = { good: '✓', warn: '⚠️', danger: '⛔', event: '📣', gain: '💰', info: 'ℹ️' };
+    const byKey = TOAST_ICONS.find(([re]) => re.test(key))?.[1];
+    const ico = type === 'danger' || type === 'warn' ? TYPE_ICONS[type] : byKey || TYPE_ICONS[type] || 'ℹ️';
+    el.innerHTML = `<span class="t-ico">${ico}</span><span class="t-text"></span>`;
+    el.querySelector('.t-text').textContent = text;
+    if (sticky) el.addEventListener('click', () => el.remove());
     this.toastsEl.appendChild(el);
-    while (this.toastsEl.children.length > 6) this.toastsEl.firstChild.remove();
-    setTimeout(() => el.classList.add('fade'), 3600);
-    setTimeout(() => el.remove(), 4200);
+    while (this.toastsEl.children.length > 5) {
+      const old = [...this.toastsEl.children].find((c) => !c.classList.contains('sticky')) || this.toastsEl.firstChild;
+      old.remove();
+    }
+    if (!sticky) this.scheduleFade(el);
+  }
+
+  scheduleFade(el) {
+    el.fadeTimer = setTimeout(() => {
+      el.classList.add('fade');
+      setTimeout(() => el.remove(), 450);
+    }, 3600);
+  }
+
+  // ------------------------------------------------------------------ tool hotbar
+
+  /** Your tools, 1–9: the one in your hand is highlighted; durability shown as a bar (and ⚠ when nearly broken). */
+  renderHotbar() {
+    const inv = this.sim.inventory;
+    const tools = inv.tools().slice(0, 9);
+    const want = this.wantedTool || '';
+    const key = tools.map((s) => `${s.id}:${s.dur}:${s.held ? 1 : 0}`).join('|') + want;
+    if (key === this.hotbarKey) return;
+    this.hotbarKey = key;
+    this.hotbarTools = tools;
+    this.hotbarEl.innerHTML = tools
+      .map((s, i) => {
+        const pct = (s.dur / inv.maxDurability(s)) * 100;
+        const st = condState(pct);
+        const wanted = want && ITEMS[s.id].tool.kind === want && !s.held;
+        return `<div class="tool-slot${s.held ? ' selected' : ''}${wanted ? ' wanted' : ''}" data-slot="${i}" data-tip="${escapeHtml(itemTip(this.sim, s))}"><span class="key">${i + 1}</span>${icon(s.id, 30)}<span class="dur st-${st}"><i style="width:${Math.max(4, pct)}%"></i></span>${st === 'critical' ? '<span class="warn-mark">⚠️</span>' : ''}</div>`;
+      })
+      .join('');
+  }
+
+  /** Take the i-th tool of the hotbar in hand. */
+  holdTool(i) {
+    const s = this.hotbarTools?.[i];
+    if (!s) return;
+    this.sim.inventory.hold(s);
+    this.renderHotbar();
+    const el = this.hotbarEl.querySelector(`[data-slot="${i}"]`);
+    el?.classList.add('flash');
+    const p = this.scene.player;
+    if (p) this.floatWorld(p.x, p.y - 56, `${icon(s.id, 18)}${escapeHtml(itemName(s.id))}`, 'xp', true);
+  }
+
+  /** The tool the thing in front of you would need (the hotbar hints at it). */
+  setWantedTool(kind) {
+    if (this.wantedTool === kind) return;
+    this.wantedTool = kind;
+    this.renderHotbar();
+  }
+
+  // ------------------------------------------------------------------ tooltips
+
+  onTipOver(e) {
+    const a = e.target.closest?.('[data-tip]');
+    if (!a || a === this.tipAnchor) return;
+    this.tipAnchor = a;
+    clearTimeout(this.tipTimer);
+    this.tipTimer = setTimeout(() => {
+      if (this.tipAnchor !== a || !a.isConnected) return;
+      this.tipEl.innerHTML = a.dataset.tip;
+      this.tipEl.classList.add('show');
+      this.placeTip();
+    }, 220);
+  }
+
+  moveTip(e) {
+    const s = uiScale();
+    this.tipPos = { x: e.clientX / s, y: e.clientY / s };
+    if (this.tipEl.classList.contains('show')) {
+      if (this.tipAnchor && !this.tipAnchor.isConnected) this.hideTip();
+      else this.placeTip();
+    }
+  }
+
+  placeTip() {
+    const s = uiScale();
+    const { x, y } = this.tipPos || { x: 0, y: 0 };
+    const w = this.tipEl.offsetWidth;
+    const h = this.tipEl.offsetHeight;
+    const W = window.innerWidth / s;
+    const H = window.innerHeight / s;
+    this.tipEl.style.left = `${Math.min(W - w - 8, x + 14)}px`;
+    this.tipEl.style.top = `${y + 18 + h > H ? y - h - 10 : y + 18}px`;
+  }
+
+  hideTip() {
+    clearTimeout(this.tipTimer);
+    this.tipAnchor = null;
+    this.tipEl.classList.remove('show');
+  }
+
+  // ------------------------------------------------------------------ floating feedback
+
+  /** Screen position (in UI pixels) of a point in the world. */
+  worldToScreen(x, y) {
+    const cam = this.scene.cameras.main;
+    const s = uiScale();
+    return { x: ((x - cam.worldView.x) * cam.zoom) / s, y: ((y - cam.worldView.y) * cam.zoom) / s };
+  }
+
+  /** "+3 Wood", "+25 XP": floats up from a spot in the world and fades. */
+  floatWorld(x, y, html, cls = 'gain', isHtml = false) {
+    const p = this.worldToScreen(x, y);
+    this.floatAt(p.x, p.y, html, cls, isHtml);
+  }
+
+  floatAtElement(el, text, cls) {
+    const r = el.getBoundingClientRect();
+    const s = uiScale();
+    this.floatAt((r.left + r.width / 2) / s + 30, r.top / s, escapeHtml(text), cls, true);
+  }
+
+  floatAt(x, y, html, cls, isHtml) {
+    // Several at once stack instead of piling up on each other.
+    const now = performance.now();
+    this.floatStack = now - (this.floatTime || 0) < 350 ? (this.floatStack || 0) + 1 : 0;
+    this.floatTime = now;
+    const el = document.createElement('div');
+    el.className = `float-num ${cls}`;
+    if (isHtml) el.innerHTML = html;
+    else el.textContent = html;
+    el.style.left = `${x}px`;
+    el.style.top = `${y - this.floatStack * 18}px`;
+    this.floatEl.appendChild(el);
+    setTimeout(() => el.remove(), 1350);
+    while (this.floatEl.children.length > 14) this.floatEl.firstChild.remove();
   }
 
   showLevelUp({ level, newJobs, newUnlocks = [], newTitle }) {
-    const lines = [t('levelup.points', { a: BALANCE.progression.attributePointsPerLevel, s: BALANCE.progression.skillPointsPerLevel })];
-    if (newTitle) lines.push(t('levelup.title', { title: t(`title.${newTitle}`) }));
-    for (const u of newUnlocks) lines.push(`🔓 ${t(`unlock.${u}.name`)}`);
-    for (const j of newJobs) lines.push(t('levelup.job', { job: t(`job.${j}.name`) }));
-    this.levelUpEl.innerHTML = `<div class="lu-star">★</div><div class="lu-title">${escapeHtml(t('levelup.heading', { level }))}</div>${lines.map((l) => `<div class="lu-line">${escapeHtml(l)}</div>`).join('')}<div class="lu-hint">${escapeHtml(t('levelup.hint'))}</div>`;
+    const lines = [`<span class="lu-from">${escapeHtml(t('levelup.from_to', { a: level - 1, b: level }))}</span>`, escapeHtml(t('levelup.points', { a: BALANCE.progression.attributePointsPerLevel, s: BALANCE.progression.skillPointsPerLevel }))];
+    if (newTitle) lines.push(escapeHtml(t('levelup.title', { title: t(`title.${newTitle}`) })));
+    for (const u of newUnlocks) lines.push(escapeHtml(`🔓 ${t(`unlock.${u}.name`)}`));
+    for (const j of newJobs) lines.push(escapeHtml(t('levelup.job', { job: t(`job.${j}.name`) })));
+    this.levelUpEl.innerHTML = `<div class="lu-star">★</div><div class="lu-title">${escapeHtml(t('levelup.heading', { level }))}</div>${lines.map((l) => `<div class="lu-line">${l}</div>`).join('')}<div class="lu-hint">${escapeHtml(t('levelup.hint'))}</div>`;
     this.levelUpEl.classList.remove('hidden');
     this.levelUpEl.classList.remove('show');
     void this.levelUpEl.offsetWidth;
@@ -313,8 +531,9 @@ export class UIManager {
     this.contextEl.classList.remove('hidden');
     const w = this.contextEl.offsetWidth;
     const h = this.contextEl.offsetHeight;
-    const left = Math.max(8, Math.min(window.innerWidth - w - 8, x - w / 2));
-    const top = Math.max(8, Math.min(window.innerHeight - h - 8, y - h - 6));
+    const s = uiScale();
+    const left = Math.max(8, Math.min(window.innerWidth / s - w - 8, x / s - w / 2));
+    const top = Math.max(8, Math.min(window.innerHeight / s - h - 8, y / s - h - 6));
     this.contextEl.style.left = `${left}px`;
     this.contextEl.style.top = `${top}px`;
   }
@@ -349,6 +568,7 @@ export class UIManager {
     this.closeContextMenu();
     if (this.panel) this.closePanel();
     this.panel = panel;
+    this.panelSeq = (this.panelSeq || 0) + 1;
     this.scene.player?.cancelAction();
     panel.onOpen();
     this.modalEl.classList.remove('hidden');
@@ -367,15 +587,24 @@ export class UIManager {
   renderPanel() {
     const p = this.panel;
     if (!p) return;
-    const oldBody = this.modalEl.querySelector('.panel-body');
-    const scroll = oldBody ? oldBody.scrollTop : 0;
+    this.hideTip();
+    const old = this.modalEl.querySelector(`.panel.panel-${p.id}`);
+    if (old && old.dataset.for === String(this.panelSeq)) {
+      // The same screen, refreshed: only its contents change (no re-opening animation, scroll kept).
+      const body = old.querySelector('.panel-body');
+      const scroll = body.scrollTop;
+      old.querySelector('.panel-title').innerHTML = p.title();
+      body.innerHTML = p.render();
+      body.scrollTop = scroll;
+      p.afterRender?.(body);
+      return;
+    }
     this.modalEl.innerHTML = `
-      <div class="panel panel-${p.id}">
-        <div class="panel-head"><div class="panel-title">${p.title()}</div><button class="panel-close" data-action="close" title="${escapeHtml(t('ui.close'))}">✕</button></div>
+      <div class="panel panel-${p.id}" data-for="${this.panelSeq}">
+        <div class="panel-head"><div class="panel-title">${p.title()}</div><button class="panel-close" data-action="close" title="${escapeHtml(t('ui.close'))} (Esc)">✕</button></div>
         <div class="panel-body">${p.render()}</div>
       </div>`;
     const body = this.modalEl.querySelector('.panel-body');
-    body.scrollTop = scroll;
     p.afterRender?.(body);
   }
 
@@ -460,8 +689,8 @@ export class UIManager {
   openJourney(opts = {}) {
     this.openPanel(new JourneyPanel(this, { mode: 'plan', ...opts }));
   }
-  openProperty(buildingId) {
-    this.openPanel(new PropertyPanel(this, buildingId));
+  openProperty(buildingId, tab = 'overview') {
+    this.openPanel(new PropertyPanel(this, buildingId, tab));
   }
   openBusiness(id) {
     this.openPanel(new BusinessPanel(this, id));
@@ -527,6 +756,9 @@ export class UIManager {
         if (el && !el.classList.contains('disabled') && !el.disabled) el.click();
         return;
       }
+      // Out in the world: 1–9 take a tool in hand.
+      if (!this.scene.inside) this.holdTool(i);
+      return;
     }
 
     if (code === 'KeyE' || lower === 'e' || key === ' ') {

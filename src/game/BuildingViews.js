@@ -210,6 +210,7 @@ export class BuildingViews {
 
   /** Re-draw a building (e.g. after an upgrade changed its look). */
   refresh(id) {
+    if (this.highlighted === id) this.highlighted = null; // re-added next frame, on the new sprite
     const entry = this.byId.get(id);
     if (entry) {
       for (const s of entry.sprites) s.destroy();
@@ -248,6 +249,20 @@ export class BuildingViews {
         .setAlpha(0);
       this.lamps.push(glow);
     }
+  }
+
+  /** The building you're facing gets a soft outline (and loses it when you turn away). */
+  highlight(id) {
+    if (this.highlighted === id) return;
+    const old = this.byId.get(this.highlighted);
+    if (old?.glow) {
+      old.sprites[0]?.preFX?.remove(old.glow);
+      old.glow = null;
+    }
+    this.highlighted = id;
+    const entry = id && this.byId.get(id);
+    const img = entry?.sprites[0];
+    if (img?.preFX) entry.glow = img.preFX.addGlow(0xffe08a, 2.5, 0, false, 0.1, 6);
   }
 
   /** Is anyone home / is the business open? Decides whether windows glow. */

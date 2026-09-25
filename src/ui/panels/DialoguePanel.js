@@ -7,7 +7,7 @@
 import { Panel } from '../Panel.js';
 import { t, tPick, npcName, occupationName, itemName, fmtMoney, cap } from '../../i18n/i18n.js';
 import { tr, escapeHtml, buildingLabel, workLabel, resolveParams, goalWhyText } from '../format.js';
-import { button, portrait, hearts, icon } from '../widgets.js';
+import { button, portrait, hearts, icon, bar, card } from '../widgets.js';
 import { ITEMS } from '../../data/items.js';
 import { JobBoardPanel } from './JobBoardPanel.js';
 import { GOAL_AGAINST } from '../../data/goals.js';
@@ -160,6 +160,11 @@ export class DialoguePanel extends Panel {
     }
 
     if (this.view === 'hire') {
+      // Who you'd be hiring: what they're good at, how reliable, how quick, what they'd want.
+      const prof = sim.workers.profile(npc);
+      const skills = prof.skills.map((s) => `<div class="aff-row"><span>${escapeHtml(cap(t(`knowledge.${s.field}`)))}</span>${bar(s.v, 'skill')}<b>${s.v}</b></div>`).join('');
+      const traits = (npc.traits || []).map((x) => `<span class="chip">${escapeHtml(t(`trait.${x}.name`))}</span>`).join('');
+      opts.push(card({ title: `${escapeHtml(t(`profession.${prof.profession}`))} · ${escapeHtml(t('ui.level_n', { level: npc.level }))}`, sub: escapeHtml(t('workers.hire_line', { age: npc.age, r: prof.reliability, s: prof.speed })), end: `<b>${fmtMoney(sim.workers.expectedSalary(npc))}</b><div class="muted small">${escapeHtml(t('ui.per_day'))}</div>`, body: `${skills}<div class="chips">${traits}</div>` }));
       const expected = sim.workers.expectedSalary(npc);
       const low = Math.max(1, Math.round(expected * 0.85));
       opt(t('dialog.opt.hire_at', { money: fmtMoney(expected) }), 'hire_offer', { salary: expected });

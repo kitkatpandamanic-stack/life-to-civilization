@@ -35,6 +35,16 @@ export function buildingLabel(sim, id) {
   return t(`building.${id}`);
 }
 
+/** What's being done to a building: 'level_4' → "Build up to a large house", 'module_cellar' → "Add a cellar"… */
+export function worksLabel(sim, building, key) {
+  if (!key) return '';
+  const r = sim.structures?.rec(building);
+  if (key.startsWith('level_')) return t('works.level', { name: r ? t(`structure.level.${r.fam}.${key.slice(6)}`) : key.slice(6) });
+  if (key.startsWith('module_')) return t('works.module', { m: t(`module.${key.slice(7)}.name`) });
+  if (key.startsWith('spec_')) return t('works.spec', { s: t(`spec.${key.slice(5)}.name`) });
+  return t(`works.${key}`);
+}
+
 /** "North Lanes" / "Жилая слобода на севере" — a district's name from its kind and place. */
 export function districtLabel(d) {
   if (!d) return '';
@@ -115,6 +125,11 @@ export function resolveParams(sim, params = {}) {
     else if (k === 'interest') out[k] = t(`interest_obj.${v}`);
     else if (k === 'field') out[k] = t(`knowledge.${v}`);
     else if (k === 'edu_level') out[k] = t(`edu_level.${v}`);
+    else if (k === 'works') out[k] = worksLabel(sim, params.building, v);
+    else if (k === 'slevel') {
+      const s = t(`structure.level.${v}`); // inside a sentence: "it's now a large house"
+      out[k] = s.charAt(0).toLowerCase() + s.slice(1);
+    }
     else if (k === 'stage') out[k] = t(`stage.${v}`);
     else if (k === 'post') out[k] = t(`post_name.${v}`);
     else if (k === 'tier') out[k] = t(`career_title.${v}`, { occ: t(`knowledge.${params.field}`), gender: params.gender });
