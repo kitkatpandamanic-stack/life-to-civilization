@@ -21,6 +21,7 @@ import { contractTools } from './contractTools.js';
 import { transportTools } from './transportTools.js';
 import { guideTools } from './guideTools.js';
 import { reportTools } from './reportTools.js';
+import { seasonTools } from './seasonTools.js';
 import { pathStats } from '../world/Pathfinder.js';
 
 const KEYS = {
@@ -109,6 +110,7 @@ dev.ct = contractTools(dev);
 dev.tr = transportTools(dev);
 dev.gd = guideTools(dev);
 dev.eco = reportTools(dev);
+dev.ss = seasonTools(dev);
 dev.pathStats = pathStats;
 window.dev = dev;
 installDebugPanel(dev);

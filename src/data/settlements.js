@@ -66,6 +66,33 @@ export const PLAYER_TRANSPORT = {
   wagon: { cargo: 300, speed: 1.15, price: 650, upkeep: 6, needs: 'wagons' },
 };
 
+/**
+ * The road to a place, level by level. cut: the share of the journey it saves; safe: the share of the
+ * danger it takes away. The village builds up to a good road itself (TRADE.roadMaxLevel); a paved
+ * highway needs the know-how of stone bridges, and a railway the know-how of railways and a station in
+ * the valley — those you pay for. By rail the journey takes the train's time, whatever you'd have
+ * travelled with, and a goods wagon carries far more than any cart.
+ */
+export const ROAD_LEVELS = [
+  { cut: 0, safe: 0 }, // a track
+  { cut: 0.25, safe: 0.4 }, // a road
+  { cut: 0.5, safe: 0.8 }, // a good road
+  { cut: 0.6, safe: 0.85, tech: 'stone_bridges', cost: 1.5 }, // a paved highway
+  { cut: 0.8, safe: 0.95, tech: 'railways', station: true, cost: 3, weeks: 1.2, rail: true }, // a railway
+];
+export const RAIL = { cargo: 400, stationType: 'rail_station' };
+
+/** Trains in the valley (TrainSystem). */
+export const TRAIN = {
+  hours: [9, 13, 17], // when a train reaches the station (each line TRAIN.stagger minutes after the last)
+  stagger: 30,
+  approach: 40, // minutes from the valley's edge to the station (and back out)
+  dwell: 30, // minutes at the platform
+  travellerSpend: 5, // what the travellers leave at the tavern and the store, a train
+  feePerUnit: 0.4, // rail carriage (fetched from your storage)
+  minFee: 3,
+};
+
 export const TRADE = {
   stockWeeks: 2, // a settlement keeps about this many weeks of goods on hand…
   priceHigh: 1.9, // …and pays up to this × the base price when it has none…

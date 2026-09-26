@@ -68,10 +68,10 @@ export class PlayerController {
   }
 
   /** Start a timed action. Moving cancels it. */
-  startAction({ duration, onComplete, particles = null, target = null }) {
+  startAction({ duration, onComplete, particles = null, target = null, sound = null }) {
     this.cancelAction();
     if (target) this.faceTowards(target.x, target.y);
-    this.action = { elapsed: 0, duration, onComplete, particles, target, nextFx: 250 };
+    this.action = { elapsed: 0, duration, onComplete, particles, target, sound, nextFx: 250 };
     this.sprite.setVelocity(0, 0);
   }
 
@@ -118,6 +118,7 @@ export class PlayerController {
       let speed = Mod.moveSpeed(p) * this.sim.weather.mods().move;
       if (this.sim.world.isRoad(tile.tx, tile.ty)) speed *= 1 + BALANCE.player.roadSpeedBonus + (this.sim.world.tileAt(tile.tx, tile.ty) === T.PLAZA ? INFRA.pavedSpeedBonus : 0); // cobbles are quicker still
       if (p.energy < BALANCE.needs.lowThreshold) speed *= 0.8;
+      speed *= this.sim.seasons?.walkMult(this.sim.world.isRoad(tile.tx, tile.ty)) ?? 1; // wading through snow
       // Pushing a barrow, pulling a cart: quick on a road, slow across grass (EquipmentSystem).
       if (p.eq) speed *= this.sim.equipment.playerMoveMult(this.sim.world.isRoad(tile.tx, tile.ty), this.sim.world.tileAt(tile.tx, tile.ty) === T.PLAZA);
       this.sprite.setVelocity((vx / len) * speed, (vy / len) * speed);
@@ -142,9 +143,10 @@ export class PlayerController {
     a.elapsed += delta;
     this.sprite.anims.play(`${this.tex}_work_${this.facing}`, true);
     a.nextFx -= delta;
-    if (a.nextFx <= 0 && a.particles && a.target) {
+    if (a.nextFx <= 0) {
       a.nextFx = 420;
-      this.fx[a.particles]?.explode(4, a.target.x, a.target.y - 14);
+      if (a.particles && a.target) this.fx[a.particles]?.explode(4, a.target.x, a.target.y - 14);
+      if (a.sound) this.scene.sfx?.tool(a.sound); // each swing of the axe, each scoop of the hoe
     }
     this.drawBar(Math.min(1, a.elapsed / a.duration));
     if (a.elapsed >= a.duration) {

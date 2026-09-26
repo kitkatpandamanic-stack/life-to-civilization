@@ -49,6 +49,40 @@ export class JourneyPanel extends Panel {
 
   // ------------------------------------------------------------------ plan
 
+  /**
+   * The roads out of the valley on the map: a line to each place you know, drawn as the road it is
+   * (a track, a road, a good road, a paved highway, a railway), with the caravans on it — the village's,
+   * yours, and you.
+   */
+  roadsSvg() {
+    const sim = this.sim;
+    const S = sim.settlements;
+    const V = { x: 50, y: 50 };
+    const now = sim.time.total;
+    const lines = [];
+    const dots = [];
+    for (const id of S.known()) {
+      const d = REGIONS[SETTLEMENTS[id].region];
+      const s = S.get(id);
+      const lvl = Math.min(4, s.road || 0);
+      lines.push(`<line class="xp-road r${lvl}${s.roadWork ? ' works' : ''}${id === this.to ? ' sel' : ''}" x1="${V.x}" y1="${V.y}" x2="${d.x}" y2="${d.y}"/>`);
+      if (lvl === 4) lines.push(`<line class="xp-rail-ties" x1="${V.x}" y1="${V.y}" x2="${d.x}" y2="${d.y}"/>`);
+    }
+    // Where along the road: 0 at home, 1 there.
+    const at = (id, f, cls, tip) => {
+      const d = REGIONS[SETTLEMENTS[id]?.region];
+      if (!d) return;
+      const k = Math.max(0.04, Math.min(0.96, f));
+      dots.push(`<circle class="xp-dot ${cls}" cx="${V.x + (d.x - V.x) * k}" cy="${V.y + (d.y - V.y) * k}" r="1.6"><title>${escapeHtml(tip)}</title></circle>`);
+    };
+    const leg = (depart, arrive, back, stage) => (stage === 'out' ? (now - depart) / Math.max(1, arrive - depart) : stage === 'back' ? 1 - (now - arrive) / Math.max(1, back - arrive) : 1);
+    for (const c of S.R.caravans) at(c.to, leg(c.depart, c.arrive, c.back, c.stage), 'village', t('journey.map_caravan'));
+    for (const c of sim.state.freight?.caravans || []) at(c.to, c.stage === 'out' ? (now - c.depart) / Math.max(1, c.arrive - c.depart) : 1 - (now - (c.back - c.days * 1440)) / Math.max(1, c.days * 1440), 'mine', t('journey.map_my_caravan'));
+    const j = S.R.journey;
+    if (j) at(j.to, j.stage === 'out' ? (now - j.depart) / Math.max(1, j.arrive - j.depart) : j.stage === 'back' ? 1 - (now - (j.until - j.days * 1440)) / Math.max(1, j.days * 1440) : 1, 'you', t('journey.map_you'));
+    return `<svg class="xp-roads" viewBox="0 0 100 100" preserveAspectRatio="none">${lines.join('')}${dots.join('')}</svg>`;
+  }
+
   renderMap() {
     const S = this.sim.settlements;
     const nodes = S.known()
@@ -56,11 +90,11 @@ export class JourneyPanel extends Panel {
         const d = REGIONS[SETTLEMENTS[id].region];
         const s = S.get(id);
         const cls = `xp-node${id === this.to ? ' selected' : ''}${s.contact ? ' partner' : ''}`;
-        const road = s.road ? ` ${'═'.repeat(s.road)}` : '';
+        const road = s.road >= 4 ? ' 🚂' : s.road ? ` ${'═'.repeat(s.road)}` : '';
         return `<div class="${cls}" data-action="pick" data-id="${id}" style="left:${d.x}%;top:${d.y}%"><b>${escapeHtml(t(`settlement_name.${id}`))}</b><small>${escapeHtml(t(`settlement_size.${s.size}`))}${road}</small></div>`;
       })
       .join('');
-    return `<div class="xp-map"><div class="xp-valley">${escapeHtml(t('expedition.your_valley'))}</div>${nodes}</div>`;
+    return `<div class="xp-map">${this.roadsSvg()}<div class="xp-valley">${escapeHtml(t('expedition.your_valley'))}</div>${nodes}</div>`;
   }
 
   priceTable(id, { market = false } = {}) {
@@ -99,7 +133,7 @@ export class JourneyPanel extends Panel {
     const def = SETTLEMENTS[id];
     const plan = S.journeyPlan(id);
     const chk = S.canSetOut(id, this.cargo);
-    const cap = S.cargoCap();
+    const cap = S.cargoCap(id);
     const loaded = Object.values(this.cargo).reduce((a, c) => a + c, 0);
     const danger = plan.danger >= 0.15 ? 'high' : plan.danger >= 0.08 ? 'medium' : 'low';
     const heard = s.knownDay !== null && s.knownDay !== undefined ? t('journey.prices_from', { ago: agoText(sim.time.day - s.knownDay) }) : t('journey.prices_unknown');
@@ -128,11 +162,15 @@ export class JourneyPanel extends Panel {
       })
       .join('');
     const road = S.canFundRoad(id);
+    const next = S.nextRoad(id);
+    // Beyond a good road: a paved highway (stone bridges), then a railway (railways, and a station).
+    const fundKey = next?.rail ? 'journey.fund_rail' : s.road >= TRADE.roadMaxLevel ? 'journey.fund_highway' : 'journey.fund_road';
+    const why = road.ok ? '' : tr(sim, `reason.${road.reason}`, road.params || {});
     const roadLine = s.roadWork
-      ? `<div class="muted small">🛠️ ${escapeHtml(t('journey.road_underway', { ago: agoText(0) }))}</div>`
-      : s.road >= TRADE.roadMaxLevel
-        ? `<div class="muted small">${escapeHtml(t('journey.road_best'))}</div>`
-        : `<div class="row">${button(t('journey.fund_road', { money: fmtMoney(S.roadCost(id)) }), 'fund_road', {}, { disabled: !road.ok, title: road.ok ? '' : tr(sim, `reason.${road.reason}`, road.params || {}) })}</div><div class="muted small">${escapeHtml(t('journey.road_hint'))}</div>`;
+      ? `<div class="muted small">🛠️ ${escapeHtml(t(s.roadWork.level >= 4 ? 'journey.rail_underway' : 'journey.road_underway', { ago: agoText(0), n: Math.max(0, s.roadWork.done - sim.time.day) }))}</div>`
+      : !next
+        ? `<div class="muted small">${escapeHtml(t(S.byRail(id) ? 'journey.rail_best' : 'journey.road_best'))}</div>`
+        : `<div class="row">${button(t(fundKey, { money: fmtMoney(S.roadCost(id)) }), 'fund_road', {}, { disabled: !road.ok, title: why })}</div><div class="muted small">${escapeHtml(road.ok || road.reason === 'no_money' ? t(next.rail ? 'journey.rail_hint' : 'journey.road_hint') : why)}</div>`;
     return `
       ${this.renderMap()}
       <div class="char-cols">

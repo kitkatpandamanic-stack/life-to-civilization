@@ -36,7 +36,7 @@ export class ResourceSystem {
       case 'tree':
         return obj.state === 'grown' || obj.state === 'young';
       case 'rock':
-        return obj.state === 'full';
+        return obj.state === 'full' && !(obj.floodedUntil > this.sim.time.day); // (a clay pit under the spring flood)
       case 'bush':
         return obj.state === 'full';
       case 'crop':

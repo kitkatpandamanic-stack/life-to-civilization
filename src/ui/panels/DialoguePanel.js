@@ -100,6 +100,11 @@ export class DialoguePanel extends Panel {
       opts.push(`<div class="dlg-opt${disabled ? ' disabled' : ''}" data-action="${action}" data-hotkey="${n}" ${Object.entries(data).map(([k, v]) => `data-${k}="${escapeHtml(v)}"`).join(' ')}><kbd>${n++}</kbd>${escapeHtml(label)}${note ? `<span class="note">${escapeHtml(note)}</span>` : ''}</div>`);
 
     if (this.view === 'main') {
+      // A story with them, waiting for you (StorySystem) — first, it's why you came.
+      const story = sim.stories?.sceneWith(npc.id);
+      if (story) opt(`📜 ${tr(sim, 'dialog.opt.story', { story: story.story })}`, 'story', { id: story.id });
+      // Your business rival (RivalSystem).
+      if (sim.rival?.R?.npc === npc.id && ['rival', 'partner'].includes(sim.rival.R.stage)) opt(`⚔️ ${t('action.rival_business')}`, 'rival');
       const canChat = sim.social.canChat(npc);
       opt(t('dialog.opt.chat'), 'chat', {}, false, canChat ? '' : t('dialog.opt.chat_done'));
       opt(t('dialog.opt.news'), 'news');
@@ -325,6 +330,8 @@ export class DialoguePanel extends Panel {
   onAction(action, data) {
     const sim = this.sim;
     const npc = this.npc;
+    if (action === 'story') return this.ui.openStory(data.id);
+    if (action === 'rival') return this.ui.openRival();
     // Contract buttons (the worker picker).
     if (contractAction(sim, action, data)) {
       if (action === 'crew_assign') {

@@ -82,6 +82,8 @@ export function workLabel(sim, npc) {
 export function npcRole(sim, npc) {
   const contract = sim.workers?.contract(npc.id);
   if (contract) return cap(t(`worker_rank.${contract.rank}`, { gender: npc.gender }));
+  // Your business rival (or partner) — RivalSystem.
+  if (sim.rival?.R?.npc === npc.id && ['rival', 'partner'].includes(sim.rival.R.stage)) return cap(t(sim.rival.R.stage === 'partner' ? 'rival.role_partner' : 'rival.role'));
   const occ = occupationName(npc.occupation, npc.gender);
   const rank = sim.npcs.rank(npc);
   const s = rank && rank !== 'regular' ? t(`rank.${rank}`, { occ, gender: npc.gender }) : occ;
@@ -104,6 +106,10 @@ export function resolveParams(sim, params = {}) {
     else if (k.startsWith('npc')) out[k] = npcName(sim.npcs.byId(v) || sim.family?.person(v));
     else if (k === 'item') out[k] = itemName(v);
     else if (k === 'job') out[k] = t(`job.${v}.name`);
+    else if (k === 'story') out[k] = t(`story.${v}.title`); // (StorySystem)
+    else if (k === 'ending') out[k] = t(`story.${String(v).split('.')[0]}.end_title.${String(v).split('.')[1]}`);
+    else if (k === 'trade') out[k] = t(`skill.${v}.name`);
+    else if (k === 'proposal') out[k] = t(`proposal.${v}.name`); // (TownSystem)
     else if (k === 'building') out[k] = buildingLabel(sim, v);
     else if (k === 'occ') out[k] = occupationName(v, params.gender);
     else if (k === 'skill') out[k] = t(`skill.${v}.name`);

@@ -7,8 +7,14 @@
  * built with their own hands), the milestones (the village reaching 50 people,
  * a new district), the disasters, and your family's story across generations.
  *
- *   state.history = { entries: [{ day, key, params, first? }], firsts: { kind: day } }
+ *   state.history = { entries: [{ day, key, params, first? }], firsts: { kind: day }, samples: [...] }
+ *
+ * It also keeps a weekly record — the valley in numbers, and your affairs (samples: population, your
+ * money and what you're worth, businesses, the treasury, the price of bread, your workers, the status)
+ * — for the charts in the journal's history.
  */
+const MAX_SAMPLES = 400; // (weekly: some fifty years of the valley)
+const STATUS = ['village', 'large_village', 'town', 'city'];
 const MAX_ENTRIES = 400;
 
 /** Always part of history. */
@@ -82,6 +88,16 @@ const MILESTONES = new Set([
   'chronicle.settlement_grew',
   'chronicle.road_finished',
   'chronicle.player_kept_villager',
+  // The last few upgrades: the railway, your rival, the town, the valley's stories.
+  'chronicle.railway_opened',
+  'chronicle.rival_appears',
+  'chronicle.rival_bust',
+  'chronicle.rival_bought_out',
+  'chronicle.rival_partner',
+  'chronicle.hall_grows',
+  'chronicle.carting_company',
+  'chronicle.my_first_caravan',
+  'chronicle.river_up',
 ]);
 
 /** Only the first time is history (after that it's just news). */
@@ -136,7 +152,41 @@ export class HistorySystem {
   constructor(sim) {
     this.sim = sim;
     sim.state.history ??= { entries: [], firsts: {} };
+    sim.state.history.samples ??= [];
     sim.bus.on('chronicle', (e) => this.onChronicle(e));
+    sim.bus.on('time:day', () => this.sample());
+  }
+
+  // ------------------------------------------------------------------ the valley in numbers
+
+  /** Once a week (and the first day we can): a line in the record. */
+  sample(force = false) {
+    const sim = this.sim;
+    const S = this.H.samples;
+    const day = sim.time.day;
+    if (S.length && S[S.length - 1].d === day) return null;
+    if (!force && S.length && day % 7 !== 0) return null;
+    const store = sim.economy?.ofType('general_store')[0];
+    const row = {
+      d: day,
+      pop: sim.state.npcs.length,
+      money: Math.round(sim.state.player.money),
+      worth: Math.round(sim.ledger?.netWorth().total ?? sim.state.player.money),
+      biz: sim.economy?.active().length || 0,
+      mine: (sim.holdings?.mine().length || 0) + (sim.businesses?.list().length || 0),
+      treasury: Math.round(sim.state.village?.treasury || 0),
+      bread: store ? Math.round(sim.economy.unitPrice(store, 'bread') * 10) / 10 : 0,
+      workers: sim.workers?.list().length || 0,
+      status: STATUS.indexOf(sim.civic?.V.status || 'village'),
+    };
+    S.push(row);
+    if (S.length > MAX_SAMPLES) S.shift();
+    return row;
+  }
+
+  samples() {
+    if (!this.H.samples.length) this.sample(true);
+    return this.H.samples;
   }
 
   get H() {
@@ -144,6 +194,8 @@ export class HistorySystem {
   }
 
   onChronicle(e) {
+    // How a story ended is part of the valley's history (StorySystem).
+    if (e.key.startsWith('story.')) return this.add(e);
     const kind = FIRSTS[e.key];
     if (kind) {
       if (this.H.firsts[kind] !== undefined) return;

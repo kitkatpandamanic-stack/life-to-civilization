@@ -45,6 +45,13 @@
  *    ├── legacy       LegacySystem (your family's deeds and renown, passed down the generations)
  *    ├── civic        CivicSystem (headman and council, elections, policies, institutions, the valley's status)
  *    ├── letting      LettingSystem (finding tenants for your houses: signs, viewings, advertisements)
+ *    ├── freight      FreightSystem (carrying the valley's goods for pay: your carting company; your own caravans)
+ *    ├── town         TownSystem (a village becoming a town: the hall, taller houses, gas lamps, town meetings)
+ *    ├── stories      StorySystem (villagers' storylines: scenes, your choices, endings the chronicle keeps)
+ *    ├── rival        RivalSystem (a villager who goes into business against you: price wars, partnership, buy-out)
+ *    ├── trains       TrainSystem (trains on a timetable, goods sent and ordered by rail, the goods yard)
+ *    ├── livestock    LivestockSystem (chickens, sheep and cows at your barns: eggs, milk, wool; winter fodder)
+ *    ├── seasons      SeasonSystem (firewood in winter, snow on the roads, the spring flood, the harvest rush)
  *    ├── ledger       LedgerSystem (where your money comes from and goes, day by day; your net worth)
  *    ├── actions      PlayerActionSystem
  *    ├── home         HomeSystem (tier, storage chest, comfort)
@@ -134,6 +141,13 @@ import { EquipmentSystem } from '../systems/EquipmentSystem.js';
 import { GuideSystem } from '../systems/GuideSystem.js';
 import { IndustrySystem } from '../systems/IndustrySystem.js';
 import { FestivalSystem } from '../systems/FestivalSystem.js';
+import { SeasonSystem } from '../systems/SeasonSystem.js';
+import { FreightSystem } from '../systems/FreightSystem.js';
+import { LivestockSystem } from '../systems/LivestockSystem.js';
+import { TrainSystem } from '../systems/TrainSystem.js';
+import { RivalSystem } from '../systems/RivalSystem.js';
+import { StorySystem } from '../systems/StorySystem.js';
+import { TownSystem } from '../systems/TownSystem.js';
 import { buildParcels } from '../world/Parcels.js';
 import { rand } from './rng.js';
 
@@ -213,7 +227,14 @@ export class Simulation {
     this.flats = new FlatSystem(this); // blocks of flats: a household in each flat, each with its own tenancy
     this.points = new PointSystem(this); // where people stand at buildings and sites: doors, loading bays, parking, work
     this.equipment = new EquipmentSystem(this); // baskets, barrows, carts, wagons: real things that help move goods
+    this.freight = new FreightSystem(this); // carrying goods for pay (your carting company) and your own caravans
     this.festivals = new FestivalSystem(this); // a day each season when the village gathers on the square
+    this.town = new TownSystem(this); // the town growing up, and its meetings
+    this.stories = new StorySystem(this); // villagers' storylines
+    this.rival = new RivalSystem(this); // a business rival (once you're established)
+    this.trains = new TrainSystem(this); // the railway: trains, rail freight, the goods yard
+    this.livestock = new LivestockSystem(this); // farm animals at your barns
+    this.seasons = new SeasonSystem(this); // firewood, snow, the spring flood, the harvest rush
     this.guide = new GuideSystem(this); // getting started, what next, and paths to follow
     this.ledger = new LedgerSystem(this); // last: it watches the others handle your money
     this.jobs.ensureOpenings();

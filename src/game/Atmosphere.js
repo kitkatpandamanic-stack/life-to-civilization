@@ -116,6 +116,7 @@ export class Atmosphere {
     if (type === 'storm' && !this.indoor && this.scene.time.now > this.nextLightning) {
       this.nextLightning = this.scene.time.now + 5000 + Math.random() * 9000;
       this.scene.cameras.main.flash(140, 230, 235, 255);
+      this.scene.sfx?.thunder();
     }
 
     const darkness = this.sim.time.darkness();

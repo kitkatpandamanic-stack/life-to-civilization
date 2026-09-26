@@ -153,6 +153,7 @@ export class NPCViews {
         if (v.fxTimer <= 0) {
           v.fxTimer = 600;
           this.fx[WORK_FX[working]].explode(3, npc.x + (npc.facing === 'left' ? -14 : npc.facing === 'right' ? 14 : 0), npc.y - 20);
+          this.scene.sfx?.work(working, npc); // and you hear it, if you're near
         }
       }
 

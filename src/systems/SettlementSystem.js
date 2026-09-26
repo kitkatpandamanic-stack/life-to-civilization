@@ -26,7 +26,7 @@
  * Better roads make every journey shorter and safer; the village builds them
  * where trade is busy, and you can pay for one yourself.
  */
-import { SETTLEMENTS, SETTLEMENT_SIZES, PLAYER_TRANSPORT, TRADE as T } from '../data/settlements.js';
+import { SETTLEMENTS, SETTLEMENT_SIZES, PLAYER_TRANSPORT, TRADE as T, ROAD_LEVELS, RAIL } from '../data/settlements.js';
 import { REGIONS } from '../data/regions.js';
 import { ITEMS } from '../data/items.js';
 import { CARRIERS, EQUIPMENT } from '../data/transport.js';
@@ -128,13 +128,29 @@ export class SettlementSystem {
   days(id, speed = 1) {
     const water = this.def(id).water && this.sim.tech?.has('boats') ? T.boatDays : 1; // by boat, once the valley builds them
     const base = REGIONS[this.def(id).region].days * water;
-    return Math.max(1, Math.round((base * (1 - T.roadDaysCut * this.get(id).road)) / speed));
+    const lvl = this.roadLevel(id);
+    return Math.max(1, Math.round((base * (1 - lvl.cut)) / (lvl.rail ? 1 : speed))); // (by train: the train's pace)
+  }
+
+  /** The road there now (ROAD_LEVELS). */
+  roadLevel(id) {
+    return ROAD_LEVELS[Math.min(ROAD_LEVELS.length - 1, this.get(id).road || 0)];
+  }
+
+  /** Is there a railway to this place? */
+  byRail(id) {
+    return !!this.roadLevel(id).rail;
+  }
+
+  /** The valley's railway station (someone has to build one before the first line). */
+  station() {
+    return Object.values(this.sim.world.buildings).find((b) => b.type === RAIL.stationType) || null;
   }
 
   danger(id) {
     // A night watch patrols the roads out of the valley (see CivicSystem).
     // Bandits about (EventSystem 'bandits'): the roads are much less safe until they've moved on.
-    return REGIONS[this.def(id).region].danger * (1 - T.roadDangerCut * this.get(id).road) * (this.sim.tech?.mod('road_danger') ?? 1) * (this.sim.events?.modifier('road_danger') ?? 1);
+    return REGIONS[this.def(id).region].danger * (1 - this.roadLevel(id).safe) * (this.sim.tech?.mod('road_danger') ?? 1) * (this.sim.events?.modifier('road_danger') ?? 1);
   }
 
   // ------------------------------------------------------------------ the week out there
@@ -479,14 +495,23 @@ export class SettlementSystem {
   // ------------------------------------------------------------------ roads to other places
 
   roadCost(id) {
-    return Math.round(T.roadCostPerDay * REGIONS[this.def(id).region].days * (this.get(id).road + 1) * (this.sim.tech?.mod('road_cost') ?? 1));
+    const next = ROAD_LEVELS[this.get(id).road + 1];
+    return Math.round(T.roadCostPerDay * REGIONS[this.def(id).region].days * (this.get(id).road + 1) * (next?.cost || 1) * (this.sim.tech?.mod('road_cost') ?? 1));
+  }
+
+  /** The next thing the road could become (a highway, a railway) — or null when it's the best there is. */
+  nextRoad(id) {
+    return ROAD_LEVELS[this.get(id).road + 1] || null;
   }
 
   canFundRoad(id) {
     const s = this.get(id);
     if (!s?.contact) return { ok: false, reason: 'no_contact' };
-    if (s.road >= T.roadMaxLevel) return { ok: false, reason: 'road_best' };
+    const next = this.nextRoad(id);
+    if (!next) return { ok: false, reason: 'road_best' };
     if (s.roadWork) return { ok: false, reason: 'road_underway' };
+    if (next.tech && !this.sim.tech?.has(next.tech)) return { ok: false, reason: 'needs_tech', params: { tech: next.tech } };
+    if (next.station && !this.station()) return { ok: false, reason: 'need_station' };
     const cost = this.roadCost(id);
     if (this.p.money < cost) return { ok: false, reason: 'no_money', params: { money: cost } };
     return { ok: true, cost };
@@ -505,7 +530,7 @@ export class SettlementSystem {
 
   startRoad(id, by) {
     const s = this.get(id);
-    const weeks = REGIONS[this.def(id).region].days * T.roadWeeksPerDay;
+    const weeks = REGIONS[this.def(id).region].days * T.roadWeeksPerDay * (ROAD_LEVELS[s.road + 1]?.weeks || 1);
     s.roadWork = { level: s.road + 1, by, done: this.sim.time.day + weeks * 7 };
     // Road gangs are paid: the work gives the valley's labourers a few weeks' wages.
     this.sim.logistics?.payPorters(Math.round(this.roadCost(id) * 0.3), 4);
@@ -519,6 +544,13 @@ export class SettlementSystem {
       s.road = s.roadWork.level;
       const by = s.roadWork.by;
       s.roadWork = null;
+      if (this.byRail(id)) {
+        // The first train: the valley is joined to the wider world.
+        this.sim.chronicle('chronicle.railway_opened', { settlement: id, n: this.days(id) });
+        this.sim.toast('toast.railway_opened', { settlement: id, n: this.days(id) }, 'good');
+        this.sim.bus.emit('railway:opened', id);
+        continue;
+      }
       this.sim.chronicle('chronicle.road_finished', { settlement: id, n: this.days(id) });
       if (by === 'player') this.sim.toast('toast.road_finished', { settlement: id, n: this.days(id) }, 'good');
     }
@@ -546,8 +578,10 @@ export class SettlementSystem {
     return PLAYER_TRANSPORT[kind] || PLAYER_TRANSPORT.foot;
   }
 
-  cargoCap() {
-    return this.transport().cargo + Mod.perk(this.p, 'carry');
+  /** What you can take along (to a place with a railway: a goods wagon's worth). */
+  cargoCap(id = null) {
+    const cap = this.transport().cargo + Mod.perk(this.p, 'carry');
+    return id && this.byRail(id) ? Math.max(cap, RAIL.cargo) : cap;
   }
 
   canBuyTransport(kind) {
@@ -646,7 +680,7 @@ export class SettlementSystem {
     if (!s || !this.known().includes(id)) return { ok: false, reason: 'region_unknown' };
     if (this.R.journey || this.sim.exploration?.E.trip) return { ok: false, reason: 'already_away' };
     const units = Object.values(cargo).reduce((a, c) => a + c, 0);
-    if (units > this.cargoCap()) return { ok: false, reason: 'cargo_full', params: { n: this.cargoCap() } };
+    if (units > this.cargoCap(id)) return { ok: false, reason: 'cargo_full', params: { n: this.cargoCap(id) } };
     const have = this.goodsOnHand();
     for (const [item, n] of Object.entries(cargo)) if ((have[item] || 0) < n) return { ok: false, reason: 'not_enough', params: { item } };
     const plan = this.journeyPlan(id);

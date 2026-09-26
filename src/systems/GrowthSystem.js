@@ -636,7 +636,9 @@ export class GrowthSystem {
     const surnameIdx = rand.int(11, 29);
     const allTraits = Object.keys(TRAITS);
     const trades = ['farmhand', 'woodcutter', 'miner', 'store_clerk', 'tavern_server', 'baker_hand', 'carpenter_hand', 'fisher', null, null];
-    const pos = sim.world.tileCenter(ENTRY_POINT.tx, ENTRY_POINT.ty);
+    // With a railway they come by train: off at the station (TrainSystem); otherwise up the road.
+    const station = sim.trains?.lines().length ? sim.trains.station() : null;
+    const pos = station ? sim.world.tileCenter(station.door.tx, station.door.ty + 1) : sim.world.tileCenter(ENTRY_POINT.tx, ENTRY_POINT.ty);
     const people = [];
     const make = (gender, age, extra = {}) => {
       const traits = [...new Set([rand.pick(allTraits), rand.pick(allTraits)])];

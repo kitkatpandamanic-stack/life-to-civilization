@@ -16,6 +16,7 @@ export function goTo(ui, go) {
     if (go.site) return ui.openSite(go.site);
     if (go.property) return ui.openProperty(go.property);
     if (go.equipment) return ui.openEquipment(go.equipment);
+    if (go.story) return ui.openStory(go.story);
     return;
   }
   switch (go) {
@@ -32,6 +33,14 @@ export function goTo(ui, go) {
     case 'equipment':
     case 'equipment_shop':
       return ui.openEquipment();
+    case 'meeting':
+      return ui.openMeeting();
+    case 'rival':
+      return ui.openRival();
+    case 'freight':
+      return ui.openFreight({ tab: 'deliveries' });
+    case 'journey':
+      return ui.openJourney();
     case 'orders':
       return ui.openOrders();
     case 'inventory':

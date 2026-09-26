@@ -15,7 +15,7 @@
  * Ambitions (AmbitionSystem) stay what they were: goals to tick off in any order. A path is the
  * road to one of them, step by step.
  */
-import { GUIDE, PATHS, ADVICE_PRIO as AP } from '../data/guide.js';
+import { GUIDE, PATHS, ADVICE_PRIO as AP, BASICS_BY_LEVEL } from '../data/guide.js';
 import { UNLOCKS } from '../data/unlocks.js';
 import { EQUIP } from '../data/transport.js';
 
@@ -82,6 +82,11 @@ export class GuideSystem {
         ok = s.done(this.sim);
       } catch {
         ok = false;
+      }
+      // Well past the basics: the first chapter is behind you (noted quietly).
+      if (!ok && s.chapter === GUIDE[0].chapter && this.sim.state.player.level >= BASICS_BY_LEVEL) {
+        this.complete(s, true);
+        continue;
       }
       if (ok) this.complete(s, quiet);
     }
@@ -155,6 +160,9 @@ export class GuideSystem {
 
   /** What the HUD shows when there's no job or contract to follow: the next step, or the best advice. */
   objective() {
+    // Something urgent (starving, no firewood in the middle of winter) comes before the next step.
+    const urgent = this.topAdvice();
+    if (urgent && urgent.prio >= AP.danger - 10) return { kind: 'advice', advice: urgent, key: `advice.${urgent.id}`, params: urgent.params, target: null, open: urgent.go };
     const cur = !this.S.hidden && this.current();
     if (cur && !cur.locked) {
       let where = null;
@@ -166,7 +174,7 @@ export class GuideSystem {
       const TS = 32;
       return { kind: 'step', step: cur.step, key: `guide.step.${cur.step.id}.hint`, params: {}, target: where ? { x: where.tx * TS + TS / 2, y: where.ty * TS + TS / 2 } : null, open: cur.step.open };
     }
-    const a = this.advice(1)[0];
+    const a = this.topAdvice();
     if (a && a.prio >= AP.materials) return { kind: 'advice', advice: a, key: `advice.${a.id}`, params: a.params, target: null, open: a.go };
     const pp = this.S.path && this.pathProgress();
     if (pp?.next) return { kind: 'path', key: `path.${pp.id}.m.${pp.next.id}`, params: {}, progress: pp.next, target: null, open: 'paths' };
@@ -179,6 +187,13 @@ export class GuideSystem {
    * Advice from how things stand: [{ id, icon, prio, params, go }] — the most pressing first.
    * go: where the button takes you ('workers', 'contracts', 'orders', { site }, { equipment }…).
    */
+  /** The best advice for the HUD (worked out at most once a game minute: the HUD asks every frame). */
+  topAdvice() {
+    const now = this.sim.time.total;
+    if (this.topMemo?.at !== now) this.topMemo = { at: now, a: this.advice(1)[0] || null };
+    return this.topMemo.a;
+  }
+
   advice(max = 6) {
     const sim = this.sim;
     const p = sim.state.player;
@@ -235,6 +250,20 @@ export class GuideSystem {
       const nx = F.next();
       if (nx && nx.days === 1) add('festival_soon', AP.opportunity - 4, '🎉', { festival: nx.id });
     }
+    // Carrying for the shops (FreightSystem): a load waiting for you; or the idea, once you've a barrow.
+    const FR = sim.freight;
+    if (FR?.company?.kind === 'self' && !FR.carrying() && FR.S.jobs.some((j) => j.left > 0)) add('freight_waiting', AP.contract, '🛞', { n: FR.S.jobs.length }, 'freight');
+    else if (FR && !FR.company && E?.mine().length && p.level >= 3) add('try_freight', AP.opportunity - 7, '🛞', {}, 'jobboard');
+    // Steam and railways: a station, then a line to a town you trade with.
+    const ST = sim.settlements;
+    if (sim.tech?.has('railways') && !ST.station()) add('build_station', AP.opportunity + 4, '🚉', {}, 'build');
+    else if (ST.station() && ST.contacts().some((id) => ST.canFundRoad(id).ok && ST.nextRoad(id)?.rail)) add('lay_railway', AP.opportunity + 4, '🚂', {}, 'journey');
+    // The season: firewood for winter, snow on the roads, the harvest rush, the river up.
+    for (const a of sim.seasons?.advice(AP) || []) out.push(a);
+    for (const a of sim.livestock?.advice(AP) || []) out.push(a);
+    for (const a of sim.rival?.advice(AP) || []) out.push(a);
+    for (const a of sim.stories?.advice(AP) || []) out.push(a);
+    for (const a of sim.town?.advice(AP) || []) out.push(a);
     // The guide and your path.
     const cur = this.current();
     if (cur && !cur.locked && !this.S.hidden) add('guide', AP.guide, cur.step.icon, { step: cur.step.id }, cur.step.open || 'guide');

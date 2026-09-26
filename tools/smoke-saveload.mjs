@@ -30,6 +30,8 @@ const hash = (arr) => {
 
 // A busy stretch of play.
 const sim = Simulation.newGame('T', 4242);
+// (No villagers' stories here: a stranger arriving rolls the dice both games share — StorySystem.)
+sim.stories.canBegin = () => false;
 const p = sim.state.player;
 p.level = 20;
 p.money = 50000;
@@ -99,6 +101,7 @@ const snap = (s) => ({
 const before = snap(sim);
 const saved = JSON.stringify(sim.state);
 const sim2 = new Simulation(JSON.parse(saved));
+sim2.stories.canBegin = () => false;
 const after = snap(sim2);
 for (const k of Object.keys(before)) check(`after loading: ${k} as they were`, before[k] === after[k], before[k] === after[k] ? '' : `${String(before[k]).slice(0, 90)} ≠ ${String(after[k]).slice(0, 90)}`);
 

@@ -8,9 +8,14 @@ import { BALANCE } from '../../config/balance.js';
 import { Panel } from '../Panel.js';
 import { t, npcName, occupationName, fmtMoney, itemName, cap } from '../../i18n/i18n.js';
 import { tr, escapeHtml, buildingLabel, dateString, rumorText } from '../format.js';
-import { button, tabs, portrait, hearts, bar } from '../widgets.js';
+import { button, tabs, portrait, hearts, bar, filters } from '../widgets.js';
 import { WEATHER_ICONS } from '../../systems/WeatherSystem.js';
 import { guidePageHtml, guideAction } from '../guide.js';
+import { storiesHtml } from '../stories.js';
+import { lineChart } from '../charts.js';
+
+/** What the history charts can show (HistorySystem.samples). */
+const CHARTS = ['pop', 'money', 'worth', 'biz', 'treasury', 'bread', 'workers'];
 
 export class JournalPanel extends Panel {
   constructor(ui, tab = 'tasks') {
@@ -29,12 +34,13 @@ export class JournalPanel extends Panel {
     const list = [
       ['tasks', t('ui.tab_tasks')],
       ['guide', t('guide.tab')],
+      ['stories', `${t('story_ui.tab')}${this.sim.stories?.waiting().length ? ` (${this.sim.stories.waiting().length})` : ''}`],
       ['people', t('ui.tab_people')],
       ['news', t('ui.tab_news')],
       ['world', t('ui.tab_world')],
       ['history', t('ui.tab_history')],
     ];
-    const body = { guide: () => guidePageHtml(this.sim, { showPaths: this.showPaths }), tasks: () => this.renderTasks(), people: () => this.renderPeople(), news: () => this.renderNews(), world: () => this.renderWorld(), history: () => this.renderHistory() }[this.tab]();
+    const body = { guide: () => guidePageHtml(this.sim, { showPaths: this.showPaths }), stories: () => storiesHtml(this.sim), tasks: () => this.renderTasks(), people: () => this.renderPeople(), news: () => this.renderNews(), world: () => this.renderWorld(), history: () => this.renderHistory() }[this.tab]();
     return tabs(list, this.tab) + body;
   }
 
@@ -148,12 +154,32 @@ export class JournalPanel extends Panel {
   }
 
   /** The village's history book: firsts, milestones, disasters, your family's generations. */
+  /** The valley in numbers, week by week: a chart to choose, with the big moments marked. */
+  chartsHtml() {
+    const sim = this.sim;
+    const { daysPerSeason, seasons } = BALANCE.time;
+    const k = this.chart || 'pop';
+    const samples = sim.history.samples();
+    const points = samples.map((s) => ({ x: s.d, y: s[k] ?? 0 }));
+    const money = ['money', 'worth', 'treasury', 'bread'].includes(k);
+    const marks = sim.history.H.entries
+      .filter((e) => e.key.startsWith('chronicle.village_status') || e.key === 'chronicle.railway_opened' || e.key === 'chronicle.player_arrived')
+      .map((e) => ({ x: e.day, label: `${dateString(e.day)} · ${tr(sim, e.key, e.params)}` }));
+    const first = samples[0];
+    const last = samples[samples.length - 1];
+    const change = first && last && samples.length > 1 ? last[k] - first[k] : 0;
+    return `<h3>📈 ${escapeHtml(t('history_ui.title'))}</h3>
+      ${filters(CHARTS.map((c) => [c, t(`history_ui.${c}`)]), k, 'chart')}
+      <div class="chart-box">${lineChart(points, { fmt: (v) => (money ? fmtMoney(Math.round(v)) : String(Math.round(v))), marks, yearDays: daysPerSeason * seasons.length, label: t('history_ui.too_soon') })}</div>
+      <div class="muted small">${escapeHtml(samples.length > 1 ? t('history_ui.since', { n: samples.length, change: `${change >= 0 ? '+' : '−'}${money ? fmtMoney(Math.abs(Math.round(change))) : Math.abs(Math.round(change))}` }) : t('history_ui.too_soon'))}</div>`;
+  }
+
   renderHistory() {
     const sim = this.sim;
     const { daysPerSeason, seasons } = BALANCE.time;
     const years = sim.history.byYear((d) => Math.floor(d / (daysPerSeason * seasons.length)) + 1);
-    if (!years.length) return `<div class="muted">${escapeHtml(t('ui.no_history'))}</div>`;
-    return `<div class="muted small">${escapeHtml(t('ui.history_hint'))}</div><div class="chronicle">${years
+    if (!years.length) return this.chartsHtml() + `<div class="muted">${escapeHtml(t('ui.no_history'))}</div>`;
+    return `${this.chartsHtml()}<h3>📜 ${escapeHtml(t('history_ui.timeline'))}</h3><div class="muted small">${escapeHtml(t('ui.history_hint'))}</div><div class="chronicle">${years
       .map(
         ([y, list]) =>
           `<h3>${escapeHtml(t('ui.year_n', { n: y }))}</h3>` +
@@ -209,6 +235,8 @@ export class JournalPanel extends Panel {
   }
 
   onAction(action, data) {
+    if (action === 'story_open') return this.ui.openStory(data.id);
+    if (action === 'chart') return (this.chart = data.f);
     if (guideAction(this, action, data)) return;
     if (contractAction(this.sim, action, data)) return;
     if (action === 'job_hand_over') {

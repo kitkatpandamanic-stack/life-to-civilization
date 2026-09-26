@@ -291,7 +291,13 @@ export class BuildingViews {
         else if (!occupied && e.emitting) e.stop();
       }
     }
-    for (const g of this.lamps) g.setAlpha(darkness * 0.75 * flicker);
+    // In a town the street lamps burn gas: brighter, whiter, further (TownSystem).
+    const gas = !!this.sim.town?.gasLamps();
+    if (gas !== this.gas) {
+      this.gas = gas;
+      for (const g of this.lamps) g.setTint(gas ? 0xfff2cc : 0xffc870).setScale(gas ? 1.75 : 1.3);
+    }
+    for (const g of this.lamps) g.setAlpha(darkness * (gas ? 0.9 : 0.75) * flicker);
   }
 
   destroy() {

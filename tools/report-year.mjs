@@ -24,7 +24,7 @@ for (let k = 0; k < seeds; k++) {
   console.log('day  pop adult homeless jobless avg$  poor$  biz closed treasury bread wood planks bricks techs status');
   for (const r of rows) console.log(`${String(r.day).padStart(3)} ${String(r.pop).padStart(4)} ${String(r.adults).padStart(5)} ${String(r.homeless).padStart(8)} ${String(r.jobless).padStart(7)} ${String(r.avgMoney).padStart(5)} ${String(r.poorQuarter).padStart(6)} ${String(r.businesses).padStart(4)} ${String(r.closed).padStart(6)} ${String(r.treasury).padStart(8)} ${String(r.prices.bread).padStart(5)} ${String(r.prices.wood).padStart(4)} ${String(r.prices.planks).padStart(6)} ${String(r.prices.bricks).padStart(6)} ${String(r.techs).padStart(5)} ${r.status}`);
   const last = rows[rows.length - 1];
-  console.log(`businesses: ${JSON.stringify(last.types)} · events ${last.events} · festivals ${last.festivals} · clay pits ${last.clayPits}`);
+  console.log(`businesses: ${JSON.stringify(last.types)} · events ${last.events} · festivals ${last.festivals} · clay pits ${last.clayPits} · cold homes (worst week) ${Math.max(...rows.map((r) => r.cold || 0))}`);
   const w = warnings(rows);
   console.log(w.length ? `⚠ ${w.join(' · ')}` : '✓ nothing out of balance');
   all.push({ seed: 4200 + k, last, w });

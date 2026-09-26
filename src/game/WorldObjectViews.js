@@ -4,6 +4,7 @@
  * (the player or a villager) chops, mines or harvests.
  */
 import { BALANCE } from '../config/balance.js';
+import { SEASONS } from '../systems/SeasonSystem.js';
 
 const TS = BALANCE.tileSize;
 
@@ -68,6 +69,7 @@ export class WorldObjectViews {
     spr.setVisible(!(obj.kind === 'tree' && obj.state === 'cleared') && !(obj.kind === 'rock' && obj.state === 'cleared'));
     // A worked-out seam: grey, lifeless rubble.
     if (obj.kind === 'rock' && obj.state === 'depleted') spr.setTint(0x8a8680);
+    else if (obj.floodedUntil > this.sim.time.day) spr.setTint(SEASONS.floodTint); // under the river in flood
     else spr.clearTint();
   }
 

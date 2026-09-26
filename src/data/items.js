@@ -23,6 +23,8 @@ export const ITEMS = {
   bricks: { category: 'material', weight: 2.5, basePrice: 9 },
   glass: { category: 'material', weight: 1.5, basePrice: 14 }, // panes for windows (from the towns, by caravan)
   hide: { category: 'material', weight: 1.5, basePrice: 9 },
+  wool: { category: 'material', weight: 0.5, basePrice: 7 }, // shorn from your sheep (LivestockSystem)
+  hay: { category: 'material', weight: 0.8, basePrice: 1 }, // winter fodder, from the farm
   iron_ingot: { category: 'material', weight: 1.5, basePrice: 26 },
 
   // Food
@@ -34,6 +36,9 @@ export const ITEMS = {
   pumpkin: { category: 'food', weight: 3, basePrice: 9, food: { hunger: 22 } },
   bread: { category: 'food', weight: 0.5, basePrice: 5, food: { hunger: 28 } },
   cheese: { category: 'food', weight: 0.5, basePrice: 8, food: { hunger: 22, health: 3 } },
+  omelette: { category: 'food', weight: 0.4, basePrice: 9, food: { hunger: 32, energy: 4 } },
+  egg: { category: 'food', weight: 0.1, basePrice: 2, food: { hunger: 7 } },
+  milk: { category: 'food', weight: 1, basePrice: 3, food: { hunger: 6, energy: 2 } },
   pie: { category: 'food', weight: 0.6, basePrice: 9, food: { hunger: 35, energy: 4, health: 2 } },
   stew: { category: 'food', weight: 1, basePrice: 10, food: { hunger: 55, energy: 8 } },
   vegetable_soup: { category: 'food', weight: 1, basePrice: 12, food: { hunger: 50, energy: 10, health: 4 } },

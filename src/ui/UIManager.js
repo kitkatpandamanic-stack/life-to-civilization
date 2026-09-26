@@ -13,6 +13,12 @@
 import { EnterprisePanel } from './panels/EnterprisePanel.js';
 import { EquipmentPanel } from './panels/EquipmentPanel.js';
 import { OrdersPanel } from './panels/OrdersPanel.js';
+import { FreightPanel } from './panels/FreightPanel.js';
+import { LivestockPanel } from './panels/LivestockPanel.js';
+import { StationPanel } from './panels/StationPanel.js';
+import { RivalPanel } from './panels/RivalPanel.js';
+import { StoryPanel } from './panels/StoryPanel.js';
+import { MeetingPanel } from './panels/MeetingPanel.js';
 import { t, fmtMoney, onLanguageChange, npcName, itemName } from '../i18n/i18n.js';
 import { tr, escapeHtml, hoodLabel, districtLabel } from './format.js';
 import { WEATHER_ICONS } from '../systems/WeatherSystem.js';
@@ -45,6 +51,7 @@ import { itemTip } from './items.js';
 import { icon, condState } from './widgets.js';
 import { landHere } from './land.js';
 import { applySettings, uiScale } from './settings.js';
+import { play } from '../audio/AudioEngine.js';
 import { ITEMS } from '../data/items.js';
 
 /** The dock: the screens you open most, with their keys. */
@@ -330,7 +337,15 @@ export class UIManager {
       weekday: t(`weekday.${time.weekday}`),
       year: time.year,
     });
-    q.weather.textContent = `${WEATHER_ICONS[sim.weather.type] || ''} ${t(`weather.${sim.weather.type}`)}`;
+    // The weather, and what the season's doing: snow lying, the fire at home, the river up, the thaw.
+    const ss = sim.seasons?.summary();
+    const extra = [];
+    if (ss?.snow >= 10) extra.push(t('ui.snow_depth', { n: ss.snow }));
+    if (ss?.flooding) extra.push(t('ui.river_up'));
+    else if (ss?.thaw) extra.push(t('ui.thaw'));
+    if (ss?.season === 'winter' && ss.woodNights !== Infinity) extra.push(ss.heated ? t('ui.fire_lit', { n: ss.woodNights }) : t('ui.fire_out'));
+    const wtext = `${WEATHER_ICONS[sim.weather.type] || ''} ${t(`weather.${sim.weather.type}`)}${extra.length ? ` · ${extra.join(' · ')}` : ''}`;
+    if (q.weather.textContent !== wtext) q.weather.textContent = wtext;
     this.updateLandChip();
 
     const obj = sim.jobs.objective();
@@ -345,6 +360,11 @@ export class UIManager {
         this.objectiveEl.classList.remove('hidden');
         const have = sim.inventory.count(req.item);
         this.objectiveEl.innerHTML = `<div class="obj-head">🤝 ${escapeHtml(t('ui.favour'))}</div><div class="obj-text">${escapeHtml(tr(sim, 'objective.request', { npc: req.npcId, item: req.item, qty: req.qty, have }))}</div>`;
+      } else if (sim.freight?.objective()) {
+        // A delivery you're carrying (or one waiting for you to pick up).
+        const fo = sim.freight.objective();
+        this.objectiveEl.classList.remove('hidden');
+        this.objectiveEl.innerHTML = `<div class="obj-head">🛞 ${escapeHtml(t('freight.hud'))}</div><div class="obj-text">${escapeHtml(tr(sim, fo.key, fo.params))}</div>`;
       } else if (sim.contracts.objective()) {
         // A contract you're following ("Go to job"): what to do next, and where.
         const co = sim.contracts.objective();
@@ -635,7 +655,8 @@ export class UIManager {
 
   openPanel(panel) {
     this.closeContextMenu();
-    if (this.panel) this.closePanel();
+    if (this.panel) this.closePanel(true);
+    play('open');
     this.panel = panel;
     this.panelSeq = (this.panelSeq || 0) + 1;
     this.scene.player?.cancelAction();
@@ -644,8 +665,9 @@ export class UIManager {
     this.renderPanel();
   }
 
-  closePanel() {
+  closePanel(quiet = false) {
     if (!this.panel) return;
+    if (!quiet) play('close');
     const p = this.panel;
     this.panel = null;
     p.onClose();
@@ -780,6 +802,30 @@ export class UIManager {
   }
   openOrders(opts = {}) {
     this.openPanel(new OrdersPanel(this, opts));
+  }
+  /** Your carting business: { tab: 'company' | 'deliveries' | 'caravans' }. */
+  openFreight(opts = {}) {
+    this.openPanel(new FreightPanel(this, opts));
+  }
+  /** Your farm animals: { shop: true } (at the farm) · { barn: buildingId }. */
+  openLivestock(opts = {}) {
+    this.openPanel(new LivestockPanel(this, opts));
+  }
+  /** The railway station: timetable, sending and ordering goods by rail, the goods yard. */
+  openStation(opts = {}) {
+    this.openPanel(new StationPanel(this, opts));
+  }
+  /** Your business rival: what they're up to, and what you can do about it. */
+  openRival() {
+    this.openPanel(new RivalPanel(this));
+  }
+  /** A story scene (StorySystem): what's happening, and your choice. */
+  openStory(id) {
+    this.openPanel(new StoryPanel(this, id));
+  }
+  /** The town meeting: the proposal, how the valley leans, your say. */
+  openMeeting() {
+    this.openPanel(new MeetingPanel(this));
   }
 
   /** Translate with id-params resolved (used by world-space text like build hints). */

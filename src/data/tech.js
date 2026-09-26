@@ -30,6 +30,9 @@ export const TECHS = {
   brickmaking: { cost: 24, needs: { biz: 'quarry', built: 3 }, from: ['master_builder', 'builder', 'quarry_foreman', 'miner'], skill: 'construction', users: ['brickmaker', 'clay_digger', 'builder', 'master_builder'], icon: '🧱' },
   sawing: { cost: 28, needs: { tech: ['better_tools'], biz: 'carpentry' }, from: ['carpenter', 'carpenter_hand', 'lumber_foreman', 'woodcutter'], skill: 'carpentry', users: ['sawyer', 'sawmill_hand', 'carpenter', 'carpenter_hand'], icon: '🪚' },
   manufacture: { cost: 50, needs: { tech: ['sawing', 'brickmaking'], biz: 'smithy', pop: 30 }, from: ['blacksmith', 'smith_hand', 'carpenter', 'sawyer', 'brickmaker'], skill: 'smithing', users: ['factory_master', 'factory_hand'], icon: '🏭' },
+  // The age of steam: engines at the works, then railways to the towns.
+  steam_engine: { cost: 90, needs: { tech: ['manufacture'], biz: 'factory' }, from: ['factory_master', 'factory_hand', 'blacksmith', 'smith_hand', 'engineer'], skill: 'smithing', users: ['factory_master', 'factory_hand', 'sawyer', 'sawmill_hand', 'miller'], icon: '♨️', effects: { gather_output: 1.06, export_price: 1.03 } },
+  railways: { cost: 120, needs: { tech: ['steam_engine', 'stone_bridges'], pop: 30 }, from: ['engineer', 'master_builder', 'factory_master', 'carter_master', 'builder'], skill: 'construction', users: ['carter', 'carter_master', 'merchant', 'engineer'], icon: '🚂', effects: { road_danger: 0.9 } },
   milling: { cost: 30, needs: { tech: ['masonry'], biz: 'farm', pop: 28 }, from: ['baker', 'farmer', 'master_builder', 'miller'], users: ['miller', 'mill_hand', 'baker', 'baker_hand'], icon: '⚙️' },
   printing: { cost: 45, needs: { tech: ['writing'], civic: 'library', pop: 32 }, from: [], school: true, icon: '📰', effects: { rumor_distort: 0.4, learning: 1.15 } },
   // Towards civilization: travel by water, watered fields, stone bridges and proper accounts.

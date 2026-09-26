@@ -5,7 +5,16 @@ import { Panel } from '../Panel.js';
 import { t, LANGUAGES, getLanguage, setLanguage, npcName } from '../../i18n/i18n.js';
 import { escapeHtml } from '../format.js';
 import { button, tabs } from '../widgets.js';
-import { UI_SCALES, getSetting, setSetting } from '../settings.js';
+import { UI_SCALES, VOLUME_STEPS, getSetting, setSetting } from '../settings.js';
+import { play } from '../../audio/AudioEngine.js';
+
+/** The sound sliders: master, music, effects, the valley's sounds. */
+const VOLUMES = [
+  ['volMaster', 'ui.vol_master', 0.75],
+  ['volMusic', 'ui.vol_music', 0.5],
+  ['volSfx', 'ui.vol_sfx', 0.75],
+  ['volAmbience', 'ui.vol_ambience', 0.75],
+];
 
 /** The screens of the game, for the menu's quick links. */
 const SCREENS = [
@@ -74,6 +83,12 @@ export class MenuPanel extends Panel {
       const fs = !!document.fullscreenElement;
       body = `<div class="setting-row"><div><b>${escapeHtml(t('ui.language'))}</b><div class="hint">${escapeHtml(t('ui.language_hint'))}</div></div><div class="btn-row">${LANGUAGES.map((l) => button(`${l.flag} ${l.label}`, 'lang', { code: l.code }, { cls: l.code === cur ? 'selected' : 'ghost' })).join('')}</div></div>
         <div class="setting-row"><div><b>${escapeHtml(t('ui.ui_scale'))}</b><div class="hint">${escapeHtml(t('ui.ui_scale_hint'))}</div></div><div class="btn-row">${UI_SCALES.map((s) => button(`${Math.round(s * 100)}%`, 'scale', { s }, { cls: `sm ${Math.abs(s - scale) < 0.01 ? 'selected' : 'ghost'}` })).join('')}</div></div>
+        <h4>🔊 ${escapeHtml(t('ui.sound'))}</h4>
+        <div class="setting-row"><div><b>${escapeHtml(t('ui.sound_on'))}</b><div class="hint">${escapeHtml(t('ui.sound_hint'))}</div></div>${button(t(getSetting('mute') ? 'ui.sound_muted' : 'ui.sound_playing'), 'mute', {}, { cls: getSetting('mute') ? 'ghost' : 'selected' })}</div>
+        ${VOLUMES.map(([k, label, d]) => {
+          const v = getSetting(k) ?? d;
+          return `<div class="setting-row"><div><b>${escapeHtml(t(label))}</b></div><div class="btn-row">${VOLUME_STEPS.map((s) => button(s ? `${Math.round(s * 100)}%` : t('ui.vol_off'), 'vol', { k, s }, { cls: `sm ${Math.abs(s - v) < 0.01 ? 'selected' : 'ghost'}` })).join('')}</div></div>`;
+        }).join('')}
         <div class="setting-row"><div><b>${escapeHtml(t('ui.fullscreen'))}</b><div class="hint">${escapeHtml(t('ui.fullscreen_hint'))}</div></div>${button(t(fs ? 'ui.fullscreen_off' : 'ui.fullscreen_on'), 'fullscreen', {}, { cls: fs ? 'selected' : '' })}</div>`;
     } else if (this.tab === 'controls') {
       const rows = ['move', 'interact', 'inspect_key', 'menu_keys', 'more_keys', 'numbers', 'eat', 'esc'];
@@ -87,6 +102,12 @@ export class MenuPanel extends Panel {
   onAction(action, data) {
     if (action === 'open') return this.ui.togglePanel(data.screen);
     if (action === 'scale') setSetting('uiScale', Number(data.s));
+    if (action === 'mute') setSetting('mute', !getSetting('mute'));
+    if (action === 'vol') {
+      setSetting(data.k, Number(data.s));
+      // A sample at the new level (effects: a coin; the valley: a bird; music and master: a chime).
+      setTimeout(() => play(data.k === 'volSfx' ? 'coin' : data.k === 'volAmbience' ? 'bird' : 'good', { amb: data.k === 'volAmbience' }), 120);
+    }
     if (action === 'fullscreen') {
       if (document.fullscreenElement) document.exitFullscreen?.();
       else document.documentElement.requestFullscreen?.().catch(() => {});

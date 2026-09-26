@@ -35,10 +35,31 @@ const nearest = (s, kind) => {
   const o = s.resources.findNearest(kind, p.tx, p.ty, 40, (x) => s.resources.isHarvestable(x) && (kind !== 'rock' || x.variant === 'stone'));
   return o ? { tx: o.tx, ty: o.ty } : null;
 };
+/** The nearest villager out of work (someone you could hire). */
+const jobless = (s) => {
+  const p = s.state.player;
+  let best = null;
+  let bd = Infinity;
+  for (const n of s.state.npcs) {
+    if (n.occupation !== 'unemployed' || n.age < 16 || n.away || n.inside || n.leaving) continue;
+    const d = Math.hypot(n.x - p.x, n.y - p.y);
+    if (d < bd) (bd = d), (best = n);
+  }
+  return best ? s.world.toTile(best.x, best.y) : null;
+};
+/** The nearest signposted plot still for sale. */
+const plotForSale = (s) => {
+  const me = s.world.toTile(s.state.player.x, s.state.player.y);
+  const pl = s.land.forSale().sort((a, b) => Math.abs(a.sign[0] - me.tx) + Math.abs(a.sign[1] - me.ty) - (Math.abs(b.sign[0] - me.tx) + Math.abs(b.sign[1] - me.ty)))[0];
+  return pl ? { tx: pl.sign[0], ty: pl.sign[1] + 1 } : null;
+};
 const door = (s, id) => {
   const b = id && s.world.buildings[id];
   return b ? { tx: b.door.tx, ty: b.door.ty } : null;
 };
+
+/** Someone well past the basics (this level or more) isn't asked to find their first job: the first chapter counts as done. */
+export const BASICS_BY_LEVEL = 5;
 
 export const GUIDE = [
   {
@@ -53,15 +74,15 @@ export const GUIDE = [
   {
     chapter: 'crew',
     steps: [
-      { id: 'hire', icon: '👷', need: 'hire_worker', done: (s) => workers(s) >= 1, open: 'workers', reward: { money: 20, xp: 40 } },
-      { id: 'contract', icon: '📜', need: 'hire_worker', done: (s) => contractsDone(s) >= 1, open: 'contracts', reward: { money: 25, xp: 50 } },
-      { id: 'two_workers', icon: '👥', need: 'hire_worker', done: (s) => workers(s) >= 2, open: 'workers', reward: { xp: 40 } },
+      { id: 'hire', icon: '👷', need: 'hire_worker', done: (s) => workers(s) >= 1, where: jobless, open: 'workers', reward: { money: 20, xp: 40 } },
+      { id: 'contract', icon: '📜', need: 'hire_worker', done: (s) => contractsDone(s) >= 1, where: noticeBoard, open: 'contracts', reward: { money: 25, xp: 50 } },
+      { id: 'two_workers', icon: '👥', need: 'hire_worker', done: (s) => workers(s) >= 2, where: jobless, open: 'workers', reward: { xp: 40 } },
     ],
   },
   {
     chapter: 'land',
     steps: [
-      { id: 'buy_land', icon: '🗺️', need: 'buy_land', done: (s) => (s.land.owned?.length || 0) >= 1, open: 'map', reward: { xp: 50 } },
+      { id: 'buy_land', icon: '🗺️', need: 'buy_land', done: (s) => (s.land.owned?.length || 0) >= 1, where: plotForSale, open: 'map', reward: { xp: 50 } },
       { id: 'build_store', icon: '🏚️', need: 'construction', done: (s) => finished(s, (fx) => fx.storage) >= 1, open: 'build', reward: { money: 20, xp: 60 } },
       { id: 'build_two', icon: '🏗️', need: 'construction', done: (s) => s.construction.finished().length >= 2, open: 'build', reward: { money: 30, xp: 60 } },
     ],
@@ -104,8 +125,11 @@ export const PATHS = {
       { id: 'lend_two', measure: (s) => [equipment(s).filter((e) => e.holder?.kind === 'worker').length, 2], reward: { xp: 100, money: 40 } },
       { id: 'depot', measure: (s) => [finished(s, (fx) => fx.depot), 1], reward: { xp: 150, money: 60 } },
       { id: 'orders', measure: (s) => [orders(s).filter((o) => (o.total || 0) > 0).length, 3], reward: { xp: 150, rep: 2 } },
+      { id: 'deliveries', measure: (s) => [s.state.freight?.company?.delivered || 0, 10], reward: { xp: 150, money: 50 } },
       { id: 'cart', measure: (s) => [equipment(s).filter((e) => ['handcart', 'wooden_wagon', 'pack_horse', 'horse_cart', 'wagon'].includes(e.type)).length, 2], reward: { xp: 200 } },
+      { id: 'caravan', measure: (s) => [s.state.freight?.caravanStats?.trips || 0, 1], reward: { xp: 200, money: 80 } },
       { id: 'tonnage', measure: (s) => [equipment(s).reduce((n, e) => n + (e.units || 0), 0), 3000], reward: { xp: 400, money: 250, rep: 5 } },
+      { id: 'railway', measure: (s) => [Object.values(s.state.region?.list || {}).filter((x) => x.road >= 4).length, 1], reward: { xp: 600, money: 400, rep: 8 } },
     ],
   },
   landlord: {

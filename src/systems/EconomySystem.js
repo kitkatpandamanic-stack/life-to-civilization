@@ -169,7 +169,7 @@ export class EconomySystem {
 
   /** Does this shop buy the item? (During a trade fair, every shop takes the goods the merchant wants.) */
   buysItem(id, item) {
-    if (this.def(id)?.buys?.includes(item)) return true;
+    if (this.def(id)?.buys?.includes(item) || this.def(id)?.buysFromYou?.includes(item)) return true;
     return this.def(id)?.kind === 'shop' && this.sim.events.itemPrice(item) > 1;
   }
 
@@ -362,6 +362,8 @@ export class EconomySystem {
       const wheat = Math.round(farmWorkers * E.farmOutputPerWorker * (E.seasonFarmMult[season] ?? 1) * this.sim.events.modifier('farm_output'));
       const b = this.biz(id);
       b.stock.wheat = (b.stock.wheat || 0) + wheat;
+      // Hay is cut with the harvest (winter fodder for everyone's animals).
+      if (season === 'summer' || season === 'autumn') b.stock.hay = Math.min(this.target(id, 'hay') * 2, (b.stock.hay || 0) + Math.round(wheat * 0.6));
     }
 
     // 3. Workshops make things from their recipes (the owner plus the staff who came in).
@@ -373,10 +375,19 @@ export class EconomySystem {
       const homes = new Map();
       for (const n of npcs) if (n.age >= 16 && n.homeId && !homes.has(n.homeId)) homes.set(n.homeId, n);
       const perHome = Math.round(E.winterWoodPerHousehold * this.sim.events.modifier('wood_demand'));
-      for (const buyer of homes.values()) {
+      const cold = [];
+      for (const [home, buyer] of homes) {
         const shop = this.cheapestWith('wood');
-        if (shop) this.npcBuy(buyer, shop, ['wood'], perHome);
+        let got = shop ? this.npcBuy(buyer, shop, ['wood'], perHome) : 0;
+        // Short of money: someone else in the house chips in…
+        const family = npcs.filter((n) => n.homeId === home && n.age >= 16 && n !== buyer);
+        for (const n of family) if (shop && got < perHome) got += this.npcBuy(n, shop, ['wood'], perHome - got);
+        // …or anyone able goes out for dead wood. Only a house with nobody who can is cold (SeasonSystem:
+        // unhappy, and they'll ask you for wood).
+        const able = [buyer, ...family].some((n) => n.age < 66 && (n.health ?? 100) >= 40);
+        if (got < perHome && !able) cold.push(home);
       }
+      this.sim.seasons?.setCold(cold);
     }
 
     // 5. Tools wear out: producers with working crews replace them at a smithy.
@@ -657,11 +668,13 @@ export class EconomySystem {
       if (def.kind !== 'shop') continue;
       const b = this.biz(id);
       const inputs = this.inputsOf(id);
-      for (const item of Object.keys(def.targets)) {
+      for (const item of [...Object.keys(def.targets), ...(def.buysFromYou || [])]) {
+        // What only you bring in (eggs, milk, wool) is never imported — its surplus just goes to traders.
+        if (def.buysFromYou?.includes(item) && (b.stock[item] || 0) <= this.target(id, item) * 0.5) continue;
         // Things a workshop makes itself aren't imported (a bakery bakes its own bread)…
         if (def.recipes?.[item] && !def.recipes[item].import) continue;
         const cur = b.stock[item] || 0;
-        const target = def.targets[item];
+        const target = def.targets[item] ?? this.target(id, item) * 0.5;
         const delta = Math.round((target - cur) * drift);
         const base = ITEMS[item].basePrice;
         if (delta > 0) {

@@ -3,6 +3,7 @@
 // hunters and miners at work, a hamlet growing round an outpost, save / load.
 // Usage: node tools/smoke-sites.mjs
 import { Simulation } from '../src/core/Simulation.js';
+import { VILLAGE_BUILDINGS } from '../src/data/villageBuildings.js';
 
 let failures = 0;
 const check = (label, ok, extra = '') => {
@@ -20,6 +21,7 @@ const finish = (sim, c) => {
 };
 
 const sim = Simulation.newGame('T', 801);
+sim.stories.canBegin = () => false; // (a stranger in a story could take the only one looking for work — StorySystem)
 const run = runOn(sim);
 const X = sim.exploration;
 const p = sim.state.player;
@@ -79,8 +81,11 @@ if (h.ok) {
   const lodge = sim.economy.businessAtBuilding(h.site.id);
   sim.holdings.setWageLevel(lodge, 1.6);
   sim.holdings.deposit(lodge, 500);
-  // (someone looking for work — the mine may have taken everyone who was)
-  if (!sim.state.npcs.some((n) => n.occupation === 'unemployed' && n.age >= 16)) sim.growth.arrive();
+  // (someone looking for this kind of work — the mine may have taken everyone who was, and a would-be
+  // shopkeeper saving up for their own business won't go off hunting)
+  const [seeker] = sim.growth.arrive({ size: 1 });
+  seeker.age = Math.max(20, Math.min(45, seeker.age));
+  seeker.traits = ['hard_worker'];
   run(16 * 1440);
   const meat = sim.economy.stock(lodge, 'meat') + sim.enterprise.books(lodge, 7).rev;
   check('hunters bring in game', sim.npcs.staffOf(lodge).length >= 1 && meat > 0, `${sim.npcs.staffOf(lodge).length} hunters, ${meat}`);
@@ -88,13 +93,24 @@ if (h.ok) {
 
 // 6. A hamlet grows round an outpost.
 // Three households (not one family moving house three times).
+// (Whoever owns the land round it builds first — villagers may have bought it up by now.)
+const nearOwners = new Set();
+for (let y = cave.ty - 12; y <= cave.ty + 12; y++) for (let x = cave.tx - 12; x <= cave.tx + 12; x++) if (sim.world.inBounds(x, y)) nearOwners.add(sim.territory.ownerAt(x, y));
 const builders = [];
-for (const n of sim.state.npcs) if (n.age >= 20 && !n.owns && !builders.some((b) => b.homeId === n.homeId || b.family.includes(n.id))) builders.push(n);
+const people = [...sim.state.npcs].sort((a, b) => nearOwners.has(b.id) - nearOwners.has(a.id));
+for (const n of people) if (n.age >= 20 && !n.owns && !builders.some((b) => b.homeId === n.homeId || b.family.includes(n.id))) builders.push(n);
 builders.length = Math.min(3, builders.length);
 let built = 0;
+// (Right beside the outpost: the first free ground round it — where villagers like to build depends on
+// everything else that's gone up, and this is about the hamlet, not their taste in lots.)
+const { w: hw, h: hh } = VILLAGE_BUILDINGS.small_house;
+const spots = [];
+for (let r = 3; r <= 16; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (Math.max(Math.abs(dx), Math.abs(dy)) === r) spots.push([cave.tx + dx, cave.ty + dy]);
 for (const n of builders) {
   n.money += 1500;
-  const c = sim.growth.start(n, 'small_house', 'home', { tx: cave.tx, ty: cave.ty + 4 });
+  const spot = spots.find(([x, y]) => sim.growth.lotFree(x, y, hw, hh, n.id) && Math.hypot(x - cave.tx, y - cave.ty) <= 15);
+  if (!spot) continue;
+  const c = sim.construction.startProject({ owner: n.id, type: 'small_house', tx: spot[0], ty: spot[1], purpose: 'home', budget: 900 });
   if (c) {
     finish(sim, c);
     built++;

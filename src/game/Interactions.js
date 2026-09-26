@@ -143,6 +143,8 @@ export function getActions(scene, target) {
     case 'npc':
       add('action.talk', {}, () => ui.openDialogue(target.id), OK, 'E');
       add('action.inspect', {}, () => ui.openInspect(target.id), OK, 'F');
+      // Your business rival (RivalSystem): talk business.
+      if (sim.rival?.R?.npc === target.id && ['rival', 'partner'].includes(sim.rival.R.stage)) add('action.rival_business', {}, () => ui.openRival());
       // One of your workers: their equipment.
       if (sim.workers.contract(target.id)) {
         const lent = sim.equipment.assignedTo(target.id);
@@ -164,6 +166,7 @@ export function getActions(scene, target) {
         if (sim.farming.canNeedsRefill()) add('action.fill_can', {}, () => sim.farming.refillCan());
       }
       if (target.type === 'notice_board') add('action.read_board', {}, () => ui.openJobBoard());
+      if (target.type === 'notice_board' && sim.town?.S.meeting) add('action.town_meeting', { proposal: sim.town.S.meeting.proposal }, () => ui.openMeeting());
       // A festival on the square: give something towards it (FestivalSystem).
       if (target.type === 'notice_board' && sim.festivals?.active()) add('action.festival_gift', { money: 50 }, () => {
         const r = sim.festivals.donate(50);
@@ -393,6 +396,51 @@ function buildingActions(scene, id, add) {
     return;
   }
 
+  // Job steps first — they're usually the reason you came.
+  if (jobs.canPickup(id)) {
+    const job = jobs.active;
+    if (job.type === 'haul') add('action.pickup_haul', { qty: job.qty, item: job.item }, () => jobs.pickup());
+    else if (job.type === 'rounds') add('action.pickup_letters', { n: job.targets.length }, () => jobs.pickup());
+    else add('action.pickup_package', {}, () => jobs.pickup());
+  }
+  if (jobs.canTurnIn(id)) {
+    const job = jobs.active;
+    if (job.type === 'courier') add('action.deliver_package', {}, () => jobs.turnIn(id));
+    else if (job.type === 'rounds') add('action.deliver_letter', {}, () => jobs.turnIn(id));
+    else add('action.deliver_goods', { qty: job.qty, item: job.item }, () => jobs.turnIn(id));
+  }
+  // Freight (FreightSystem): a load waiting here for you to carry, or the load you've brought.
+  const fr = sim.freight;
+  if (fr?.company) {
+    const mine = fr.carrying();
+    if (mine && fr.job(mine.job)?.toB === id) add('action.freight_unload', { qty: mine.qty, item: fr.job(mine.job).item }, () => {
+      const r = fr.unloadHere(id);
+      if (!r.ok) sim.toast(`reason.${r.reason}`, r.params || {}, 'warn');
+    });
+    const waiting = fr.waitingAt(id)[0];
+    if (waiting) add('action.freight_load', { qty: Math.min(waiting.left, fr.playerCap()), item: waiting.item, building: waiting.toB }, () => {
+      const r = fr.loadHere(id);
+      if (!r.ok) sim.toast(`reason.${r.reason}`, r.params || {}, 'warn');
+    }, fr.canLoadHere(id));
+  }
+  // Your shift here (a job from the board).
+  const job = jobs.active;
+  if (job?.type === 'shift' && job.stage === 'go' && jobs.jobBuilding(job)?.id === id) {
+    add('action.start_shift', { hours: JOBS[job.jobId].durationHours }, () => scene.workShift(), jobs.canStartShift(id));
+  }
+  // Contracts: hand over goods here, or collect goods to haul.
+  for (const c of sim.contracts.at(id)) {
+    if (c.kind === 'haul' && c.from === id && c.collected < c.qty) add('action.contract_collect', { qty: c.qty - c.collected, item: c.item }, () => sim.contracts.collect(c.id));
+    else if (c.kind === 'repair' && c.building === id) add('action.contract_repair', { n: Math.round(sim.property.rec(id)?.condition ?? 0) }, () => scene.repairForContract(c.id), sim.contracts.canRepair(c));
+    else if (c.kind === 'harvest' && c.building === id) {
+      // The farmer's wheat you picked: hand it over at the farmhouse.
+      if ((c.owed || 0) > 0) add('action.contract_handover', { qty: sim.contracts.deliverable(c), item: c.item }, () => sim.contracts.deliver(c.id), sim.contracts.deliverable(c) > 0 ? OK : { ok: false, reason: 'contract_nothing', params: { item: c.item } });
+    } else if (c.building === id && c.kind !== 'build') {
+      const n = sim.contracts.deliverable(c);
+      add('action.contract_deliver', { qty: n || c.qty - c.delivered, item: c.item }, () => sim.contracts.deliver(c.id), n > 0 ? OK : { ok: false, reason: c.minQ !== undefined ? 'contract_quality' : 'contract_nothing', params: { item: c.item } });
+    }
+  }
+
   // Your own business.
   if (bizId && sim.holdings.isMine(bizId)) {
     add('action.manage_enterprise', {}, () => ui.openEnterprise(bizId));
@@ -411,18 +459,24 @@ function buildingActions(scene, id, add) {
     }, hostile ? { ok: false, reason: 'forge_refused' } : paid || p.money >= FORGE_FEE ? OK : { ok: false, reason: 'no_money' });
   }
 
-  // Contracts: hand over goods here, or collect goods to haul.
-  for (const c of sim.contracts.at(id)) {
-    if (c.kind === 'haul' && c.from === id && c.collected < c.qty) add('action.contract_collect', { qty: c.qty - c.collected, item: c.item }, () => sim.contracts.collect(c.id));
-    else if (c.kind === 'repair' && c.building === id) add('action.contract_repair', { n: Math.round(sim.property.rec(id)?.condition ?? 0) }, () => scene.repairForContract(c.id), sim.contracts.canRepair(c));
-    else if (c.kind === 'harvest' && c.building === id) {
-      // The farmer's wheat you picked: hand it over at the farmhouse.
-      if ((c.owed || 0) > 0) add('action.contract_handover', { qty: sim.contracts.deliverable(c), item: c.item }, () => sim.contracts.deliver(c.id), sim.contracts.deliverable(c) > 0 ? OK : { ok: false, reason: 'contract_nothing', params: { item: c.item } });
-    } else if (c.building === id && c.kind !== 'build') {
-      const n = sim.contracts.deliverable(c);
-      add('action.contract_deliver', { qty: n || c.qty - c.delivered, item: c.item }, () => sim.contracts.deliver(c.id), n > 0 ? OK : { ok: false, reason: c.minQ !== undefined ? 'contract_quality' : 'contract_nothing', params: { item: c.item } });
-    }
+  // Farm animals (LivestockSystem): bought at the village farm; kept at your barns.
+  const L = sim.livestock;
+  if (L && bizId && def?.type === 'farm') add('action.buy_animals', {}, () => ui.openLivestock({ shop: true }));
+  if (L && sim.world.buildings[id]?.type === 'barn' && sim.property.rec(id)?.owner === 'player') {
+    const n = L.waitingTotal(id);
+    if (n) add('action.collect_produce', { n }, () => L.collect(id));
+    add('action.your_animals', { n: L.mine(id).length }, () => ui.openLivestock({ barn: id }));
   }
+  // A town meeting coming up (TownSystem): have your say at the hall.
+  if (id === 'hall' && sim.town?.S.meeting) add('action.town_meeting', { proposal: sim.town.S.meeting.proposal }, () => ui.openMeeting());
+  // The railway station: the timetable, goods by rail, the goods yard (TrainSystem).
+  if (sim.world.buildings[id]?.type === 'rail_station') {
+    const y = sim.trains?.yardTotal() || 0;
+    if (y) add('action.collect_yard', { n: y }, () => sim.trains.collect());
+    add('action.station', {}, () => ui.openStation());
+  }
+  // Your transport depot: the carting company and your caravans.
+  if (sim.world.buildings[id]?.type === 'transport_depot' && sim.property.rec(id)?.owner === 'player') add('action.carting_company', {}, () => ui.openFreight());
 
   // Work going on at this building (a new level, a room, a renovation — yours or a villager's): lend a hand.
   const works = sim.structures?.works(id);
@@ -438,23 +492,6 @@ function buildingActions(scene, id, add) {
   // A house of yours that stands empty: move in.
   if (!sim.world.buildings[id]?.player && sim.construction.canMoveIn(id)) add('action.move_in', {}, () => sim.construction.moveIn(id));
 
-  // Job steps first — they're usually the reason you came.
-  if (jobs.canPickup(id)) {
-    const job = jobs.active;
-    if (job.type === 'haul') add('action.pickup_haul', { qty: job.qty, item: job.item }, () => jobs.pickup());
-    else if (job.type === 'rounds') add('action.pickup_letters', { n: job.targets.length }, () => jobs.pickup());
-    else add('action.pickup_package', {}, () => jobs.pickup());
-  }
-  if (jobs.canTurnIn(id)) {
-    const job = jobs.active;
-    if (job.type === 'courier') add('action.deliver_package', {}, () => jobs.turnIn(id));
-    else if (job.type === 'rounds') add('action.deliver_letter', {}, () => jobs.turnIn(id));
-    else add('action.deliver_goods', { qty: job.qty, item: job.item }, () => jobs.turnIn(id));
-  }
-  const job = jobs.active;
-  if (job?.type === 'shift' && job.stage === 'go' && jobs.jobBuilding(job)?.id === id) {
-    add('action.start_shift', { hours: JOBS[job.jobId].durationHours }, () => scene.workShift(), jobs.canStartShift(id));
-  }
 
   if (id === p.homeId) {
     add('action.enter_home', {}, () => scene.enterHome());

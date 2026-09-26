@@ -778,3 +778,37 @@ table.books tr.today { color: var(--c-primary); }
   .pupil-row { grid-template-columns: 1fr 1fr; }
   .hud-bottom { flex-direction: column; align-items: center; }
 }
+
+/* The roads out of the valley on the journey map (JourneyPanel.roadsSvg): as good as they are. */
+.xp-roads { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.xp-road { stroke: #8a6a44; stroke-width: 0.5; stroke-dasharray: 1.2 1.2; vector-effect: non-scaling-stroke; opacity: 0.85; }
+.xp-road.r1 { stroke-width: 2; stroke-dasharray: none; }
+.xp-road.r2 { stroke: #a8814f; stroke-width: 3.5; stroke-dasharray: none; }
+.xp-road.r3 { stroke: #b9b3a6; stroke-width: 4.5; stroke-dasharray: none; }
+.xp-road.r4 { stroke: #3b3430; stroke-width: 5; stroke-dasharray: none; }
+.xp-road.works { stroke-dasharray: 3 2; }
+.xp-road.sel { opacity: 1; filter: drop-shadow(0 0 2px #ffd65a); }
+.xp-rail-ties { stroke: #c9b89a; stroke-width: 9; stroke-dasharray: 0.6 2.2; vector-effect: non-scaling-stroke; opacity: 0.55; }
+.xp-dot { stroke: #1b140e; stroke-width: 0.4; }
+.xp-dot.village { fill: #60a0f0; }
+.xp-dot.mine { fill: #ffcf5a; }
+.xp-dot.you { fill: #ff7a5a; r: 2.2; }
+.xp-map .xp-node, .xp-map .xp-valley { z-index: 1; }
+
+/* A story scene (StoryPanel): the villager's face beside what's happening. */
+.story-scene { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 12px; }
+.story-scene .portrait { flex: none; border-radius: var(--r-md); border: 1px solid var(--c-border-strong); }
+.story-text { font-size: 15px; line-height: 1.5; margin: 0; }
+
+/* History in numbers (the journal's history: ui/charts.js). */
+.chart-box { background: var(--c-surface-2); border: 1px solid var(--c-border-strong); border-radius: var(--r-md); padding: 6px; margin: 6px 0; }
+.chart { width: 100%; height: auto; display: block; }
+.chart-line { fill: none; stroke: var(--c-primary); stroke-width: 2.5; vector-effect: non-scaling-stroke; }
+.chart-area { fill: var(--c-primary); opacity: 0.14; }
+.chart-grid { stroke: currentColor; opacity: 0.12; vector-effect: non-scaling-stroke; }
+.chart-axis { fill: currentColor; opacity: 0.55; font-size: 10px; }
+.chart-mark line { stroke: var(--c-info); stroke-dasharray: 3 3; opacity: 0.7; vector-effect: non-scaling-stroke; }
+.chart-mark circle { fill: var(--c-info); cursor: help; }
+.chart-dot { fill: var(--c-primary); }
+.chart-last { fill: currentColor; font-size: 11px; font-weight: 700; }
+.chart-empty { padding: 30px 10px; text-align: center; }

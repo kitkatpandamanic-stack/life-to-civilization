@@ -43,6 +43,7 @@ export const BUILDING_TYPES = {
   warehouse_bld: { w: 6, h: 4, wall: 'wood', wallColor: '#9c7a52', roof: 'plank', roofColor: '#5a4a3a', chimney: false, wideDoor: true },
   barn: { w: 4, h: 3, wall: 'wood', wallColor: '#9a4a36', roof: 'plank', roofColor: '#5e3a28', chimney: false, wideDoor: true, sign: '🌾' },
   transport_depot: { w: 5, h: 3, wall: 'open', wallColor: '#8a6440', roof: 'plank', roofColor: '#5a4a3a', chimney: false, wideDoor: true, sign: '🛞' },
+  rail_station: { w: 6, h: 3, wall: 'stone', wallColor: '#b0673f', roof: 'tile', roofColor: '#4a5058', chimney: true, wideDoor: true, clock: true, sign: '🚂' },
   construction_office: { w: 4, h: 3, wall: 'plaster', wallColor: '#e6d8b8', roof: 'tile', roofColor: '#7a5a3a', chimney: true, sign: '📐' },
 
   // The village's institutions (V5 — see CivicSystem)

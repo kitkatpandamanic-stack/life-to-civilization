@@ -38,6 +38,7 @@ export function snapshot(sim) {
     events: (sim.state.events?.history || []).length,
     festivals: (sim.state.festivals?.history || []).length,
     clayPits: sim.industry?.clayPits().filter((o) => o.state === 'full').length ?? 0,
+    cold: sim.seasons?.S.cold.length ?? 0, // households with no firewood (winter)
   };
 }
 
@@ -52,6 +53,8 @@ export function warnings(rows) {
   if (last.businesses < first.businesses - 2) out.push(`businesses shrank ${first.businesses} → ${last.businesses}`);
   if (last.prices.bread > first.prices.bread * 1.8) out.push(`bread got dear: $${first.prices.bread} → $${last.prices.bread}`);
   if (last.pop < first.pop * 0.8) out.push(`the village shrank ${first.pop} → ${last.pop}`);
+  const cold = Math.max(...rows.map((r) => r.cold || 0));
+  if (cold > Math.max(2, last.adults * 0.15)) out.push(`${cold} households went without firewood in winter`);
   return out;
 }
 
@@ -71,6 +74,17 @@ export function reportTools(dev) {
       return JSON.stringify(F.S.current);
     },
     bandits: () => JSON.stringify(sim().events.start('bandits')),
+    /** Steam and railways known, a station built, and a railway to the nearest town you know (or the first). */
+    railway: () => {
+      const S = sim();
+      for (const id of ['manufacture', 'stone_bridges', 'steam_engine', 'railways']) S.tech.T.known[id] ??= S.time.day;
+      S.tech.mods = null;
+      if (!S.settlements.station()) dev.tr.build('rail_station');
+      const to = S.settlements.known()[0] || S.settlements.ids()[0];
+      S.settlements.makeContact(to, 'debug');
+      S.settlements.get(to).road = 4;
+      return `station ${S.settlements.station()?.id} · railway to ${to}: ${S.settlements.days(to)} days`;
+    },
     /** The route cache: searches done vs answers remembered. */
     paths: () => JSON.stringify(dev.pathStats || {}),
     report: () => {

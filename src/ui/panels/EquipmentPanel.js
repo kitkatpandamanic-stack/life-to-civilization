@@ -56,6 +56,7 @@ export class EquipmentPanel extends Panel {
     const sim = this.sim;
     if (eq.at.kind === 'npc') return tr(sim, 'equip.where_npc', { npc: eq.at.id });
     if (eq.at.kind === 'player') return t('equip.where_you');
+    if (eq.at.kind === 'away') return t('equip.where_away');
     const w = sim.equipment.whereName(eq);
     if (!w) return t('equip.where_ground');
     if (String(w).startsWith('site:')) return t('equip.where_site');

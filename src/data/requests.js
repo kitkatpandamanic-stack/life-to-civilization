@@ -10,6 +10,7 @@ export const REQUEST_TEMPLATES = [
   { occupations: ['blacksmith'], item: 'coal', qty: [2, 4] },
   { occupations: ['blacksmith'], item: 'iron_ore', qty: [2, 3] },
   { occupations: ['elder'], item: 'wood', qty: [4, 6], seasons: ['autumn', 'winter'] },
+  { cold: true, item: 'wood', qty: [3, 5], seasons: ['winter'] }, // a cold house: no firewood in the shops
   { occupations: ['elder'], item: 'apple', qty: [2, 3] },
   { occupations: ['child'], item: 'berries', qty: [3, 5], seasons: ['spring', 'summer', 'autumn'] },
   { occupations: ['farmer', 'farmhand'], item: 'bread', qty: [2, 3] },

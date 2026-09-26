@@ -111,7 +111,10 @@ const winterCold = (season) => {
 };
 check('a shack is cold in winter', winterCold('winter') < winterCold('summer'));
 p.homeTier = 'large_house';
-check('a fireplace keeps the cold out', winterCold('winter') === winterCold('summer'));
+sim.seasons.S.warmDay = -99;
+check('…but a fire with no firewood is no use (SeasonSystem)', winterCold('winter') < winterCold('summer'));
+sim.seasons.S.warmDay = sim.time.day;
+check('a fireplace (with wood burning) keeps the cold out', winterCold('winter') === winterCold('summer'));
 
 // 7. Save / load.
 const sim2 = new Simulation(JSON.parse(JSON.stringify(sim.state)));

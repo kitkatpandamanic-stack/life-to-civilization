@@ -22,6 +22,7 @@ export const JOBS = {
     employer: 'farm', type: 'harvest', item: 'wheat', qty: 8,
     pay: 20, xp: 28, skill: 'farming', skillXp: 20, rep: 1,
     hours: [6, 17], seasons: ['spring', 'summer', 'autumn'], dailySlots: 2,
+    rush: { season: 'autumn', slots: 3, pay: 1.35 }, // the harvest rush: more openings, better pay
     requires: { level: 1 },
   },
   lumber_delivery: {

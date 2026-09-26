@@ -8,10 +8,29 @@ import { BootScene } from './scenes/BootScene.js';
 import { GameScene } from './scenes/GameScene.js';
 import { getLanguage } from './i18n/i18n.js';
 import { applySettings } from './ui/settings.js';
+import * as audio from './audio/AudioEngine.js';
+import { music, MOODS } from './audio/Music.js';
+
+const { unlock, play } = audio;
 
 document.documentElement.lang = getLanguage();
 applySettings(); // the interface size you chose
-if (import.meta.env.DEV) import('./debug/devTools.js');
+if (import.meta.env.DEV) {
+  import('./debug/devTools.js');
+  window.sound = { ...audio, music, MOODS }; // dev: sound.play('chop'), sound.music.setMood('festival')
+}
+
+// Sound can only start after a click or a key press (browsers' rule), so the first one switches it on.
+for (const ev of ['pointerdown', 'keydown']) window.addEventListener(ev, unlock, { capture: true });
+// A soft click for every button in the interface.
+document.addEventListener(
+  'click',
+  (e) => {
+    const b = e.target.closest?.('#ui button, #ui [data-action]');
+    if (b && !b.disabled) play('click');
+  },
+  { capture: true },
+);
 
 function startGame() {
   const parent = document.getElementById('game');

@@ -42,5 +42,7 @@ export const RECIPES = {
   bread: { station: 'stove', inputs: { wheat: 3 }, output: { bread: 2 }, ms: 2200, energy: 1, skill: 'cooking', skillXp: 6, xp: 3, minSkill: 1, unlock: 'crafting' },
   vegetable_soup: { station: 'stove', inputs: { carrot: 1, potato: 1, cabbage: 1 }, output: { vegetable_soup: 2 }, ms: 2400, energy: 1, skill: 'cooking', skillXp: 8, xp: 4, unlock: 'crafting' },
   stew: { station: 'stove', inputs: { meat: 1, potato: 1, carrot: 1 }, output: { stew: 2 }, ms: 2800, energy: 1, skill: 'cooking', skillXp: 10, xp: 5, minSkill: 2, unlock: 'crafting' },
+  cheese: { station: 'stove', inputs: { milk: 3 }, output: { cheese: 1 }, ms: 2600, energy: 1, skill: 'cooking', skillXp: 8, xp: 4, unlock: 'crafting' }, // from your cows' milk
+  omelette: { station: 'stove', inputs: { egg: 3 }, output: { omelette: 1 }, ms: 1400, energy: 0.5, skill: 'cooking', skillXp: 5, xp: 3, unlock: 'crafting' },
   pie: { station: 'stove', inputs: { wheat: 2, apple: 2 }, output: { pie: 2 }, ms: 3000, energy: 1, skill: 'cooking', skillXp: 12, xp: 6, minSkill: 3, unlock: 'crafting' },
 };

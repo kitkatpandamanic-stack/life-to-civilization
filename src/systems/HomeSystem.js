@@ -133,12 +133,13 @@ export class HomeSystem {
     return n;
   }
 
-  /** Winter without a fireplace: colder nights, worse sleep. */
+  /** Winter without a fire (or with one and no firewood for it): colder nights, worse sleep. */
   cold() {
     if (this.sim.time.season !== 'winter') return 0;
     const furn = this.tier.furniture.map((f) => f.type);
-    if (furn.includes('fireplace')) return 0;
-    const cold = furn.includes('stove') ? WINTER_COLD.stove : WINTER_COLD.none;
+    // A fire needs firewood (SeasonSystem feeds it from your storage each evening): unlit, it's as cold as no fire.
+    const lit = this.sim.seasons ? this.sim.seasons.heated() : true;
+    const cold = !lit ? WINTER_COLD.none : furn.includes('fireplace') ? 0 : furn.includes('stove') ? WINTER_COLD.stove : WINTER_COLD.none;
     return this.homeFx()?.warm ? Math.round(cold / 2) : cold; // a cellar keeps the worst of the frost out
   }
 

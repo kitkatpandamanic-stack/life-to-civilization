@@ -63,6 +63,7 @@ check('liked and respected, you win', r2.winner === 'player' && C.isPlayerHeadma
 check('…which is one of your family\'s deeds', sim.legacy.deeds().some((d) => d.key === 'player_elected') && sim.legacy.renown() >= 10);
 
 // 4. Policies, and what they do.
+C.setPolicy('tax', 'normal'); // (the headman before you may have set them otherwise)
 const someBuilding = Object.keys(sim.property.all).find((id) => sim.finance.propertyTax(id) > 0);
 const taxNormal = someBuilding ? sim.finance.propertyTax(someBuilding) : 0;
 check('as headman you set the taxes', C.setPolicy('tax', 'high') && V.policies.tax === 'high');

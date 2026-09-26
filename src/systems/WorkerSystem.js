@@ -30,12 +30,15 @@ import { GATHERABLE } from './ContractSystem.js';
 import { COMPANY } from '../data/contracting.js';
 import { WorkforceManager, MANAGER } from './WorkforceManager.js';
 import { StandingOrders } from './StandingOrders.js';
+import { FreightTasks } from './FreightSystem.js';
+import { LivestockTasks } from './LivestockSystem.js';
+import { TrainTasks } from './TrainSystem.js';
 import { FOCUS, PRIORITY_WEIGHT, WORK_FIELDS, PROFESSIONS, WORKFORCE as WF } from '../data/workforce.js';
 import { EQUIP } from '../data/transport.js';
 import { RATES } from '../data/contracting.js';
 
 /** Work that's fetching and carrying (a transport round: collect → load → transport → unload → return). */
-const HAUL_KINDS = new Set(['haul', 'buy', 'haul_ws', 'cfetch', 'cbuy', 'csite', 'chaul', 'csaw', 'corder', 'ofetch']);
+const HAUL_KINDS = new Set(['haul', 'buy', 'haul_ws', 'cfetch', 'cbuy', 'csite', 'chaul', 'csaw', 'corder', 'ofetch', 'ffetch', 'lcollect', 'tcollect']);
 
 export const WORKER_RANKS = ['worker', 'skilled', 'supervisor', 'manager'];
 const W = {
@@ -489,6 +492,12 @@ export class WorkerSystem {
     }
     // Your standing orders (StandingOrders): carrying you set up once, done day after day.
     this.orderTasks(npc, c, pos, add);
+    // Your carting company's deliveries (FreightSystem): from one shop's door to another's.
+    this.freightTasks(npc, c, pos, add);
+    // Eggs, milk and wool waiting at your barns (LivestockSystem): fetch them to your storage.
+    this.livestockTasks(npc, c, pos, add);
+    // Goods that came by rail, waiting in the station's yard (TrainSystem).
+    this.trainTasks(npc, c, pos, add);
     const storage = (item) => sim.home.storageCount(item);
     const buyLeft = this.buyBudgetLeft();
     for (const site of cons.playerSites()) {
@@ -891,7 +900,7 @@ export class WorkerSystem {
       stand = (bid && sim.points.standAt(bid, npc.id, sim.world.toTile(npc.x, npc.y))) || sim.world.nearestWalkable(task.tx, task.ty, 3);
       if (!this.reachable(npc, stand)) return this.block(c, task);
     }
-    c.task = { key: task.key, kind: task.kind, target: task.target, item: task.item, seller: task.seller, forSite: task.forSite, farmJob: task.farmJob, contract: task.contract, order: task.order, from: task.from, spot: { tx: stand.tx, ty: stand.ty }, since: sim.time.total, status: 'reserved' };
+    c.task = { key: task.key, kind: task.kind, target: task.target, item: task.item, seller: task.seller, forSite: task.forSite, farmJob: task.farmJob, contract: task.contract, order: task.order, freight: task.freight, from: task.from, spot: { tx: stand.tx, ty: stand.ty }, since: sim.time.total, status: 'reserved' };
     this.phase(c, HAUL_KINDS.has(task.kind) ? (c.phase === 'unload' ? 'return' : 'collect') : task.kind === 'take_eq' ? 'fetch_equipment' : task.kind === 'return_eq' ? 'return_equipment' : task.kind === 'build' ? 'construct' : 'work');
     npc.task.stage = 'to_task';
     npc.task.siteId = task.kind === 'build' ? task.target : npc.task.siteId;
@@ -965,9 +974,15 @@ export class WorkerSystem {
       const o = this.orderById(t.order);
       if (!o || o.paused || !this.placeOk(o.to) || this.orderNeed(o, t.item) <= 0) return false;
     }
+    if (t.freight !== undefined && !this.freightValid(t)) return false;
     switch (t.kind) {
       case 'ofetch':
+      case 'ffetch':
         return true;
+      case 'lcollect':
+        return (sim.livestock?.waitingTotal(t.target) || 0) > 0;
+      case 'tcollect':
+        return (sim.trains?.yardTotal() || 0) > 0;
       case 'take_eq': {
         const eq = sim.equipment?.byId(t.target);
         return !!eq && eq.holder?.kind === 'worker' && eq.holder.id === npc.id && eq.at.kind === 'ground' && sim.equipment.usable(eq) && !eq.recall;
@@ -1031,6 +1046,9 @@ export class WorkerSystem {
     if (!t) return this.next(npc);
     if (t.kind === 'take_eq' || t.kind === 'return_eq') return this.arriveEquipment(npc, c, t);
     if (t.kind === 'ofetch') return this.orderFetch(npc, c, t);
+    if (t.kind === 'ffetch') return this.freightFetch(npc, c, t);
+    if (t.kind === 'lcollect') return this.livestockFetch(npc, c, t);
+    if (t.kind === 'tcollect') return this.trainFetch(npc, c, t);
     // Check again on arrival: things change while you walk.
     if (!this.valid(npc, c, t)) return this.next(npc);
     this.setState(c, 'working');
@@ -1367,6 +1385,8 @@ export class WorkerSystem {
     const to = npc.carry?.to;
     // A standing order's load: to wherever the order wants it.
     if (to && String(to).startsWith('ord:') && this.orderDeliver(npc, c)) return;
+    // A delivery for your carting company: to the buyer's door.
+    if (to && String(to).startsWith('frt:') && this.freightDeliver(npc, c)) return;
     // Goods for a business (the farmer's wheat, a haul): to its door.
     if (to && String(to).startsWith('ebiz:')) {
       const b = this.sim.world.buildings[this.sim.economy.biz(to.slice(5))?.building];
@@ -1426,6 +1446,8 @@ export class WorkerSystem {
       const post = load.to && String(load.to).startsWith('post:');
       if (npc.task.stage === 'carry_site' && load.order !== undefined && String(load.to).startsWith('ord:')) {
         this.orderUnload(npc, c, load);
+      } else if (npc.task.stage === 'carry_site' && load.freight !== undefined) {
+        this.freightUnload(npc, c, load);
       } else if (npc.task.stage === 'carry_site' && post) {
         // One parcel or letter at this house; on round to the next.
         const job = sim.contracts.S.active.find((x) => x.id === load.contract);
@@ -1479,7 +1501,7 @@ export class WorkerSystem {
         sim.state.stats.workerGoods = (sim.state.stats.workerGoods || 0) + load.qty;
         npc.carry = null;
       }
-      if (c.task && ['haul', 'buy', 'haul_ws'].includes(c.task.kind)) this.completed(npc, c);
+      if (c.task && ['haul', 'buy', 'haul_ws', 'lcollect', 'tcollect'].includes(c.task.kind)) this.completed(npc, c);
     }
     if (npc.carry) return this.deliverCarry(npc, c);
     return this.next(npc);
@@ -1763,7 +1785,7 @@ export class WorkerSystem {
     if (k === 'take_eq') return { key: 'fetching_equipment', params: { eq: this.sim.equipment?.byId(c.task.target)?.type } };
     if (k === 'return_eq') return { key: 'returning_equipment', params: { eq: this.sim.equipment?.byId(c.task.target)?.type } };
     if (t.stage === 'carry_home') return { key: 'carrying_home', params: { item: npc.carry?.item || 'wood' } };
-    if (t.stage === 'carry_site') return { key: npc.carry?.contract !== undefined ? 'carrying_contract' : 'hauling', params: {} };
+    if (t.stage === 'carry_site') return { key: npc.carry?.freight !== undefined ? 'carrying_freight' : npc.carry?.contract !== undefined ? 'carrying_contract' : 'hauling', params: {} };
     if (t.stage === 'idle_wait' || t.stage === 'to_idle') return { key: c.state === 'need_materials' ? 'waiting_materials' : 'waiting_orders', params: {} };
     if (k === 'build') return { key: npc.moving ? 'going_to_site' : 'building', params: {} };
     if (k === 'repair' || k === 'crepair') return { key: npc.moving ? 'going_to_site' : 'repairing', params: {} };
@@ -1773,6 +1795,9 @@ export class WorkerSystem {
     if (k === 'mplan') return { key: 'managing_plan', params: {} };
     if (k === 'chaul' || k === 'cfetch' || k === 'csite' || k === 'corder' || k === 'cpost') return { key: 'carrying_contract', params: {} };
     if (k === 'cbuy') return { key: 'buying_materials', params: { item: c.task.item } };
+    if (k === 'lcollect') return { key: 'collecting_produce', params: {} };
+    if (k === 'tcollect') return { key: 'collecting_yard', params: {} };
+    if (k === 'ffetch') return { key: 'fetching_freight', params: { item: c.task.item } };
     if (k === 'ofetch') return { key: c.task.from === 'buy' ? 'buying_materials' : 'fetching_order', params: { item: c.task.item } };
     if (k === 'cshift') return { key: npc.moving ? 'going_to_work' : 'working_for_you', params: {} };
     if (k === 'gather_berries') return { key: 'working_forage', params: {} };
@@ -1793,3 +1818,6 @@ export { W as WORKER_TUNING };
 Object.assign(WorkerSystem.prototype, WorkforceManager);
 // Your standing orders: "60 wood a day from the lumberyard to the warehouse", "keep 50 planks in store".
 Object.assign(WorkerSystem.prototype, StandingOrders);
+Object.assign(WorkerSystem.prototype, FreightTasks);
+Object.assign(WorkerSystem.prototype, LivestockTasks);
+Object.assign(WorkerSystem.prototype, TrainTasks);

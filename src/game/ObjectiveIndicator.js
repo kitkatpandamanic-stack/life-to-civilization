@@ -19,7 +19,7 @@ export class ObjectiveIndicator {
     const now = this.scene.time.now;
     // Finding the nearest resource is not free, so refresh the objective a few times per second.
     if (now - this.cacheAt > 300) {
-      this.cache = this.sim.jobs.objective() || this.sim.contracts.objective() || (!this.sim.state.jobs.requests.some((r) => r.accepted) && this.sim.guide?.objective()) || null;
+      this.cache = this.sim.jobs.objective() || this.sim.freight?.objective() || this.sim.contracts.objective() || (!this.sim.state.jobs.requests.some((r) => r.accepted) && this.sim.guide?.objective()) || null;
       this.cacheAt = now;
     }
     const target = this.cache?.target;
@@ -40,9 +40,10 @@ export class ObjectiveIndicator {
       const cx = cam.width / 2;
       const cy = cam.height / 2;
       const angle = Math.atan2(target.y - (view.y + view.height / 2), target.x - (view.x + view.width / 2));
-      const r = Math.min(cam.width, cam.height) / 2 - 50;
-      const ex = Math.max(40, Math.min(cam.width - 40, cx + Math.cos(angle) * r * (cam.width / Math.min(cam.width, cam.height))));
-      const ey = Math.max(90, Math.min(cam.height - 70, cy + Math.sin(angle) * r));
+      // On a ring around you (not at the screen's edge, where the HUD panels would hide it).
+      const r = Math.min(cam.width, cam.height) * 0.28;
+      const ex = Math.max(40, Math.min(cam.width - 40, cx + Math.cos(angle) * r * Math.min(1.6, cam.width / Math.min(cam.width, cam.height))));
+      const ey = Math.max(90, Math.min(cam.height - 90, cy + Math.sin(angle) * r));
       this.arrow.setVisible(true).setPosition(ex, ey).setRotation(angle).setScale(1 + bob * 0.02);
     }
   }

@@ -120,7 +120,7 @@ export class EquipmentSystem {
     if (d.kind === 'hand') return m;
     if (onRoad && paved) m *= INDUSTRY.pavedWheels;
     if (!onRoad && this.muddy()) m *= INDUSTRY.mudOffroad;
-    return m;
+    return m * (this.sim.seasons?.wheelMult(onRoad) ?? 1); // snow on the ground, the spring thaw
   }
   /** Rain, storm or snow: the ground off the roads is mud. */
   muddy() {
@@ -147,6 +147,7 @@ export class EquipmentSystem {
     if (this.underRepair(eq)) return 'under_repair';
     if (this.broken(eq)) return 'broken';
     if (this.damaged(eq)) return 'damaged';
+    if (eq.at.kind === 'away') return 'on_the_road'; // (with a caravan — FreightSystem)
     if (eq.at.kind === 'npc' || eq.at.kind === 'player') return 'in_use';
     if (eq.holder?.kind === 'worker') return 'assigned_worker';
     if (eq.holder?.kind === 'player') return 'assigned_player';

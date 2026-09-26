@@ -17,6 +17,11 @@ export const MEMORY_KINDS = {
   met_player: { imp: 1, val: 0 },
   player_gave_job: { imp: 5, val: 4, bond: { f: 10, t: 25, r: 10 }, share: true }, // hired while out of work
   player_hired: { imp: 3, val: 2, bond: { t: 8, r: 4 } },
+  // ---- stories (StorySystem)
+  player_took_side: { imp: 4, val: -3, bond: { f: -8, t: -10, c: 12 }, share: true }, // you sided against them in a quarrel
+  player_made_peace: { imp: 4, val: 3, bond: { f: 6, t: 8, r: 10 }, share: true },
+  player_found_kin: { imp: 5, val: 5, bond: { f: 20, t: 20, r: 10 }, share: true },
+  player_helped_stranger: { imp: 5, val: 4, bond: { f: 12, t: 15, r: 5 }, share: true },
   player_fired: { imp: 4, val: -3, bond: { f: -10, t: -20, c: 15 }, share: true },
   player_fired_unfair: { imp: 5, val: -4, bond: { f: -18, t: -35, c: 30 }, share: true },
   player_raise: { imp: 2, val: 2, bond: { t: 5, f: 2 }, merge: 14 },

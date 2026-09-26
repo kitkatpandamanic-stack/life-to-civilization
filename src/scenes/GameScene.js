@@ -32,6 +32,9 @@ import { FieldViews } from '../game/FieldViews.js';
 import { AnimalViews } from '../game/AnimalViews.js';
 import { CartViews } from '../game/CartViews.js';
 import { EquipmentViews } from '../game/EquipmentViews.js';
+import { SoundDirector } from '../game/SoundDirector.js';
+import { LivestockViews } from '../game/LivestockViews.js';
+import { TrainViews } from '../game/TrainViews.js';
 
 const AUTOSAVE_MS = 10 * 60 * 1000; // real time between autosaves while you play
 import { FireViews } from '../game/FireViews.js';
@@ -76,10 +79,13 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.collider(this.player.sprite, this.terrain.layer);
     this.npcViews = new NPCViews(this, sim);
     this.animals = new AnimalViews(this, sim);
+    this.livestockViews = new LivestockViews(this, sim); // your chickens, sheep and cows, and the farm's
+    this.trainViews = new TrainViews(this, sim); // the railway line and its trains
     this.sites = new SiteViews(this, sim);
     this.carts = new CartViews(this, sim);
     this.equipmentViews = new EquipmentViews(this, sim); // barrows, carts and wagons where they really are
     this.fireViews = new FireViews(this, sim);
+    this.sfx = new SoundDirector(this, sim); // footsteps, tools, the valley's sounds and the music
     this.atmosphere = new Atmosphere(this, sim, this.player);
     this.objective = new ObjectiveIndicator(this, sim);
     this.ui = new UIManager(this, sim);
@@ -131,6 +137,8 @@ export class GameScene extends Phaser.Scene {
     this.player.update(delta, blocked);
     this.npcViews.update(delta);
     this.animals.update(delta);
+    this.livestockViews.update(delta);
+    this.trainViews.update(delta);
     this.carts.update(delta);
     // Autosave every few minutes of play (not while asleep or in a menu) — as well as each morning.
     this.autosaveT = (this.autosaveT || 0) + delta;
@@ -139,6 +147,7 @@ export class GameScene extends Phaser.Scene {
       if (SaveSystem.save('auto', this.sim)) this.sim.toast('toast.autosaved', {}, 'info');
     }
     this.equipmentViews.update(delta);
+    this.sfx.update(delta);
     this.fireViews.update();
     this.interaction.update(blocked);
     const darkness = this.atmosphere.update();
@@ -207,6 +216,7 @@ export class GameScene extends Phaser.Scene {
       duration: 1600,
       target: { x: (b.tx + b.w / 2) * 32, y: (b.ty + b.h) * 32 },
       particles: 'snow',
+      sound: 'water',
       onComplete: () => {
         if (sim.disasters.playerFight(buildingId)) sim.toast('toast.fought_fire', { building: buildingId }, 'info');
       },
@@ -222,7 +232,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     const c = sim.world.tileCenter(tx, ty);
-    this.player.startAction({ duration: sim.actions.fishDuration(), target: { x: c.x, y: c.y }, onComplete: () => sim.actions.fish(tx, ty) });
+    this.player.startAction({ duration: sim.actions.fishDuration(), target: { x: c.x, y: c.y }, sound: 'reel', onComplete: () => sim.actions.fish(tx, ty) });
   }
 
   /** Draw the bow on an animal. It may bolt before you loose the arrow. */
@@ -257,6 +267,7 @@ export class GameScene extends Phaser.Scene {
       duration: sim.farming.duration(action),
       target: { x: c.x, y: c.y + 10 },
       particles: action === 'till' ? 'chip' : action === 'water' ? 'snow' : null,
+      sound: action === 'till' || action === 'clear' ? 'dig' : action === 'water' ? 'water' : action === 'plant' || action === 'harvest' ? 'dig' : null,
       onComplete: () => sim.farming.perform(action, tx, ty, seed),
     });
   }
@@ -298,6 +309,7 @@ export class GameScene extends Phaser.Scene {
       duration: this.sim.actions.duration(obj),
       target: { x: c.x, y: c.y },
       particles: kind === 'chop' ? 'chip' : kind === 'mine' ? 'dot' : null,
+      sound: kind === 'chop' || kind === 'mine' || kind === 'water' ? kind : kind === 'forage' ? 'pickup' : 'dig',
       onComplete: () => this.sim.actions.complete(obj),
     });
   }
@@ -323,7 +335,7 @@ export class GameScene extends Phaser.Scene {
         this.ui.hideStatus();
         this.cameras.main.fadeIn(800);
         if (untilMorning) {
-          const ok = SaveSystem.save('auto', sim);
+          const ok = !window.dev?.noAutosave && SaveSystem.save('auto', sim); // (not while testing)
           sim.toast('toast.good_morning', {}, 'good');
           if (ok) sim.toast('toast.autosaved', {}, 'info');
         } else {
@@ -621,6 +633,7 @@ export class GameScene extends Phaser.Scene {
       duration: sim.crafting.duration(recipeId),
       target: { x: this.player.x, y: this.player.y - 30 },
       particles: 'chip',
+      sound: 'craft',
       onComplete: () => {
         if (sim.crafting.complete(recipeId) !== false && times > 1) this.craft(recipeId, times - 1);
       },
@@ -680,6 +693,9 @@ export class GameScene extends Phaser.Scene {
 
   cleanup() {
     this.unsubs?.forEach((u) => u());
+    this.sfx?.destroy();
+    this.livestockViews?.destroy();
+    this.trainViews?.destroy();
     this.ui?.destroy();
     this.atmosphere?.destroy();
     this.objects?.destroy();

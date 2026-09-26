@@ -40,6 +40,7 @@ export class BuildPanel extends Panel {
     const p = sim.state.player;
     let reason = null;
     if (!sim.progression.hasUnlock(def.unlock)) reason = tr(sim, 'reason.locked', { level: sim.progression.unlockLevel(def.unlock) });
+    else if (def.tech && !sim.tech?.has(def.tech)) reason = tr(sim, 'reason.needs_tech', { tech: def.tech });
     else if (def.minSkill && skill(p, 'construction') < def.minSkill) reason = tr(sim, 'reason.need_skill', { skill: 'construction', level: def.minSkill });
     else if (p.money < def.money) reason = tr(sim, 'reason.no_money');
     else if (!sim.land.owned.length) reason = tr(sim, 'reason.no_land');

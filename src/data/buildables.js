@@ -62,6 +62,13 @@ export const BUILDABLES = {
     materials: { wood: 30, planks: 20, stone: 12 }, labor: 14,
     unlock: 'construction', minSkill: 2, effect: { depot: true, parking: 6, storage: 60 }, // barrows, carts, wagons and horses kept, looked after and repaired
   },
+  // The railway station: the valley's end of the line (needs the know-how of railways). With it you can
+  // pay for a railway to a town you trade with (SettlementSystem ROAD_LEVELS).
+  rail_station: {
+    category: 'infrastructure', w: 6, h: 3, money: 600, tech: 'railways',
+    materials: { planks: 40, stone: 40, bricks: 30, iron_ingot: 12 }, labor: 40,
+    unlock: 'construction', minSkill: 4, effect: { station: true, parking: 4, storage: 120 },
+  },
   construction_office: {
     category: 'services', w: 4, h: 3, money: 120,
     materials: { wood: 20, planks: 18, stone: 16 }, labor: 14,
@@ -104,7 +111,7 @@ export const BUILDING_CATALOG = {
   production: { workshop: 'workshop', sawmill: 'lumberyard', blacksmith: 'smithy', brickworks: null, bakery: 'store', factory: null },
   resource: { mine: 'mining_camp', quarry: 'quarry_hut', forest_camp: 'lumberyard', resource_depot: 'warehouse_bld' },
   services: { school: 'school', hospital: 'clinic', inn: 'tavern', construction_office: 'construction_office' },
-  infrastructure: { road: 'road', bridge: 'bridge', transport_depot: 'transport_depot', storage_depot: 'storage_shed' },
+  infrastructure: { road: 'road', bridge: 'bridge', transport_depot: 'transport_depot', storage_depot: 'storage_shed', railway_station: 'rail_station' },
 };
 /** What category a building type is in (the first place it's listed). */
 export function catalogCategory(type) {

@@ -984,6 +984,7 @@ export class StructureSystem {
       roofColor,
       floors: (L.floors || 1) + upper,
       flag: !!L.look?.flag || undefined,
+      clock: !!L.look?.clock || undefined,
       balcony: !!L.look?.balcony || r.spec === 'luxury' || undefined,
       left: left.length ? left : undefined,
       right: right.length ? right : undefined,
@@ -1107,7 +1108,9 @@ export class StructureSystem {
         if (people > cap) {
           if (tryJob(id, owner, [{ type: 'module', m: 'bedroom' }, { type: 'level', to: r.lvl + 1 }, { type: 'module', m: 'upper_floor' }])) continue;
         }
-        if (lives && n.money > 500 && (n.traits.includes('ambitious') || n.traits.includes('proud') || n.money > 900) && r.lvl < 5) {
+        // (In a town, or a city, people build up sooner — TownSystem.boom().)
+        const boom = sim.town?.boom() ?? 1;
+        if (lives && n.money > 500 * boom && (n.traits.includes('ambitious') || n.traits.includes('proud') || n.money > 900 * boom) && r.lvl < 5) {
           if (tryJob(id, owner, [{ type: 'level', to: r.lvl + 1 }, { type: 'module', m: 'kitchen' }, { type: 'module', m: 'parlour' }])) continue;
         }
         if (this.quality(id) < 35 && n.money > 250) tryJob(id, owner, [{ type: 'renovate' }]);

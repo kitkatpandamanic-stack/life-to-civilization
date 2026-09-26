@@ -106,7 +106,7 @@ export class JobSystem {
 
   refresh() {
     for (const id of Object.keys(JOBS)) if (JOBS[id].employerType) this.js.employers[id] = this.pickEmployer(id);
-    for (const [id, d] of Object.entries(JOBS)) this.js.openings[id] = this.existsToday(id) ? d.dailySlots : 0;
+    for (const [id, d] of Object.entries(JOBS)) this.js.openings[id] = this.existsToday(id) ? this.slots(d) : 0;
     this.js.lastRefreshDay = this.sim.time.day;
     this.sim.bus.emit('jobs:changed');
   }
@@ -115,8 +115,8 @@ export class JobSystem {
   topUp() {
     for (const [id, d] of Object.entries(JOBS)) {
       if (!this.existsToday(id)) continue;
-      const extra = Math.max(1, Math.round(d.dailySlots * JOB_REFRESH.middayShare));
-      this.js.openings[id] = Math.min(d.dailySlots, (this.js.openings[id] || 0) + extra);
+      const extra = Math.max(1, Math.round(this.slots(d) * JOB_REFRESH.middayShare));
+      this.js.openings[id] = Math.min(this.slots(d), (this.js.openings[id] || 0) + extra);
     }
     this.sim.bus.emit('jobs:changed');
   }
@@ -125,10 +125,25 @@ export class JobSystem {
     return Object.keys(JOBS).filter((id) => this.employerOf(id) === bizId);
   }
 
+  /** A seasonal rush (the autumn harvest): { slots, pay } in force now, or null. */
+  rushOf(d) {
+    return d.rush && d.rush.season === this.sim.time.season ? d.rush : null;
+  }
+
+  /** Is any rush on today (with work open)? */
+  rushOn() {
+    return Object.entries(JOBS).some(([id, d]) => this.rushOf(d) && (this.js.openings[id] || 0) > 0);
+  }
+
+  /** Openings a day (more in a rush). */
+  slots(d) {
+    return d.dailySlots + (this.rushOf(d)?.slots || 0);
+  }
+
   pay(jobId) {
     const d = JOBS[jobId];
     const owner = this.employerNpc(jobId);
-    return Math.round(d.pay * Mod.payMult(this.sim.state.player, d) * (owner ? this.sim.social.payBonus(owner) : 1));
+    return Math.round(d.pay * (this.rushOf(d)?.pay || 1) * Mod.payMult(this.sim.state.player, d) * (owner ? this.sim.social.payBonus(owner) : 1));
   }
 
   /** Can the player accept this job right now? Returns { ok, reason, params }. */
@@ -506,7 +521,8 @@ export class JobSystem {
     for (const npc of this.sim.state.npcs) {
       if (js.requests.some((r) => r.npcId === npc.id)) continue;
       for (const tpl of REQUEST_TEMPLATES) {
-        if (!tpl.occupations.includes(npc.occupation)) continue;
+        // (A household with no firewood in winter asks anyone for wood — SeasonSystem.)
+        if (tpl.cold ? !this.sim.seasons?.isCold(npc) : !tpl.occupations.includes(npc.occupation)) continue;
         if (tpl.seasons && !tpl.seasons.includes(season)) continue;
         candidates.push({ npc, tpl });
       }

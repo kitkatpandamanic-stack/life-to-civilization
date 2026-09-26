@@ -216,6 +216,7 @@ export class ConstructionSystem {
     const p = this.sim.state.player;
     const world = this.sim.world;
     if (!this.sim.progression.hasUnlock(def.unlock)) return { ok: false, reason: 'locked', params: { level: this.sim.progression.unlockLevel(def.unlock) } };
+    if (def.tech && !this.sim.tech?.has(def.tech)) return { ok: false, reason: 'needs_tech', params: { tech: def.tech } }; // (a station needs the know-how of railways)
     // The Architect perk opens larger designs two levels early.
     const needSkill = Math.max(0, (def.minSkill || 0) - (Mod.perk(p, 'architect') ? 2 : 0));
     if (needSkill && skill(p, 'construction') < needSkill) return { ok: false, reason: 'need_skill', params: { skill: 'construction', level: needSkill } };

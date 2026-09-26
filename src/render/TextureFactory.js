@@ -13,6 +13,8 @@ import { EXTRA_ICONS, createExtraTextures } from './ExtraArt.js';
 import { NATURE_ICONS, createNatureTextures } from './NatureArt.js';
 import { createTransportTextures } from './TransportArt.js';
 import { createSiteTextures } from './SiteArt.js';
+import { FARM_ICONS, createFarmTextures } from './FarmArt.js';
+import { createRailTextures } from './RailArt.js';
 
 const TS = 32;
 const FLOOR_H = 30; // an upper storey adds this much wall
@@ -588,6 +590,21 @@ export function drawBuilding(type, variant = 0, over = null) {
 
   // Roof
   drawRoof(ctx, W, roofBottom, def);
+  // A station clock on the roof (the railway station).
+  if (def.clock) {
+    const cx = Math.round(W * 0.3);
+    const cy = Math.max(12, roofBottom - 18);
+    circle(ctx, cx, cy, 9, '#3a2a1e');
+    circle(ctx, cx, cy, 7, '#f4efe0');
+    ctx.strokeStyle = '#2a1e14';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx, cy - 5);
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + 4, cy + 1);
+    ctx.stroke();
+  }
 
   if (def.chimney) {
     const cx = Math.round(W * 0.72);
@@ -1155,6 +1172,7 @@ function buildItemIcons() {
     else if (ICON_DRAW[id]) ICON_DRAW[id](ctx);
     else if (EXTRA_ICONS[id]) EXTRA_ICONS[id](ctx);
     else if (NATURE_ICONS[id]) NATURE_ICONS[id](ctx);
+    else if (FARM_ICONS[id]) FARM_ICONS[id](ctx);
     else circle(ctx, 16, 16, 10, '#999');
     ICON_URLS[id] = c.toDataURL();
   }
@@ -1274,6 +1292,8 @@ export function createAllTextures(scene) {
   buildItemIcons();
   createExtraTextures(scene, addCanvas);
   createNatureTextures(scene, addCanvas);
+  createFarmTextures(scene, addCanvas); // chickens, sheep, cows
+  createRailTextures(scene, addCanvas); // the train
   createTransportTextures(scene, addCanvas);
   createSiteTextures(scene, addCanvas);
 }
@@ -1398,7 +1418,7 @@ export function drawStructure(type, variant = 0, look = null) {
   const lc = left.reduce((s, a) => s + a.cols, 0);
   const rc = right.reduce((s, a) => s + a.cols, 0);
   const mainW = Math.max(1, look.w - lc - rc);
-  const main = drawBuilding(type, variant, { w: mainW, h: look.h, wall: look.wall, roof: look.roof, wallColor: look.wallColor, roofColor: look.roofColor, floors: look.floors, flag: look.flag, balcony: look.balcony });
+  const main = drawBuilding(type, variant, { w: mainW, h: look.h, wall: look.wall, roof: look.roof, wallColor: look.wallColor, roofColor: look.roofColor, floors: look.floors, flag: look.flag, balcony: look.balcony, clock: look.clock });
   const W = look.w * TS;
   const H = main.canvas.height;
   const c = makeCanvas(W, H);

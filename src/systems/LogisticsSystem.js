@@ -108,6 +108,20 @@ export class LogisticsSystem {
       fee,
       dist: r?.dist || 0,
     };
+    // You're a carrier (FreightSystem): some loads come to you. The buyer pays your fee; the goods
+    // arrive when you (or your workers) have carried them there — not by themselves.
+    const job = r && this.sim.freight?.offer(s, r);
+    if (job) {
+      s.player = job.id;
+      s.carrier = 'porter';
+      s.arrive = Infinity;
+      s.fee = job.fee;
+      E.biz(toBiz).money -= job.fee;
+      E.ledger(toBiz, 'exp', job.fee);
+      this.L.shipments.push(s);
+      this.sim.bus.emit('logistics:shipped', s);
+      return s;
+    }
     // Carriage is paid now: to the carters' firm, or to porters (people out of work earn a little).
     const buyer = E.biz(toBiz);
     buyer.money -= fee;
@@ -159,8 +173,8 @@ export class LogisticsSystem {
     return n;
   }
 
-  /** A point t (0–1) of the way from a building's door to a spot {x, y} (for caravans heading out of the valley). */
-  alongRouteTo(fromBuilding, to, t) {
+  /** The way (tiles) from a building's door to a spot {x, y} — for caravans heading out, and the railway line. */
+  pathTo(fromBuilding, to) {
     const w = this.sim.world;
     const key = `${fromBuilding}→${Math.round(to.x)},${Math.round(to.y)}`;
     let r = this.routes.get(key);
@@ -173,6 +187,15 @@ export class LogisticsSystem {
       r = { path: [{ tx: s.tx, ty: s.ty }, ...path] };
       this.routes.set(key, r);
     }
+    return r.path;
+  }
+
+  /** A point t (0–1) of the way from a building's door to a spot {x, y} (for caravans heading out of the valley). */
+  alongRouteTo(fromBuilding, to, t) {
+    const w = this.sim.world;
+    const path = this.pathTo(fromBuilding, to);
+    if (!path) return null;
+    const r = { path };
     if (r.path.length < 2) return null;
     const f = Math.max(0, Math.min(1, t)) * (r.path.length - 1);
     const i = Math.floor(f);
@@ -186,6 +209,7 @@ export class LogisticsSystem {
 
   /** Where a shipment is right now (for drawing carts): { x, y, facing } or null. */
   position(s) {
+    if (s.player) return null; // (yours: your workers carry it, and you see them)
     const r = this.route(s.fromB, s.toB);
     if (!r || r.path.length < 2) return null;
     const now = this.sim.time.total + (this.sim.time.acc || 0) / 600;

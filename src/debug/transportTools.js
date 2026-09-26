@@ -28,6 +28,7 @@ export function transportTools(dev) {
     if (!def) return null;
     s.state.player.money = Math.max(s.state.player.money, def.money + 500);
     if (!s.progression.hasUnlock(def.unlock)) s.progression.addXp(20000);
+    if (def.tech) s.tech.T.known[def.tech] ??= s.time.day; // (a station: the know-how of railways)
     const sk = (s.state.player.skills.construction ??= { level: 0, xp: 0 });
     sk.level = Math.max(sk.level || 0, def.minSkill || 0);
     const tryPlace = () => {

@@ -63,7 +63,7 @@ export class JobBoardPanel extends Panel {
     return `<div class="job-card${active ? ' active' : ''}${check.ok ? '' : ' unavailable'}">
       <div class="job-top">
         <div class="job-name">${def.item ? icon(def.item, 24) : ''} ${escapeHtml(t(`job.${jobId}.name`))} ${seasonal}</div>
-        <div class="job-pay">💰 ${escapeHtml(fmtMoney(sim.jobs.pay(jobId)))} · ⭐ ${def.xp} XP</div>
+        <div class="job-pay">💰 ${escapeHtml(fmtMoney(sim.jobs.pay(jobId)))} · ⭐ ${def.xp} XP${sim.jobs.rushOf(def) ? ` <span class="badge good">🌾 ${escapeHtml(t('ui.harvest_rush'))}</span>` : ''}</div>
       </div>
       <div class="desc">${escapeHtml(t(`job.${jobId}.desc`))}</div>
       <div class="muted small">📍 ${escapeHtml(buildingLabel(sim, sim.economy.biz(employer)?.building))} · ${escapeHtml(t('ui.employer'))}: ${escapeHtml(npcName(owner))} · ${escapeHtml(what)}</div>
@@ -140,6 +140,12 @@ export class JobBoardPanel extends Panel {
     let html = `<div class="muted small">${escapeHtml(t('ui.jobs_available', { n: open, total: ids.length }))}</div>`;
     html += ids.map((id) => this.renderJob(id)).join('');
     if (!this.bizId) {
+      // Carrying goods for the shops (FreightSystem): sign up as a carrier, or see your deliveries.
+      const fr = sim.freight;
+      const waiting = fr.S.jobs.length;
+      html += `<div class="card"><div class="card-head"><div class="card-icon">🛞</div><div><div class="card-title">${escapeHtml(t('freight.board_title'))}</div>
+        <div class="card-sub">${escapeHtml(fr.company ? t('freight.board_on', { n: waiting, share: fr.summary().share }) : t('freight.board_off'))}</div></div></div>
+        <div class="btn-row">${fr.company ? button(t('freight.board_open'), 'freight_open', {}, { cls: 'sm' }) : button(t('freight.sign_up'), 'freight_signup', {}, { cls: 'sm primary' })}</div></div>`;
       const reqs = sim.state.jobs.requests.filter((r) => !r.accepted);
       if (reqs.length) {
         html += `<h3>${escapeHtml(t('ui.villagers_need'))}</h3>`;
@@ -154,7 +160,11 @@ export class JobBoardPanel extends Panel {
   onAction(action, data) {
     if (contractAction(this.sim, action, data)) return;
     if (action === 'tab') this.tab = data.tab;
-    else if (action === 'property') this.ui.openProperty(data.id);
+    else if (action === 'freight_open') return this.ui.openFreight({ tab: 'deliveries' });
+    else if (action === 'freight_signup') {
+      const r = this.sim.freight.signUp();
+      if (!r.ok) this.sim.toast(`reason.${r.reason}`, r.params || {}, 'warn');
+    } else if (action === 'property') this.ui.openProperty(data.id);
     else if (action === 'job_crew') {
       // The job's yours to manage: pick who does it.
       const r = this.sim.contracts.takeJob(data.job);

@@ -483,6 +483,26 @@
     "glass": {
       "name": "Glass",
       "desc": "Window panes, brought in from the towns. Better houses need them."
+    },
+    "egg": {
+      "name": "Egg",
+      "desc": "A fresh egg from your hens. Three make an omelette at the stove."
+    },
+    "milk": {
+      "name": "Milk",
+      "desc": "A pail of milk from your cows. Three make a cheese at the stove; the store buys it too."
+    },
+    "wool": {
+      "name": "Wool",
+      "desc": "A fleece shorn from your sheep. The store buys it."
+    },
+    "hay": {
+      "name": "Hay",
+      "desc": "Winter fodder for animals. The farm cuts it in summer; the store sells it."
+    },
+    "omelette": {
+      "name": "Omelette",
+      "desc": "Three eggs in a hot pan. Quick and filling."
     }
   },
   "item_cat": {
@@ -753,7 +773,17 @@
     "manage_equipment": "Equipment and parking",
     "open_contracts": "Your contracts",
     "manage_workers": "Your workers",
-    "festival_gift": "Give {money} towards the festival"
+    "festival_gift": "Give {money} towards the festival",
+    "freight_load": "Load {qty} {item} (for {building})",
+    "freight_unload": "Unload {qty} {item} here",
+    "carting_company": "🛞 Your carting business",
+    "buy_animals": "🐄 Buy farm animals",
+    "collect_produce": "Collect eggs, milk and wool ({n})",
+    "your_animals": "🐄 Your animals ({n})",
+    "station": "🚉 The station",
+    "collect_yard": "Collect from the goods yard ({n})",
+    "rival_business": "⚔️ Talk business",
+    "town_meeting": "🏛️ Town meeting: {proposal}"
   },
   "reason": {
     "nothing_here": "Nothing to do here.",
@@ -989,7 +1019,32 @@
     "order_no_source": "That place isn't yours.",
     "order_cant_gather": "{item} can't be gathered — buy it or fetch it from somewhere.",
     "order_use_supply": "For a building site, use \"Supply a building site\".",
-    "no_festival": "There's no festival on."
+    "no_festival": "There's no festival on.",
+    "already_carrier": "You're already carrying.",
+    "already_company": "You already have a company.",
+    "need_depot": "You need a transport depot of your own.",
+    "already_loaded": "You're already carrying a load.",
+    "no_freight_here": "No load waiting here.",
+    "nothing_loaded": "You're not carrying a load.",
+    "wrong_door": "This load is for {building}.",
+    "need_cart": "You need a free cart or wagon.",
+    "need_driver": "You need a worker to drive.",
+    "cargo_small": "Load at least {n}.",
+    "cargo_big": "The cart holds {n}.",
+    "not_in_storage": "Not enough {item} in your storage.",
+    "need_station": "The valley needs a railway station first.",
+    "no_farm": "There's no farm to buy from.",
+    "need_barn": "You need a barn of your own.",
+    "barn_full": "Your barns are full.",
+    "no_railway": "There's no railway there.",
+    "not_sold_there": "They don't sell that there.",
+    "not_enough_there": "They haven't that many.",
+    "no_rival": "You have no rival.",
+    "already_war": "The price war is already on.",
+    "at_war": "Not in the middle of a price war.",
+    "not_friends": "You need to be on better terms (friendship {n}).",
+    "not_yet": "Not yet.",
+    "no_meeting": "There's no meeting called."
   },
   "toast": {
     "hungry": "You're getting hungry. Press Q to eat.",
@@ -1202,7 +1257,51 @@
     "festival_gift": "You gave {money} towards {festival}. People will remember it.",
     "festival_over": "{festival} is over — {n} villagers went, and they're in good spirits.",
     "business_copied": "{npc} has opened a {biz_type} too — competition for yours.",
-    "loaded_backup": "That save was damaged — the one before it was loaded instead."
+    "loaded_backup": "That save was damaged — the one before it was loaded instead.",
+    "fire_lit": "🔥 Your fire's lit: it burns {n} wood each winter evening from your home storage ({left} left).",
+    "no_firewood": "🧊 No firewood at home — the fire's out and it'll be a cold night. Put wood in your storage (it takes {n} an evening).",
+    "winter_fire": "❄️ Winter. Your fire needs {n} wood an evening from your home storage — you have enough for {nights} nights.",
+    "harvest_rush": "🌾 Harvest time: the farms need hands and pay more (see the notice board).",
+    "river_up": "🌊 The river's up with the spring thaw! The clay pits on the banks are underwater for about {days} days.",
+    "river_down": "The river has gone down — {n} clay pits are full of fresh clay.",
+    "carrier_signed": "🛞 You're a carrier now: loads will come your way (see the notice board).",
+    "freight_first": "🛞 Your first load: {qty} {item} from {building} to {to}. Press E at the door to load it.",
+    "freight_loaded": "Loaded {qty} {item} — take it to {building}.",
+    "freight_done": "🛞 Delivered {qty} {item} to {building}: {money}.",
+    "freight_late": "Delivered {qty} {item} to {building} — late, so only {money}.",
+    "freight_handed": "Nobody took the {item} to {building} in time — the porters took it instead ({qty} left).",
+    "caravan_sent": "🛞 Your caravan is off to {settlement} ({npc} driving) — {n} days there.",
+    "my_caravan_back": "🛞 Your caravan is back from {settlement}: {money}.",
+    "my_caravan_robbed": "Bandits robbed your caravan on the way to {settlement}! It came back with {money}.",
+    "carting_founded": "🏢 Your carting company is registered at {building}. Your workers will carry for it.",
+    "freight_new": "🛞 A load for you: {qty} {item} from {building} to {to} ({money}).",
+    "railway_opened": "🚂 The railway to {settlement} is open! The journey takes {n} days now.",
+    "animals_hungry": "🐴 Nothing in your storage for your horses to eat ({n} went hungry) — they're weakening. Keep wheat, cabbages, potatoes or apples in store.",
+    "animal_bought": "A new {animal} for your barn ({building})!",
+    "animal_sold": "You sold a {animal} to the farm: {money}.",
+    "animal_died": "One of your animals died of hunger ({animal}). Keep fodder in your storage in winter.",
+    "livestock_hungry": "🌾 {n} of your animals had nothing to eat — they're sickening. Put hay, wheat or vegetables in your storage.",
+    "chicks": "🐣 {n} chicks hatched at {building}!",
+    "produce_collected": "You collected {n} from the barn.",
+    "produce_none": "Nothing to collect yet (or your pockets are full).",
+    "rail_goods_in": "🚂 {qty} {item} arrived from {settlement} — in the goods yard at the station.",
+    "rail_takings": "🚂 The money for your goods sold in {settlement} came on the train: {money}.",
+    "rail_sent": "{n} goods will go to {settlement} with the next train.",
+    "rail_ordered": "Ordered {qty} {item} from {settlement} — it will come by rail.",
+    "yard_collected": "You collected {n} from the goods yard.",
+    "rival_appears": "⚔️ {npc} has set up in business — to compete with you. They'll take jobs you leave on the board.",
+    "rival_took": "{npc} took a job from the notice board before you did ({ckind}).",
+    "rival_bought_land": "{npc} bought {plot}.",
+    "rival_poached": "{npc} has left you to work for {rival}.",
+    "price_war": "📉 Price war with {npc} for {n} days!",
+    "rival_partner": "🤝 {npc} is your business partner now.",
+    "rival_bought_out": "💰 You bought {npc} out for {money}. Their business and land are yours.",
+    "rival_bust": "{npc}'s business has gone bust! Their land is for sale again.",
+    "story_scene": "📜 {story}: {npc} would like a word with you.",
+    "story_end": "📜 {story} — {ending}.",
+    "meeting_called": "🏛️ Town meeting in {n} day(s): \"{proposal}\". Have your say at the hall.",
+    "meeting_passed": "🏛️ The town meeting voted for \"{proposal}\" ({n}%).",
+    "meeting_failed": "🏛️ The town meeting turned down \"{proposal}\" ({n}% for)."
   },
   "objective": {
     "harvest": "Harvest ripe wheat in the farm fields ({have}/{qty})",
@@ -1227,7 +1326,9 @@
     "c_build": "Work on the building site ({have}/{qty} hours)",
     "c_haul_pick": "Collect {item} ×{qty} at {building}",
     "c_haul_drop": "Deliver {item} ×{qty} to {building}",
-    "c_deliver": "Bring {item} ×{qty} to {building}"
+    "c_deliver": "Bring {item} ×{qty} to {building}",
+    "freight_deliver": "Take {qty} {item} to {building}",
+    "freight_pickup": "Pick up {qty} {item} at {building} (for {to})"
   },
   "job": {
     "farm_harvest": {
@@ -1620,7 +1721,21 @@
     "path_milestone": "On the road to {path}: {milestone}.",
     "festival": "The village celebrated {festival} on the square.",
     "festival_donated": "You gave {money} towards {festival}.",
-    "business_copied": "{npc} opened a {biz_type} of their own, to compete with yours."
+    "business_copied": "{npc} opened a {biz_type} of their own, to compete with yours.",
+    "river_up": "The river rose with the spring thaw and covered the clay pits on its banks.",
+    "carting_company": "A carting company was registered at {building}.",
+    "my_caravan_robbed": "A caravan of yours was robbed on the road to {settlement}.",
+    "my_first_caravan": "Your first caravan came back from {settlement} ({money}).",
+    "railway_opened": "The railway to {settlement} opened: the first train! ({n} days there now.)",
+    "rival_appears": "{npc} set up a company to rival yours.",
+    "price_war": "A price war broke out between you and {npc}.",
+    "rival_partner": "You and {npc} went into business together.",
+    "rival_bought_out": "You bought out {npc}'s business ({money}).",
+    "rival_bust": "{npc}'s business went bust.",
+    "story_master": "{npc_s} turned out to be a master of {trade} from far away.",
+    "meeting_passed": "The town meeting voted for: {proposal}.",
+    "meeting_failed": "The town meeting turned down: {proposal}.",
+    "hall_grows": "The village hall was built up (level {n}), fit for a growing town."
   },
   "event": {
     "good_harvest": {
@@ -2268,7 +2383,23 @@
     "pave_tool": "Pave",
     "bridge_tool": "Build a bridge",
     "lamp_tool": "Put up a lamp",
-    "tile_tool_hint": "Click a tile near you · Right-click / Esc to stop"
+    "tile_tool_hint": "Click a tile near you · Right-click / Esc to stop",
+    "sound": "Sound",
+    "sound_on": "Play sound",
+    "sound_hint": "Music, footsteps, tools and the sounds of the valley — all made by the game as you play.",
+    "sound_playing": "🔊 On",
+    "sound_muted": "🔇 Off",
+    "vol_master": "Overall volume",
+    "vol_music": "Music",
+    "vol_sfx": "Effects (steps, tools, coins)",
+    "vol_ambience": "The valley (weather, birds, crowds)",
+    "vol_off": "Off",
+    "harvest_rush": "Harvest rush",
+    "snow_depth": "snow {n}%",
+    "river_up": "🌊 river up",
+    "thaw": "thaw mud",
+    "fire_lit": "🔥 fire lit ({n} nights of wood)",
+    "fire_out": "🧊 fire out"
   },
   "dialog": {
     "intro": [
@@ -2690,7 +2821,8 @@
       "job_ask_time": "I'd need more time than that.",
       "ask_manage": "Would you manage my workers?",
       "go_work_at": "Go and work at {building} for me.",
-      "come_back": "Come back and work with the rest of the crew."
+      "come_back": "Come back and work with the rest of the crew.",
+      "story": "{story}"
     },
     "no_gifts": "You have nothing suitable to give.",
     "chat_again": [
@@ -3059,7 +3191,11 @@
     "unloading": "Unloading {item}",
     "fetching_equipment": "Fetching the {eq}",
     "returning_equipment": "Taking the {eq} back to your yard",
-    "fetching_order": "Fetching {item} (standing order)"
+    "fetching_order": "Fetching {item} (standing order)",
+    "carrying_freight": "Carrying a delivery",
+    "fetching_freight": "Picking up a delivery ({item})",
+    "collecting_produce": "Collecting eggs and milk",
+    "collecting_yard": "Fetching goods from the station"
   },
   "schedule": {
     "wake": "Wake up",
@@ -3292,6 +3428,10 @@
     "construction_office": {
       "name": "Construction Office",
       "desc": "A desk for your contracting: one more contract at a time (two at level 2, three at level 3)."
+    },
+    "rail_station": {
+      "name": "Railway Station",
+      "desc": "The valley's end of the line: with a station you can lay railways to the towns you trade with (from the journey map). Needs the know-how of railways."
     }
   },
   "build_cat": {
@@ -3565,7 +3705,11 @@
     "bought_rental": "Bought {building} to let.",
     "manages_player_houses": "Looks after your houses for you.",
     "moved_for": "Moved to {building}: {hwhy}.",
-    "developed_row": "Built a row of {n} houses to let."
+    "developed_row": "Built a row of {n} houses to let.",
+    "player_took_side": "Took the other side in a quarrel.",
+    "player_made_peace": "Made peace in a quarrel.",
+    "player_found_kin": "Found their family.",
+    "player_helped_stranger": "Helped them when they had nothing."
   },
   "talk": {
     "deflect": [
@@ -4915,7 +5059,10 @@
   },
   "animal": {
     "deer": "Deer",
-    "rabbit": "Rabbit"
+    "rabbit": "Rabbit",
+    "chicken": "Chicken",
+    "sheep": "Sheep",
+    "cow": "Cow"
   },
   "region": {
     "north_mountains": "the northern mountains",
@@ -5338,6 +5485,14 @@
     "manufacture": {
       "name": "Manufacture",
       "desc": "Many hands, each doing one part: tools and furniture made by the dozen. The valley can have its first factory."
+    },
+    "steam_engine": {
+      "name": "The steam engine",
+      "desc": "Fire and water driving wheels: the works turn out more, and one day engines will pull trains."
+    },
+    "railways": {
+      "name": "Railways",
+      "desc": "Iron rails and steam engines: build a station and you can lay a railway to the towns you trade with."
     }
   },
   "education": {
@@ -6094,7 +6249,17 @@
     "study_line": "{field}: {n}/{n2} weeks",
     "study_week": "Study a week ({money})",
     "university_closed": "Nothing you could study here yet — you need more schooling first.",
-    "university_hint": "A week of lectures. After enough weeks — and knowing enough — you take a degree."
+    "university_hint": "A week of lectures. After enough weeks — and knowing enough — you take a degree.",
+    "road_3": "a stone highway with proper bridges",
+    "road_4": "a railway",
+    "fund_highway": "Pay for a stone highway ({money})",
+    "fund_rail": "🚂 Lay a railway ({money})",
+    "rail_underway": "The railway is being laid ({n} days to go).",
+    "rail_best": "There's a railway: the train takes you (and a goods wagon carries 400).",
+    "rail_hint": "A railway from the station: the journey takes a fraction of the time, it's almost safe, and a goods wagon carries far more than any cart. It takes a little longer to lay than a road.",
+    "map_caravan": "A caravan from the valley",
+    "map_my_caravan": "Your caravan",
+    "map_you": "You"
   },
   "map": {
     "settlements": "Settlements",
@@ -6419,7 +6584,10 @@
     "wages_apprentice": "An apprentice's pay",
     "upkeep": "Upkeep of houses you let",
     "management": "Property manager",
-    "rewards": "Rewards"
+    "rewards": "Rewards",
+    "freight": "Carrying",
+    "livestock": "Farm animals",
+    "stories": "Favours and gifts"
   },
   "letting": {
     "title": "Tenants",
@@ -7856,7 +8024,8 @@
     "repair_bay": "Repair bay",
     "bay_hint": "The repair bay mends equipment twice as fast.",
     "no_bay_hint": "Build the depot up to level 2 for a repair bay (repairs twice as fast).",
-    "cap_n": "holds {n}"
+    "cap_n": "holds {n}",
+    "where_away": "On the road with a caravan"
   },
   "equip_status": {
     "available": "Available",
@@ -7866,7 +8035,8 @@
     "in_use": "In use",
     "damaged": "Damaged",
     "broken": "Broken",
-    "under_repair": "Under repair"
+    "under_repair": "Under repair",
+    "on_the_road": "On the road"
   },
   "equip_tier": {
     "hand": "By hand",
@@ -8077,7 +8247,10 @@
         "depot": "Build a transport depot",
         "orders": "Three standing orders at work",
         "cart": "Two carts or wagons",
-        "tonnage": "3000 units carried"
+        "tonnage": "3000 units carried",
+        "deliveries": "Ten deliveries for the shops",
+        "caravan": "A caravan of your own there and back",
+        "railway": "A railway to another town"
       }
     },
     "landlord": {
@@ -8149,7 +8322,22 @@
     "path": "{path}: {milestone} ({n}/{max}).",
     "choose_path": "Choose a path to follow (Journal → Guide).",
     "festival_now": "It's {festival} — go to the square and join in (people will warm to you).",
-    "festival_soon": "Tomorrow is {festival}: the village will gather on the square."
+    "festival_soon": "Tomorrow is {festival}: the village will gather on the square.",
+    "firewood": "Get firewood in for winter: put wood in your home storage ({have} there now — you'll want about {n}).",
+    "snow_roads": "Snow on the roads: barrows and carts are slow. Clearing snow pays on the notice board.",
+    "harvest_rush": "The harvest rush is on: farm work pays more right now.",
+    "river_up": "The river's up — the clay pits are underwater for a few days, and come back full.",
+    "freight_waiting": "A load is waiting for you to carry ({n} in all) — see your deliveries.",
+    "try_freight": "You've got something to carry goods in: sign up as a carrier on the notice board and the shops will pay you to move their goods.",
+    "build_station": "The valley knows how to build railways: put up a railway station.",
+    "lay_railway": "Your station's ready: lay a railway to a town you trade with (the journey map).",
+    "fodder": "Winter fodder for your horses: they eat 1 a day each from your storage (wheat, cabbages, potatoes, apples) — about {n} needed, {have} there now.",
+    "livestock_fodder": "Winter fodder for your farm animals: about {n} for a week (you have {have}). The store sells hay.",
+    "collect_produce": "Your barn is nearly full of eggs, milk and wool ({building}) — collect it before it spoils.",
+    "try_livestock": "Your barn has room for animals: buy chickens, sheep or cows at the village farm (eggs, milk and wool every week).",
+    "rival_busy": "Your rival {npc} took {n} jobs from the board this week — take them sooner, or deal with them.",
+    "story_waiting": "📜 {story}: {npc} is waiting to talk to you.",
+    "town_meeting": "Town meeting in {n} day(s) on \"{proposal}\" — speak for it or against it at the hall."
   },
   "orders": {
     "title": "Standing orders",
@@ -8219,5 +8407,330 @@
     "midwinter": {
       "name": "the midwinter feast"
     }
+  },
+  "freight": {
+    "title": "Carting",
+    "hud": "Delivery",
+    "tab_company": "Your business",
+    "tab_deliveries": "Deliveries",
+    "tab_caravans": "Caravans",
+    "intro": "Every day the valley's shops and workshops send goods to each other. Porters (or the village carters) carry them — unless you do. You're paid when the goods arrive, and more if they're on time.",
+    "self_title": "Carry goods yourself",
+    "self_text": "Put your name down as a carrier: some loads come to you, one at a time. Pick them up at the seller's door and take them to the buyer's (press E at the door).",
+    "sign_up": "Sign up as a carrier",
+    "kind": "Business",
+    "kind_self": "Just you",
+    "kind_firm": "Carting company",
+    "rep": "Reputation",
+    "share": "Loads you get",
+    "open": "Deliveries",
+    "delivered": "Delivered",
+    "earned": "Earned",
+    "rate": "Your rates",
+    "rate_hint": "Cheaper wins more work; dearer pays more a load.",
+    "rate_cheap": "Cheap",
+    "rate_fair": "Fair",
+    "rate_dear": "Dear",
+    "record": "Late {late} times · given back to the porters {handed} times",
+    "firm_title": "A carting company",
+    "firm_text": "With a transport depot of your own you can register a company ({money}): your workers carry deliveries too, with their barrows and carts, and you can take on several at once.",
+    "found": "Register the company ({money})",
+    "firm_running": "Your company runs from {building}. {n} workers carry for it (as well as their other work).",
+    "stop": "Stop carrying",
+    "log": "Lately",
+    "log_delivered": "{qty} {item} to {building}: {money}",
+    "log_handed": "{qty} {item} for {building} went to the porters",
+    "log_caravan": "Caravan back from {settlement}: {money}",
+    "late": "late",
+    "robbed": "robbed",
+    "none_title": "You're not carrying for anyone",
+    "none_text": "Sign up as a carrier and the valley's loads start coming your way.",
+    "no_jobs": "No deliveries right now",
+    "no_jobs_text": "New loads come in as the shops restock (about {share}% of them come to you).",
+    "overdue": "{h} h late",
+    "due_in": "due in {h} h {m} min",
+    "you": "you",
+    "job_line": "{qty} {item}: {building} → {to}",
+    "progress": "{n}/{max} delivered · {picked} on the way",
+    "carried_by": "Carrying: {list}",
+    "go_yourself": "Go to the seller's door and press E to load it.",
+    "waiting_hands": "Waiting for a free pair of hands.",
+    "caravan_out": "On the way to {settlement} ({npc} driving)",
+    "caravan_back": "Coming back from {settlement} ({npc} driving)",
+    "eta": "{n} days to go",
+    "sold_for": "made {money}",
+    "no_contacts": "Nowhere to send a caravan yet",
+    "no_contacts_text": "Make contact with another settlement first (a trade journey, or an expedition).",
+    "need_cart": "A caravan needs a cart or a wagon of yours that's free (a handcart at least).",
+    "need_driver": "A caravan needs one of your workers to drive it.",
+    "new_caravan": "Send a caravan",
+    "to": "To",
+    "days": "{n} d",
+    "cart": "Cart",
+    "driver": "Driver",
+    "guard": "Guard",
+    "no_guard": "None",
+    "cargo_hint": "Cargo from your storage: {n}/{max}",
+    "there": "there",
+    "storage_empty": "Your storage is empty.",
+    "bring_back": "Bring back",
+    "nothing": "Nothing",
+    "estimate": "Should fetch about {money} · {n} days there and back · risk of robbery {risk}%",
+    "send": "Send the caravan",
+    "board_title": "Carrying goods for the shops",
+    "board_on": "You're a carrier: {n} deliveries now (you get about {share}% of the loads).",
+    "board_off": "The shops send goods to each other every day. Sign up and some of the carrying (and the pay) comes to you.",
+    "board_open": "Your deliveries",
+    "workers_hint": "{n} deliveries · {c} caravans on the road",
+    "workers_none": "Deliveries for the shops, and caravans to other places."
+  },
+  "livestock": {
+    "title": "Your animals",
+    "shop_title": "Animals for sale",
+    "intro": "Chickens, sheep and cows live at your barns. Each morning they give eggs, milk or wool into the barn — collect it (or your workers will). They graze all year but winter, when they eat fodder from your storage (hay, wheat, vegetables).",
+    "animals": "Animals",
+    "barns": "Barns",
+    "waiting": "To collect",
+    "eggs": "Eggs so far",
+    "milk": "Milk so far",
+    "wool": "Wool so far",
+    "for_sale": "At the farm",
+    "gives": "{n} {item} every {every} day(s)",
+    "eats": "eats {n} a winter day",
+    "room": "needs {n} room",
+    "buy": "Buy",
+    "no_barn": "You have no barn",
+    "no_barn_text": "Build a barn on your land (Build → Storage): that's where animals live.",
+    "fodder": "Fodder in your storage: {n} — enough for about {days} winter days.",
+    "room_used": "Room {n}/{max}",
+    "to_collect": "to collect:",
+    "empty_barn": "No animals here yet.",
+    "days_old": "{n} days with you",
+    "sell": "Sell ({money})",
+    "gives_day": "{n} {item} a day",
+    "gives_week": "{n} {item} a week"
+  },
+  "station": {
+    "title": "Railway station",
+    "tab_timetable": "Timetable",
+    "tab_send": "Send goods",
+    "tab_order": "Order goods",
+    "no_lines": "No railway yet",
+    "no_lines_text": "Lay a railway to a town you trade with (the journey map) and the trains will start coming.",
+    "intro": "Trains come in from each town on the line three times a day, wait at the platform, and go back out. Newcomers to the valley arrive by train, and travellers spend a little in the village.",
+    "now": "at the platform",
+    "next_in": "next in {h} h {m} min",
+    "yard": "Goods yard",
+    "collect": "Collect",
+    "yard_hint": "Your workers fetch what's here to your storage, or collect it yourself.",
+    "yard_empty": "Nothing waiting.",
+    "on_the_way": "By rail",
+    "order_line": "{qty} {item} coming from {settlement}",
+    "send_line": "{n} goods waiting for the train to {settlement}",
+    "send_sold": "Sold in {settlement} for {money} — the money's on its way",
+    "arrivals": "Trains so far: {n}",
+    "nothing_to_send": "Nothing in your storage to send",
+    "send_hint": "The railway's carters fetch it from your storage; it goes with the next train, is sold there, and the money comes back with a later one.",
+    "send_estimate": "Should fetch about {money} · carriage {fee} · money back in about {n} days",
+    "send": "Send by rail",
+    "order_hint": "Bought at their price, plus carriage. It arrives in the goods yard in about {n} day(s).",
+    "in_stock": "{n} there",
+    "order": "Order ({money})",
+    "order_note": "Ordered goods wait in the goods yard at the station until they're collected."
+  },
+  "rival": {
+    "title": "Your rival",
+    "role": "Your business rival",
+    "role_partner": "Your business partner",
+    "none": "No rival — yet",
+    "none_text": "Get on in business (level {level}, a few workers or contracts) and someone will want a share of it.",
+    "stage_rival": "{npc} runs a company of their own, competing with yours: taking jobs you leave on the notice board, carrying goods, buying land.",
+    "stage_partner": "{npc} is your business partner now: no more competing, and a share of their takings comes to you each week.",
+    "stage_bought": "You bought {npc} out. Their business is yours.",
+    "stage_bust": "{npc}'s business went bust.",
+    "money": "Their money",
+    "crew": "Their people",
+    "took": "Jobs they took",
+    "plots": "Their land",
+    "friendship": "Friendship",
+    "war_on": "Price war: {n} more days.",
+    "war_title": "A price war",
+    "war_text": "Cut your prices for {n} days (it costs you {money}): they'll win few jobs and lose money every day. If their money runs out, they go bust and sell up.",
+    "war_do": "Start a price war ({money})",
+    "partner_title": "A partnership",
+    "partner_text": "If you're on good terms (friendship {rel}+), go into business together: they stop competing, and {n}% of their weekly takings is yours.",
+    "partner_do": "Offer a partnership",
+    "split": "End the partnership",
+    "buy_title": "Buy them out",
+    "buy_text": "Their business, their land — yours. They're paid well and step aside.",
+    "buy_do": "Buy them out ({money})",
+    "log": "What they've been up to",
+    "log_took": "took a job from the board ({ckind})",
+    "log_plot": "bought {plot} ({money})",
+    "log_poached": "took on {npc}, who used to work for you",
+    "log_war": "a price war began",
+    "log_partner": "became your partner",
+    "log_split": "the partnership ended",
+    "log_share": "your share of their takings: {money}",
+    "log_bought": "bought out ({money})"
+  },
+  "story": {
+    "feud": {
+      "title": "A quarrel between neighbours",
+      "start": {
+        "text": "{npc_a} is fuming. \"It's {npc_b} — they've moved the fence onto my side again, and when I said so they laughed at me. You're a fair sort. Tell them!\"",
+        "side_a": "Take {npc_a}'s side: go and have words with {npc_b}.",
+        "side_b": "Say {npc_b} is in the right — the fence was always there.",
+        "mediate": "Bring them together and settle it fairly.",
+        "ignore": "Keep out of it."
+      },
+      "worse": {
+        "text": "{npc_b} stops you in the lane. \"Did you hear? Someone kicked my fence down last night — and we both know who. There's damage. What are you going to do about it?\"",
+        "pay_repairs": "Pay for the repairs yourself ($40) and get them to shake hands.",
+        "headman": "Take it to the headman to judge.",
+        "let_be": "Let them sort it out themselves."
+      },
+      "end_title": {
+        "peace": "Peace made",
+        "mended": "Mended",
+        "judged": "Judged by the headman",
+        "bitter": "A bitter feud",
+        "lost": "Over"
+      },
+      "end": {
+        "peace": "{npc_a} and {npc_b} shook hands over the fence — thanks to you.",
+        "mended": "You paid for the fence, and {npc_a} and {npc_b} made it up.",
+        "judged": "The headman ruled for {npc_b} in the fence quarrel with {npc_a}.",
+        "bitter": "{npc_a} and {npc_b} no longer speak — a feud that will last."
+      }
+    },
+    "heir": {
+      "title": "Family far away",
+      "start": {
+        "text": "{npc_elder} looks older today. \"I've no one left here, you know. But my sister's child went to {settlement} years ago… I'd give a lot to see them before I go. Would you find them for me?\"",
+        "go": "Promise to find them next time you're in {settlement}.",
+        "write": "Pay a courier to carry a letter there ($30).",
+        "decline": "Say you can't — not now."
+      },
+      "search": {
+        "wait": "Travel to {settlement} (a trade journey) to find {npc_elder}'s family.",
+        "give_up": "Give up the search."
+      },
+      "letter": {
+        "told": "A letter came back from {settlement} for {npc_elder}: the family is coming!",
+        "answer": "…"
+      },
+      "found": {
+        "text": "{npc_elder}'s eyes fill. \"You found them! They're coming — to stay, they say. I don't know how to thank you… here, take this, it's not much.\"",
+        "welcome": "Welcome them to the valley."
+      },
+      "end_title": {
+        "reunited": "Reunited",
+        "alone": "Alone",
+        "lost": "Over"
+      },
+      "end": {
+        "reunited": "{npc_elder}'s family came from {settlement} to live in the valley — you found them.",
+        "alone": "{npc_elder} never heard from the family in {settlement}."
+      }
+    },
+    "stranger": {
+      "title": "The stranger",
+      "start": {
+        "text": "A newcomer, {npc_s}, keeps to themselves at the edge of the village. They look tired and have almost nothing. \"I'll work at anything,\" they say quietly. \"I just need a start.\"",
+        "hire": "Take them on as a worker.",
+        "help": "Give them $20 to get by.",
+        "ignore": "Leave them be."
+      },
+      "secret": {
+        "text": "{npc_s} takes you aside. \"I owe you the truth. Where I come from I was a master of {trade} — until I lost everything. You helped me when no one else would. Let me repay you.\"",
+        "learn": "Ask them to teach you {trade}.",
+        "keep": "Tell them it was nothing — a friend is enough."
+      },
+      "gone": {
+        "told": "{npc_s}, the quiet stranger, has left the valley.",
+        "ok": "…"
+      },
+      "end_title": {
+        "master": "A master's lessons",
+        "friend": "A friend for life",
+        "left": "Gone again",
+        "lost": "Over"
+      },
+      "end": {
+        "master": "{npc_s}, once a master of {trade}, taught you the craft.",
+        "friend": "{npc_s}, the stranger, became a true friend.",
+        "left": "{npc_s}, the stranger, moved on as quietly as they came."
+      }
+    }
+  },
+  "story_ui": {
+    "tab": "Stories",
+    "none": "No stories yet",
+    "none_text": "Get to know the valley. Its people have their own troubles — and sooner or later they'll come to you.",
+    "waiting": "{npc} is waiting to talk to you",
+    "later": "What happens next will come in its own time.",
+    "open": "See what's happening",
+    "done": "How they ended",
+    "over": "That story is over."
+  },
+  "meeting": {
+    "title": "Town meeting",
+    "none": "No meeting called",
+    "none_text": "Every couple of weeks the valley meets at the hall to decide something. The next one will be announced a few days ahead.",
+    "not_yet": "Once the valley is a large village, its people will meet at the hall to decide things together.",
+    "cost": "Cost to the treasury",
+    "treasury": "the treasury has {money}",
+    "when": "The meeting",
+    "in_days": "in {n} day(s), at 18:00",
+    "tonight": "tonight at 18:00",
+    "support": "For it: {n}% (half is enough)",
+    "sway": "Your word sways about {n}% of the valley (more with a better name, on the council, or as headman).",
+    "for": "Speak for it",
+    "against": "Speak against it",
+    "nothing": "Say nothing",
+    "past": "Past meetings",
+    "passed": "passed ({n}% for)",
+    "failed": "turned down ({n}% for)",
+    "no_money": "the treasury couldn't pay"
+  },
+  "proposal": {
+    "pave_square": {
+      "name": "Cobble the streets",
+      "desc": "Money for the public works to lay cobbles on the busiest streets — quicker walking and carting."
+    },
+    "gas_lamps": {
+      "name": "Gas lamps",
+      "desc": "Street lamps in the neighbourhoods still in the dark."
+    },
+    "green": {
+      "name": "A village green",
+      "desc": "Lay out a green with trees and benches: the whole valley's spirits lift."
+    },
+    "market_day": {
+      "name": "A weekly market day",
+      "desc": "For two months, a market on the square once a week: the store and tavern do well, and people enjoy it."
+    },
+    "school_fund": {
+      "name": "Money for the school",
+      "desc": "Put money aside for the school: teachers, books, a bigger classroom."
+    },
+    "better_road": {
+      "name": "A better road",
+      "desc": "The village pays for a better road to the town it trades with most."
+    }
+  },
+  "history_ui": {
+    "title": "The valley in numbers",
+    "timeline": "Big moments",
+    "pop": "People",
+    "money": "Your money",
+    "worth": "You're worth",
+    "biz": "Businesses",
+    "treasury": "Village treasury",
+    "bread": "Price of bread",
+    "workers": "Your workers",
+    "since": "{n} weeks recorded · change: {change}",
+    "too_soon": "Not enough weeks yet — the record grows each week."
   }
 }

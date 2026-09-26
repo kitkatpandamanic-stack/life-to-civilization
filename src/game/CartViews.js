@@ -50,10 +50,11 @@ export class CartViews {
         spr.setPosition(x, y).setDepth(y).setFlipX(pos.facing === 'left').setTexture(`${sprite}_${(this.frame + i) % 2}`).setVisible(true);
       });
     }
-    // Caravans to other settlements, on their way out of the valley (or coming home).
-    for (const c of sim.state.region?.caravans || []) {
+    // Caravans to other settlements, on their way out of the valley (or coming home) — the village's, and yours.
+    const caravans = [...(sim.state.region?.caravans || []), ...(sim.state.freight?.caravans || []).map((c) => ({ ...c, mine: true, id: `m${c.id}`, carrier: CARRIERS[c.eqType] ? c.eqType : c.eqType === 'wooden_wagon' ? 'wagon' : 'handcart' }))];
+    for (const c of caravans) {
       if (shown >= L.maxVisible || this.scene.inside) break;
-      const pos = sim.settlements.caravanPosition(c);
+      const pos = c.mine ? sim.freight.caravanPosition(sim.state.freight.caravans.find((x) => `m${x.id}` === c.id)) : sim.settlements.caravanPosition(c);
       if (!pos || !pos.moving) continue;
       if (pos.x < cam.x - 200 || pos.x > cam.right + 200 || pos.y < cam.y - 200 || pos.y > cam.bottom + 200) continue;
       const key = `caravan${c.id}`;
