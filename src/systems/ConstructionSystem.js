@@ -223,7 +223,10 @@ export class ConstructionSystem {
     if (p.money < def.money) return { ok: false, reason: 'no_money' };
     for (let y = ty; y < ty + def.h; y++) {
       for (let x = tx; x < tx + def.w; x++) {
-        if (def.outpost ? !this.sim.exploration.outpostAllowed(type, x, y) : !this.sim.land.ownsTile(x, y)) return { ok: false, reason: def.outpost ? 'need_explored_site' : 'not_your_land' };
+        if (def.founding) {
+          const f = this.sim.colony.canFound(x, y);
+          if (!f.ok) return f;
+        } else if (def.outpost ? !this.sim.exploration.outpostAllowed(type, x, y) : !this.sim.land.ownsTile(x, y)) return { ok: false, reason: def.outpost ? 'need_explored_site' : 'not_your_land' };
         if (world.isWater(x, y) || world.tileAt(x, y) === T.CLIFF) return { ok: false, reason: 'bad_ground' };
         if (world.isBlocked(x, y)) return { ok: false, reason: 'obstructed' };
         if (this.sim.state.fields[`${x},${y}`]) return { ok: false, reason: 'obstructed' };
@@ -231,6 +234,12 @@ export class ConstructionSystem {
     }
     const door = { tx: tx + Math.floor(def.w / 2), ty: ty + def.h };
     if (def.w > 1 && world.isBlocked(door.tx, door.ty)) return { ok: false, reason: 'door_blocked' };
+    // (a dock on the riverbank: the water within a jetty's reach — two tiles, across the sand)
+    if (def.waterside) {
+      let wet = false;
+      for (let yy = ty - 2; yy <= ty + def.h + 1 && !wet; yy++) for (let xx = tx - 2; xx <= tx + def.w + 1 && !wet; xx++) if (world.isWater(xx, yy)) wet = true;
+      if (!wet) return { ok: false, reason: 'need_waterside' };
+    }
     return { ok: true };
   }
 

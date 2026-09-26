@@ -15,6 +15,7 @@
  *   state.knowledge = { points, sources }   (shared with ExplorationSystem)
  *   npc.mentor
  */
+import { RIVER } from '../data/freight.js';
 import { TECHS, TECH_TUNING as TT, CIVIC, EDUCATION as ED } from '../data/tech.js';
 
 export class TechSystem {
@@ -29,6 +30,7 @@ export class TechSystem {
     sim.state.knowledge ??= { points: 0, sources: [] };
     this.mods = null;
     sim.bus.on('time:day', () => this.onDay());
+    sim.bus.on('construction:changed', () => (this.mods = null)); // (a dock or an institution finished: its effects count)
     sim.bus.on('time:hour', (h) => {
       if (h === 20) this.workDone(); // after the working day (before 'worked today' resets at midnight)
     });
@@ -60,6 +62,10 @@ export class TechSystem {
       for (const effects of this.sim.civic?.effects() || []) apply(effects);
       // The valley's doctor and engineer (AcademiaSystem), as good as they are at it.
       for (const effects of this.sim.academia?.effects() || []) apply(effects);
+      // Inventions (yours, or a rival's): everyone gets the good of them (InventionSystem).
+      for (const effects of this.sim.inventions?.effects() || []) apply(effects);
+      // A dock in the valley: goods go away by boat — the shops get more for what they sell (FreightSystem).
+      if (this.civic('dock')) apply({ export_price: RIVER.dockExport });
     }
     return this.mods[key] ?? 1;
   }

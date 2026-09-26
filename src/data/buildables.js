@@ -69,6 +69,19 @@ export const BUILDABLES = {
     materials: { planks: 40, stone: 40, bricks: 30, iron_ingot: 12 }, labor: 40,
     unlock: 'construction', minSkill: 4, effect: { station: true, parking: 4, storage: 120 },
   },
+  // A founding stone: where your own settlement begins (ColonySystem) — on open, explored land well away
+  // from the village, with the headman's charter (its price).
+  founding_stone: {
+    category: 'infrastructure', w: 1, h: 1, money: 250, founding: true,
+    materials: { stone: 8, wood: 4 }, labor: 3,
+    unlock: 'construction', minSkill: 1, effect: {},
+  },
+  // A dock on the riverbank (must touch the water): boats moored there, goods sent down the river.
+  dock: {
+    category: 'infrastructure', w: 3, h: 2, money: 150, tech: 'boats', waterside: true,
+    materials: { wood: 20, planks: 30, stone: 10 }, labor: 16,
+    unlock: 'construction', minSkill: 2, effect: { dock: true, storage: 40 },
+  },
   construction_office: {
     category: 'services', w: 4, h: 3, money: 120,
     materials: { wood: 20, planks: 18, stone: 16 }, labor: 14,
@@ -111,7 +124,7 @@ export const BUILDING_CATALOG = {
   production: { workshop: 'workshop', sawmill: 'lumberyard', blacksmith: 'smithy', brickworks: null, bakery: 'store', factory: null },
   resource: { mine: 'mining_camp', quarry: 'quarry_hut', forest_camp: 'lumberyard', resource_depot: 'warehouse_bld' },
   services: { school: 'school', hospital: 'clinic', inn: 'tavern', construction_office: 'construction_office' },
-  infrastructure: { road: 'road', bridge: 'bridge', transport_depot: 'transport_depot', storage_depot: 'storage_shed', railway_station: 'rail_station' },
+  infrastructure: { road: 'road', bridge: 'bridge', transport_depot: 'transport_depot', storage_depot: 'storage_shed', railway_station: 'rail_station', dock: 'dock', founding_stone: 'founding_stone' },
 };
 /** What category a building type is in (the first place it's listed). */
 export function catalogCategory(type) {

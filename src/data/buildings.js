@@ -26,6 +26,7 @@ export const BUILDING_TYPES = {
   storage_shed: { w: 3, h: 2, wall: 'wood', wallColor: '#8f6a44', roof: 'plank', roofColor: '#6d4c33', chimney: false, wideDoor: true },
   workshop: { w: 5, h: 4, wall: 'wood', wallColor: '#a57a4c', roof: 'tile', roofColor: '#6f4a8a', sign: '🪚', chimney: true, wideDoor: true },
   well: { w: 1, h: 1, decorTexture: 'decor_well' },
+  founding_stone: { w: 1, h: 1, decorTexture: 'decor_founding_stone' },
 
   // Built by villagers as the settlement grows (V3)
   apartment_house: { w: 5, h: 4, wall: 'plaster', wallColor: '#e2d6bc', roof: 'tile', roofColor: '#8f3b2e', chimney: true, wideDoor: true, floors: 2 },
@@ -42,6 +43,7 @@ export const BUILDING_TYPES = {
   mill: { w: 5, h: 4, wall: 'stone', wallColor: '#b9ae98', roof: 'thatch', roofColor: '#b8964e', sign: '⚙️', chimney: false },
   warehouse_bld: { w: 6, h: 4, wall: 'wood', wallColor: '#9c7a52', roof: 'plank', roofColor: '#5a4a3a', chimney: false, wideDoor: true },
   barn: { w: 4, h: 3, wall: 'wood', wallColor: '#9a4a36', roof: 'plank', roofColor: '#5e3a28', chimney: false, wideDoor: true, sign: '🌾' },
+  dock: { w: 3, h: 2, wall: 'open', wallColor: '#7a5a38', roof: 'plank', roofColor: '#6a5030', chimney: false, wideDoor: true, sign: '⚓' },
   transport_depot: { w: 5, h: 3, wall: 'open', wallColor: '#8a6440', roof: 'plank', roofColor: '#5a4a3a', chimney: false, wideDoor: true, sign: '🛞' },
   rail_station: { w: 6, h: 3, wall: 'stone', wallColor: '#b0673f', roof: 'tile', roofColor: '#4a5058', chimney: true, wideDoor: true, clock: true, sign: '🚂' },
   construction_office: { w: 4, h: 3, wall: 'plaster', wallColor: '#e6d8b8', roof: 'tile', roofColor: '#7a5a3a', chimney: true, sign: '📐' },

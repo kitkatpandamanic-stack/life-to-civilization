@@ -939,6 +939,28 @@ const DECOR_DRAW = {
     ctx.fillStyle = '#8a6a2a';
     ctx.fillRect(2, 11, 26, 2);
   },
+  // A founding stone (your settlement, ColonySystem): a standing stone with a pennant on a pole.
+  founding_stone(ctx) {
+    ellipse(ctx, 16, 45, 12, 3, 'rgba(0,0,0,0.22)');
+    ctx.fillStyle = '#8a8680';
+    ctx.beginPath();
+    ctx.moveTo(8, 45);
+    ctx.lineTo(10, 22);
+    ctx.lineTo(16, 16);
+    ctx.lineTo(22, 22);
+    ctx.lineTo(24, 45);
+    ctx.fill();
+    ctx.fillStyle = '#a8a49c';
+    ctx.fillRect(12, 24, 3, 18);
+    ctx.fillStyle = '#6b4a2b';
+    ctx.fillRect(26, 4, 2, 41);
+    ctx.fillStyle = '#e0b040';
+    ctx.beginPath();
+    ctx.moveTo(28, 5);
+    ctx.lineTo(32, 9);
+    ctx.lineTo(28, 13);
+    ctx.fill();
+  },
   signpost(ctx) {
     ellipse(ctx, 14, 42, 8, 2, 'rgba(0,0,0,0.2)');
     ctx.fillStyle = '#6b4a2b';
@@ -963,7 +985,7 @@ const DECOR_DRAW = {
 
 const DECOR_SIZE = {
   well: [40, 48], notice_board: [40, 48], stall: [64, 56], lamp: [16, 52], fence: [32, 24], fence_v: [32, 32],
-  barrel: [24, 28], crate: [26, 26], anvil: [32, 24], logpile: [64, 36], hay: [30, 26], signpost: [28, 44],
+  barrel: [24, 28], crate: [26, 26], anvil: [32, 24], logpile: [64, 36], hay: [30, 26], signpost: [28, 44], founding_stone: [32, 48],
 };
 
 function drawTuft(season) {

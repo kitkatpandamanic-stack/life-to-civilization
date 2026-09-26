@@ -7,6 +7,7 @@ import { t, tn, fmtMoney, npcName } from '../../i18n/i18n.js';
 import { escapeHtml, tr } from '../format.js';
 import { bar, button, portrait, tabs } from '../widgets.js';
 import { learningHtml } from '../education.js';
+import { familyPage, familyAction } from '../family.js';
 import { SKILLS, SKILL_CATEGORIES } from '../../data/skills.js';
 import { BALANCE } from '../../config/balance.js';
 import { Mod } from '../../systems/Modifiers.js';
@@ -25,8 +26,9 @@ export class CharacterPanel extends Panel {
   render() {
     const sim = this.sim;
     const p = sim.state.player;
-    const tabBar = tabs([['main', t('ui.character')], ['learning', t('inspect.tab_learning')]], this.tab || 'main');
+    const tabBar = tabs([['main', t('ui.character')], ['family', `🌳 ${t('fam.tab')}`], ['learning', t('inspect.tab_learning')]], this.tab || 'main');
     if (this.tab === 'learning') return tabBar + this.learningPage();
+    if (this.tab === 'family') return tabBar + familyPage(sim, (this.famView ??= {}));
     const prog = sim.progression;
     const need = prog.xpForNext();
     const kv = (k, v) => `<div class="kv"><span>${escapeHtml(k)}</span><b>${escapeHtml(String(v))}</b></div>`;
@@ -127,6 +129,7 @@ export class CharacterPanel extends Panel {
         <div class="row">${button(t('lineage.retire_yes'), 'retire_yes', {}, { cls: 'primary' })}${button(t('ui.cancel'), 'retire_no')}</div>`;
     } else if (r.ok) html += `<div class="row">${button(t('lineage.retire'), 'retire')}</div>`;
     else if (p.age >= 50) html += `<div class="muted small">${escapeHtml(t(L.heirs().length ? 'lineage.retire_later' : 'lineage.no_heir', { n: 55 }))}</div>`;
+    html += `<div class="btn-row">${button(t('fam.open'), 'tab', { tab: 'family' }, { cls: 'sm', ico: '🌳' })}</div>`;
     return html;
   }
 
@@ -153,6 +156,7 @@ export class CharacterPanel extends Panel {
   }
 
   onAction(action, data) {
+    if (familyAction(this.ui, action, data, (this.famView ??= {}))) return;
     if (action === 'tab') this.tab = data.tab;
     if (action === 'attr') this.sim.progression.spendAttributePoint(data.attr);
     if (action === 'skill') this.sim.progression.spendSkillPoint(data.skill);

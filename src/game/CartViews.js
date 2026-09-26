@@ -60,10 +60,10 @@ export class CartViews {
       const key = `caravan${c.id}`;
       alive.add(key);
       shown++;
-      const sprite = CARRIERS[c.carrier]?.sprite || 'handcart';
+      const sprite = pos.boat ? `eq_${c.eqType}` : CARRIERS[c.carrier]?.sprite || 'handcart';
       let list = this.views.get(key);
       if (!list) {
-        list = [0, 1].map(() => this.scene.add.image(pos.x, pos.y, `${sprite}_0`).setOrigin(0.5, 0.95));
+        list = (pos.boat ? [0] : [0, 1]).map(() => this.scene.add.image(pos.x, pos.y, `${sprite}_0`).setOrigin(0.5, pos.boat ? 0.6 : 0.95));
         this.views.set(key, list);
       }
       const dx = pos.facing === 'left' ? 1 : pos.facing === 'right' ? -1 : 0;

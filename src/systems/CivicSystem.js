@@ -168,6 +168,7 @@ export class CivicSystem {
     if (cand.id === 'player') {
       const pb = voter.pb || { t: 0, r: 0, c: 0 };
       s += (voter.rel || 0) / 10 + pb.r / 10 + pb.t / 20 - pb.c / 8;
+      s += this.sim.dynasty?.allyVote(voter) || 0; // families married into yours
       if (this.V.headman === 'player') s += this.policyFit(voter, this.V.policies, poor, owner);
     } else {
       const c = this.sim.npcs.byId(cand.id);

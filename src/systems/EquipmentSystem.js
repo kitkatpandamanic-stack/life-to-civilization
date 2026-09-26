@@ -214,7 +214,8 @@ export class EquipmentSystem {
   park(eq, tx, ty) {
     if (eq.at.kind === 'npc') this.clearHands(eq.at.id);
     if (eq.at.kind === 'player') delete this.sim.state.player.eq;
-    const s = this.sim.world.nearestWalkable(tx, ty, 3);
+    // (a boat is tied up on the water, where it's put; everything else on the nearest open ground)
+    const s = this.def(eq)?.kind === 'boat' ? { tx, ty } : this.sim.world.nearestWalkable(tx, ty, 3);
     eq.at = { kind: 'ground', tx: s.tx, ty: s.ty };
     this.changed();
   }
@@ -274,6 +275,7 @@ export class EquipmentSystem {
   canTake(id) {
     const eq = this.byId(id);
     if (!eq) return { ok: false, reason: 'nothing_here' };
+    if (this.def(eq)?.kind === 'boat') return { ok: false, reason: 'eq_boat' };
     if (eq.owner !== 'player') return { ok: false, reason: 'not_yours' };
     if (eq.at.kind !== 'ground') return { ok: false, reason: 'eq_in_use' };
     if (!this.usable(eq)) return { ok: false, reason: this.underRepair(eq) ? 'eq_under_repair' : 'eq_broken' };
@@ -422,6 +424,7 @@ export class EquipmentSystem {
     const W = this.sim.workers;
     const npc = this.sim.npcs.byId(npcId);
     if (!eq || !npc) return { ok: false, reason: 'nothing_here' };
+    if (this.def(eq)?.kind === 'boat') return { ok: false, reason: 'eq_boat' };
     if (!W.contract(npcId)) return { ok: false, reason: 'not_your_worker' };
     if (eq.owner !== 'player') return { ok: false, reason: 'not_yours' };
     if (eq.holder?.kind === 'worker' && eq.holder.id === npcId) return { ok: false, reason: 'eq_has_it' };
@@ -640,6 +643,7 @@ export class EquipmentSystem {
     if (!d || d.future) return { ok: false, reason: 'nothing_here' };
     if (!d.soldBy.includes(this.sim.economy.def(bizId)?.type)) return { ok: false, reason: 'not_sold_here' };
     if (d.needs && !this.sim.tech?.has(d.needs)) return { ok: false, reason: 'needs_tech', params: { tech: d.needs } };
+    if (d.kind === 'boat' && !this.sim.freight?.docks().length) return { ok: false, reason: 'need_dock' };
     const price = this.price(type, bizId);
     if (this.sim.state.player.money < price) return { ok: false, reason: 'no_money', params: { money: price } };
     return { ok: true, price };
@@ -660,6 +664,12 @@ export class EquipmentSystem {
     if (EQUIPMENT[type].kind === 'hand' && !this.playerHeld()) {
       eq = this.create(type, { at: { kind: 'player' } });
       this.sim.state.player.eq = eq.id;
+    } else if (EQUIPMENT[type].kind === 'boat') {
+      // A boat is launched at your dock and moored there.
+      eq = this.create(type, { at: { kind: 'ground', tx: 0, ty: 0 } });
+      eq.home = this.sim.freight.docks()[0];
+      const m = this.sim.freight.berth(eq);
+      eq.at = { kind: 'ground', tx: m.tx, ty: m.ty };
     } else {
       const s = (b && this.sim.points?.parkAt(b.id)) || this.yardSpot(null);
       eq = this.create(type, { at: { kind: 'ground', tx: s.tx, ty: s.ty } });

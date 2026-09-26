@@ -66,6 +66,10 @@ export const POLICIES = {
 /** Deeds your family is remembered for, and what each is worth to its renown. */
 export const DEEDS = {
   'chronicle.player_built': 2,
+  'chronicle.alliance': 4,
+  'chronicle.player_invented': 6,
+  'chronicle.colony_founded': 12,
+  'chronicle.colony_grew': 8,
   'chronicle.outpost_founded': 6,
   'chronicle.hamlet_founded': 8,
   'chronicle.road_started_player': 8,

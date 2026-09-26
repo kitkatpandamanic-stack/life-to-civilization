@@ -783,7 +783,11 @@
     "station": "🚉 The station",
     "collect_yard": "Collect from the goods yard ({n})",
     "rival_business": "⚔️ Talk business",
-    "town_meeting": "🏛️ Town meeting: {proposal}"
+    "town_meeting": "🏛️ Town meeting: {proposal}",
+    "invent": "Work on an invention",
+    "dock": "Boats & the river",
+    "colony": "The settlement's affairs",
+    "colony_supplies": "Leave supplies (food, firewood)"
   },
   "reason": {
     "nothing_here": "Nothing to do here.",
@@ -1044,7 +1048,50 @@
     "at_war": "Not in the middle of a price war.",
     "not_friends": "You need to be on better terms (friendship {n}).",
     "not_yet": "Not yet.",
-    "no_meeting": "There's no meeting called."
+    "no_meeting": "There's no meeting called.",
+    "not_your_child": "That's not your child.",
+    "child_too_young": "Too young for that yet.",
+    "child_grown": "They're grown up now.",
+    "child_done_today": "You've already spent time together today.",
+    "cant_teach_skill": "You need level {n} in it to teach it.",
+    "not_your_business": "That isn't your business.",
+    "business_has_manager": "Someone of yours is already running it.",
+    "already_taken": "One of them is already married.",
+    "not_a_match": "They wouldn't suit each other.",
+    "family_not_close": "{npc}'s family doesn't know you well enough (friendship {n}+).",
+    "family_said_no": "{npc}'s family said no — ask again later.",
+    "offer_gone": "That offer's no longer on the table.",
+    "unknown": "That doesn't exist.",
+    "invented_already": "It's been invented already.",
+    "project_underway": "Finish the invention on your bench first.",
+    "need_skill_level": "Needs {skill} level {n}.",
+    "need_items": "Needs {n} {item} (you have {have}).",
+    "no_project": "Nothing on the bench.",
+    "not_your_patent": "That patent isn't yours.",
+    "patent_expired": "The patent has run out.",
+    "licence_sold": "They already have a licence.",
+    "need_dock": "You need a dock of your own on the river first.",
+    "eq_boat": "Boats stay at the dock — they go on the river, not the roads.",
+    "not_on_water": "That town isn't on the water — a boat can't get there.",
+    "river_flooded": "The river's in flood — no boat can sail until it goes down.",
+    "low_water": "The river's low this summer — the barge can take only {n}.",
+    "need_waterside": "A dock has to be by the water (within two tiles of it).",
+    "colony_exists": "You've founded a settlement already.",
+    "too_close_to_village": "Too close to the village — at least {n} tiles away.",
+    "not_explored": "You haven't explored that land yet.",
+    "land_taken": "That land is someone else's.",
+    "need_charter": "The headman won't grant a charter: you need a reputation of {n}, or the headman's friendship.",
+    "bad_name": "Give it a name.",
+    "plan_made": "The plan's already made.",
+    "no_colony": "You have no settlement yet.",
+    "already_settler": "They live in your settlement already.",
+    "wont_move": "They're settled here — they'd move only for a friend (friendship {n}+).",
+    "nothing_to_leave": "You've no food or firewood with you.",
+    "need_plan": "Make the plan first.",
+    "already_building": "It's already being built.",
+    "colony_purse": "Its purse doesn't have {money}.",
+    "no_keeper": "No settler to keep the shop.",
+    "colony_no_room": "No room for it there just now."
   },
   "toast": {
     "hungry": "You're getting hungry. Press Q to eat.",
@@ -1303,7 +1350,29 @@
     "meeting_passed": "🏛️ The town meeting voted for \"{proposal}\" ({n}%).",
     "meeting_failed": "🏛️ The town meeting turned down \"{proposal}\" ({n}% for).",
     "info_on": "Info mode on: labels over sites, your store, jobs and workers (V to turn off).",
-    "info_off": "Info mode off."
+    "info_off": "Info mode off.",
+    "child_teach": "{npc} learned a lot today (+{n}).",
+    "child_work": "{npc} worked beside you today (+{n}).",
+    "child_play": "A good hour with {npc}.",
+    "child_hard_worker": "{npc} has become a hard worker — like you.",
+    "heir_named": "{npc} is your heir now.",
+    "match_yes": "{npc2}'s family agreed: {npc} will marry into yours!",
+    "match_no": "{npc2}'s family said no — not now, anyway.",
+    "royalties": "Royalties for the {invention}: {money}.",
+    "invention_beaten": "{npc} got there first: the {invention} is theirs.",
+    "invented": "It works! The {invention} is yours — patented.",
+    "invent_setback": "A setback with the {invention} — some work lost ({n}%).",
+    "invent_progress": "The {invention} is coming along ({n}%).",
+    "invent_started": "You start work on a {invention}.",
+    "invent_rival": "You start on a {invention} — and hear {npc} is at it too. A race!",
+    "licence_sold": "{settlement} bought a licence for the {invention}: {money}.",
+    "boat_ordered": "A new {eq} is moored at your dock ({money}).",
+    "colony_newcomers": "Newcomers to the valley went on to {colony} ({npc}'s family).",
+    "colony_hungry": "{colony} is going hungry — its store is empty!",
+    "colony_gave_up": "{npc}'s household gave up on {colony} after a hungry winter.",
+    "colony_grew": "{colony} is a {stage} now!",
+    "colony_supplies": "Supplies left for {colony}'s store ({n}).",
+    "colony_settler": "{npc} will settle in {colony} ({n} of them)."
   },
   "objective": {
     "harvest": "Harvest ripe wheat in the farm fields ({have}/{qty})",
@@ -1737,7 +1806,12 @@
     "story_master": "{npc_s} turned out to be a master of {trade} from far away.",
     "meeting_passed": "The town meeting voted for: {proposal}.",
     "meeting_failed": "The town meeting turned down: {proposal}.",
-    "hall_grows": "The village hall was built up (level {n}), fit for a growing town."
+    "hall_grows": "The village hall was built up (level {n}), fit for a growing town.",
+    "alliance": "{npc} married {npc2} — the families of the two, allied.",
+    "player_invented": "A new invention in the valley: the {invention}.",
+    "npc_invented": "{npc} invented the {invention}.",
+    "colony_founded": "A new settlement was founded: {colony}.",
+    "colony_grew": "{colony} has grown into a {stage}."
   },
   "event": {
     "good_harvest": {
@@ -1901,7 +1975,11 @@
     "study_beside": "Working beside {npc}",
     "study_teach": "Teaching at {building}",
     "study_read": "Reading at the library",
-    "study_university": "Studying {field} in {settlement}"
+    "study_university": "Studying {field} in {settlement}",
+    "family_teach": "Teaching {npc}: {skill}",
+    "family_work": "At work, with {npc} alongside",
+    "family_play": "An hour with {npc}",
+    "inventing": "At the bench: the {invention}"
   },
   "tips": {
     "tip1": "The notice board on the plaza lists all work. Talking to employers works too.",
@@ -2840,7 +2918,14 @@
       "ask_manage": "Would you manage my workers?",
       "go_work_at": "Go and work at {building} for me.",
       "come_back": "Come back and work with the rest of the crew.",
-      "story": "{story}"
+      "story": "{story}",
+      "child_teach": "Let me teach you something",
+      "child_work": "Come along to work with me today",
+      "child_play": "Let's play (or read) together",
+      "child_heir": "One day, all this will be yours",
+      "child_future": "Let's talk about your future",
+      "match_talk": "About a match for my {name}…",
+      "colony_invite": "Come and live in {colony}"
     },
     "no_gifts": "You have nothing suitable to give.",
     "chat_again": [
@@ -3121,7 +3206,10 @@
     "come_back_yes": [
       "Back with the crew — suits me.",
       "I'll come back. Good to be with the others again."
-    ]
+    ],
+    "child_heir_line": "Really? I won't let you down.",
+    "colony_yes": "A fresh start? Yes — we'll come.",
+    "colony_no": "Not for me, I'm afraid."
   },
   "rank": {
     "apprentice": "apprentice {occ}",
@@ -3450,6 +3538,14 @@
     "rail_station": {
       "name": "Railway Station",
       "desc": "The valley's end of the line: with a station you can lay railways to the towns you trade with (from the journey map). Needs the know-how of railways."
+    },
+    "dock": {
+      "name": "Dock",
+      "desc": "A landing stage on the riverbank (it must touch the water). Your boats are moored here and sail down the river to the towns on the water — and the village's goods fetch more away."
+    },
+    "founding_stone": {
+      "name": "Founding stone",
+      "desc": "Found a settlement of your own: on open, explored land well away from the village, with the headman's charter (its price)."
     }
   },
   "build_cat": {
@@ -3727,7 +3823,11 @@
     "player_took_side": "Took the other side in a quarrel.",
     "player_made_peace": "Made peace in a quarrel.",
     "player_found_kin": "Found their family.",
-    "player_helped_stranger": "Helped them when they had nothing."
+    "player_helped_stranger": "Helped them when they had nothing.",
+    "family_alliance": "Their child married into your family.",
+    "match_refused": "You turned down their match.",
+    "inherited_grudge": "They hated your parent — and don't trust you.",
+    "became_settler": "Went to live in your settlement."
   },
   "talk": {
     "deflect": [
@@ -6589,7 +6689,9 @@
     "no_props_text": "Build a house on land of your own, or buy an empty one in the village — then let it and collect rent.",
     "tax_week": "Taxes / week",
     "costs_week": "Costs a week",
-    "letting_line": "{n} let · {e} empty · {k} leaving"
+    "letting_line": "{n} let · {e} empty · {k} leaving",
+    "cat_royalties": "Royalties",
+    "cat_colony": "Your settlement"
   },
   "ledger": {
     "jobs": "Jobs",
@@ -8080,7 +8182,10 @@
     "goes_to_fetch": "{name} will fetch it on the way to the next task.",
     "done": "Done",
     "would_carry": "Would carry {a} → {b}",
-    "follow_holder": "Follow whoever has it"
+    "follow_holder": "Follow whoever has it",
+    "rowboat": "Rowboat",
+    "barge": "Barge",
+    "desc_boat": "A boat: kept at your dock, it carries goods down the river to the towns on the water."
   },
   "equip_status": {
     "available": "Available",
@@ -8537,7 +8642,12 @@
     "board_off": "The shops send goods to each other every day. Sign up and some of the carrying (and the pay) comes to you.",
     "board_open": "Your deliveries",
     "workers_hint": "{n} deliveries · {c} caravans on the road",
-    "workers_none": "Deliveries for the shops, and caravans to other places."
+    "workers_none": "Deliveries for the shops, and caravans to other places.",
+    "river_ok": "The river's fair. River pirates rob about {n}% of boats — fewer with a guard aboard.",
+    "river_low": "A dry summer: the river runs low, and a barge can take only half its load.",
+    "river_flood": "The river's in flood: no boat can sail until it goes down.",
+    "boats_title": "Your boats",
+    "boats_hint": "Order a boat at your dock: a rowboat for small loads, a barge for big ones."
   },
   "livestock": {
     "title": "Your animals",
@@ -8976,5 +9086,193 @@
     "all_time": "Since you arrived: earned {a}, spent {b}.",
     "parcels": "Pieces of land",
     "tiles": "Tiles"
+  },
+  "fam": {
+    "tab": "Family",
+    "open": "Family & heirs",
+    "line": "Your line",
+    "gen_n": "Generation {n}",
+    "died_at": "died at {n}",
+    "retired_at": "retired at {n}",
+    "levels": "levels",
+    "heir": "Heir",
+    "ready": "Ready to take over",
+    "upbringing": "Lessons {l} · days at work with you {w} · play {p}",
+    "done_today": "spent time together today",
+    "talk_to_spend": "talk to them to spend an hour together",
+    "too_young": "Too young yet — from age {n} you can teach them.",
+    "name_heir": "Name as heir",
+    "unname_heir": "No longer heir",
+    "role_shadow": "Learn my trade",
+    "role_manage": "Run {building}",
+    "role_shadow_on": "Learning your trade at your side ({n} days so far).",
+    "role_manage_on": "Running your business ({n} days so far): learning to trade and to lead.",
+    "married_to": "Married to {name}",
+    "allied": "Allied family",
+    "family_of": "{name}'s family",
+    "propose": "Propose (gift {money})",
+    "no_matches": "No one suitable in the valley just now.",
+    "find_match": "Find a match",
+    "offer": "{head}'s family proposes a match: {their} and your {child}.",
+    "offer_title": "A match proposed",
+    "accept": "Accept",
+    "decline": "Decline",
+    "children": "Your children",
+    "no_children": "No children yet",
+    "no_children_hint": "Marry, and with a home with room to spare, children will come.",
+    "ties": "Allies and old grudges",
+    "allied_since": "allied since day {day}",
+    "old_grudge": "an old grudge",
+    "ties_hint": "Allied families sell to you {d}% cheaper and vote for you. Grudges were your parent's — but they're yours now.",
+    "nothing_to_teach": "you need level {n} in a skill to teach it",
+    "offer_self": "{their} proposes a match with your {child}."
+  },
+  "invention": {
+    "seed_drill": {
+      "name": "Seed drill",
+      "desc": "Sows seed in straight rows at the right depth — no more scattering by hand."
+    },
+    "steel_axe": {
+      "name": "Steel-edged axe",
+      "desc": "A harder edge that stays sharp: more timber and stone for the same sweat."
+    },
+    "timber_crane": {
+      "name": "Timber crane",
+      "desc": "A pulley crane that lifts beams and stone into place."
+    },
+    "kiln_flue": {
+      "name": "Kiln flue",
+      "desc": "A better draught for the brick kiln: hotter, even firing."
+    },
+    "treadle_saw": {
+      "name": "Treadle saw",
+      "desc": "A foot-driven saw that cuts planks true and fast."
+    },
+    "preserving_jars": {
+      "name": "Preserving jars",
+      "desc": "Sealed glass jars that keep food good through the winter."
+    },
+    "mine_pump": {
+      "name": "Mine pump",
+      "desc": "A steam pump that keeps the pits dry, so work goes deeper."
+    },
+    "counting_frame": {
+      "name": "Counting frame",
+      "desc": "A clever frame for reckoning accounts quickly — and teaching sums."
+    }
+  },
+  "invention_fx": {
+    "farm_output": "+{n}% from every farm",
+    "gather_output": "+{n}% timber and stone",
+    "build_labor": "building {n}% quicker",
+    "sickness": "{n}% less sickness",
+    "learning": "+{n}% learning"
+  },
+  "invent": {
+    "title": "Inventions",
+    "hint": "Work out your own ideas at a workbench, two hours at a sitting. Once it exists everyone gets the good of it — and for three years every business that uses it pays you a royalty each week.",
+    "now": "Working on",
+    "no_project": "Nothing on the bench. Pick an idea below to start.",
+    "you": "You",
+    "rival": "{name} (working on it too)",
+    "sittings_left": "About {n} more sitting(s) at the bench",
+    "race_hint": "whoever finishes first holds the patent",
+    "work": "Work on it (2 hours)",
+    "hours": "≈ {n} h of work",
+    "royalty_line": "{money}/week from each {types} ({n} in the valley now)",
+    "start": "Start",
+    "patent_of": "Patent: {name}",
+    "weeks_left": "{n} week(s) left",
+    "expired": "Patent expired",
+    "earned": "Earned so far {money} · {n} paying {r}/week",
+    "licence_hint": "Sell a licence to:",
+    "licence": "{settlement} ({money})",
+    "patents": "Patents",
+    "ideas": "Ideas",
+    "all_done": "Every idea's been worked out.",
+    "log": "Notes"
+  },
+  "invent_log": {
+    "started": "Started work on the {invention}.",
+    "rival": "Word is {npc} is working on a {invention} too.",
+    "patented": "The {invention} works! The patent is yours.",
+    "beaten": "{npc} finished a {invention} first — and holds the patent.",
+    "licence": "Sold {settlement} a licence for the {invention} ({money})."
+  },
+  "colony": {
+    "title": "Your settlement",
+    "open": "Your settlement",
+    "none": "No settlement of your own yet",
+    "none_hint": "Build a founding stone (B → Infrastructure) on open, explored land at least {n} tiles from the village, with the headman's charter ({money}).",
+    "stage": "Stage",
+    "settlers": "Settlers",
+    "homes": "Homes",
+    "purse": "Its purse",
+    "next_stage": "Next: {stage} — {n} settlers and {h} homes",
+    "needs_landmarks": "and its well and market standing",
+    "name": "Its name",
+    "rename": "Rename",
+    "plan": "The plan",
+    "plan_hint": "Choose how it's laid out: the street is laid at once; homes, the well and the market go where the plan says.",
+    "plan_done": "{layout}: {n} of {of} home plots taken.",
+    "settlers_hint": "Invite villagers to come and live here (talk to them): those who meant to leave anyway, the homeless, the out of work — or friends. Some newcomers to the valley come here of their own accord.",
+    "store": "The store, for the winter",
+    "store_empty": "Nothing in store.",
+    "winter_days": "In winter: {food} food and {wood} firewood a day",
+    "days_n": "{n} day(s)",
+    "hungry": "Hungry for {n} day(s) — at {max} a household will give up.",
+    "store_hint": "Bring food and firewood to the founding stone (E: Leave supplies) before the winter.",
+    "tax": "Taxes",
+    "tax_low": "{n} a week each — easy on the settlers; more newcomers come.",
+    "tax_normal": "{n} a week each.",
+    "tax_high": "{n} a week each — a fuller purse, but fewer newcomers come.",
+    "donate": "Give to its purse",
+    "donate_hint": "Your own money, for its homes and landmarks.",
+    "built": "Built",
+    "building": "Being built",
+    "build": "Build ({money})",
+    "log": "What's happened there"
+  },
+  "colony_name": {
+    "0": "Newhope",
+    "1": "Oakstead",
+    "2": "Brightwater",
+    "3": "Stonecross",
+    "4": "Fairhaven",
+    "5": "Willowby",
+    "6": "Highfield",
+    "7": "Ashford",
+    "8": "Greenhollow",
+    "9": "Millbrook",
+    "10": "Kingsrest",
+    "11": "Southmere"
+  },
+  "colony_stage": {
+    "camp": "Camp",
+    "hamlet": "Hamlet",
+    "village": "Village"
+  },
+  "colony_layout": {
+    "street": "Along a street",
+    "green": "Round a village green"
+  },
+  "colony_landmark": {
+    "well": "The well",
+    "well_desc": "Water for everyone ({money} from its purse).",
+    "market": "The market",
+    "market_desc": "A shop run by one of the settlers, helped by the purse ({money})."
+  },
+  "colony_plot": {
+    "home": "home plot",
+    "well": "the well",
+    "market": "the market"
+  },
+  "colony_log": {
+    "founded": "The settlement was founded.",
+    "planned": "Laid out: {layout}.",
+    "settled": "{npc} came to live here ({n}).",
+    "supplies": "Supplies left for the store ({n}).",
+    "landmark": "Work began on {landmark}.",
+    "gave_up": "{npc}'s household gave up after a hungry winter."
   }
 }

@@ -118,6 +118,9 @@ import { FinanceSystem } from '../systems/FinanceSystem.js';
 import { GoalSystem } from '../systems/GoalSystem.js';
 import { SettlementSystem } from '../systems/SettlementSystem.js';
 import { LegacySystem } from '../systems/LegacySystem.js';
+import { DynastySystem } from '../systems/DynastySystem.js';
+import { InventionSystem } from '../systems/InventionSystem.js';
+import { ColonySystem } from '../systems/ColonySystem.js';
 import { CivicSystem } from '../systems/CivicSystem.js';
 import { LedgerSystem } from '../systems/LedgerSystem.js';
 import { LettingSystem } from '../systems/LettingSystem.js';
@@ -217,6 +220,9 @@ export class Simulation {
     this.study = new StudySystem(this);
     this.eduworld = new EducationWorldSystem(this);
     this.legacy = new LegacySystem(this);
+    this.dynasty = new DynastySystem(this); // raising the children, the heir, marriage alliances
+    this.inventions = new InventionSystem(this); // your inventions, patents and royalties
+    this.colony = new ColonySystem(this); // a settlement of your own
     this.civic = new CivicSystem(this); // it weighs up everyone and everything
     this.letting = new LettingSystem(this);
     this.housing = new HousingSystem(this); // how villagers choose where to live

@@ -235,6 +235,46 @@ function drawWoodenWagon(frame) {
   return c;
 }
 
+/** A rowboat: 30×14, bow to the right; the oars dip on the second frame. */
+function drawRowboat(frame) {
+  const c = makeCanvas(30, 14);
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#6b4a2b';
+  ctx.beginPath();
+  ctx.moveTo(2, 5);
+  ctx.lineTo(28, 5);
+  ctx.lineTo(24, 12);
+  ctx.lineTo(6, 12);
+  ctx.closePath();
+  ctx.fill();
+  rect(ctx, 3, 4, 25, 2, '#a07448');
+  rect(ctx, 12, 6, 6, 2, '#8a6038');
+  ctx.strokeStyle = '#d8c090';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(15, 7);
+  ctx.lineTo(frame ? 7 : 9, frame ? 13 : 11);
+  ctx.moveTo(15, 7);
+  ctx.lineTo(frame ? 23 : 21, frame ? 13 : 11);
+  ctx.stroke();
+  return c;
+}
+
+/** A barge: 46×18, flat and heavy, with crates aboard; a ripple at the bow. */
+function drawBarge(frame) {
+  const c = makeCanvas(46, 18);
+  const ctx = c.getContext('2d');
+  rect(ctx, 2, 8, 42, 8, '#5a3c22');
+  rect(ctx, 2, 7, 42, 2, '#8f6436');
+  rect(ctx, 8, 3, 9, 5, '#b8864e');
+  rect(ctx, 19, 2, 10, 6, '#c8a06a');
+  rect(ctx, 31, 4, 8, 4, '#a8783e');
+  ctx.fillStyle = frame ? 'rgba(220,240,255,0.7)' : 'rgba(220,240,255,0.4)';
+  ctx.fillRect(43, 13 + frame, 3, 2);
+  ctx.fillRect(0, 14 - frame, 3, 2);
+  return c;
+}
+
 /** A pack horse: 30×26. */
 function drawPackHorse(frame) {
   const c = makeCanvas(30, 26);
@@ -294,6 +334,8 @@ export function createEquipmentTextures(scene, addCanvas) {
     addCanvas(scene, `eq_pack_horse_${f}`, drawPackHorse(f));
     addCanvas(scene, `eq_horse_cart_${f}`, drawHorseCart(f));
     addCanvas(scene, `eq_wagon_${f}`, drawHorseCart(f));
+    addCanvas(scene, `eq_rowboat_${f}`, drawRowboat(f));
+    addCanvas(scene, `eq_barge_${f}`, drawBarge(f));
   }
   for (const k of ['wood', 'stone', 'misc']) addCanvas(scene, `eq_load_${k}`, drawLoad(k));
   addCanvas(scene, 'eq_bundle', drawSack());

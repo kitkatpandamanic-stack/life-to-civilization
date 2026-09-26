@@ -12,6 +12,7 @@ import { statusGroup, placeText } from '../workerCard.js';
 import { buildingActivity, buildingIcon } from '../buildingCard.js';
 import { contractPlace } from '../contracts.js';
 import { PUBLIC_TYPES } from '../../data/housing.js';
+import { colonyName } from './ColonyPanel.js';
 import { PLOTS } from '../../data/land.js';
 
 /** Map layers — one at a time, only when you ask for it. */
@@ -583,6 +584,23 @@ export class MapPanel extends Panel {
       ctx.fill();
       ctx.fillStyle = '#1a1410';
       ctx.fillText(mark, x, y + 4);
+    }
+    // Your settlement (ColonySystem): its reach and its name.
+    const Cy = sim.state.colony;
+    if (Cy) {
+      ctx.strokeStyle = '#ffcf5a';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      ctx.arc(Cy.tx * SCALE, Cy.ty * SCALE, 12 * SCALE, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      const label = `🏕️ ${colonyName(sim)}`;
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = 'rgba(20,14,8,0.85)';
+      ctx.strokeText(label, Cy.tx * SCALE, (Cy.ty - 13) * SCALE);
+      ctx.fillStyle = '#ffcf5a';
+      ctx.fillText(label, Cy.tx * SCALE, (Cy.ty - 13) * SCALE);
     }
     for (const h of sim.state.exploration.hamlets || []) {
       const label = hamletName(h.nameIdx);

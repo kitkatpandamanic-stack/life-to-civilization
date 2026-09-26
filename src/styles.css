@@ -476,6 +476,7 @@ h3:first-child { margin-top: 0; }
 .ol-job { border-color: rgba(255, 207, 90, 0.6); }
 .ol-store { border-color: rgba(143, 208, 143, 0.45); }
 .ol-mine { border-color: var(--c-primary-2); }
+.ol-plot { border-style: dashed; background: rgba(20, 14, 9, 0.55); color: var(--c-text-2); }
 
 /* In-world interaction prompt: what it is, and what the keys do — gone when you walk away */
 .world-prompt { position: absolute; transform: translate(-50%, -100%); pointer-events: none !important; text-align: center; white-space: nowrap; filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.45)); animation: promptIn var(--t-fast) ease-out; }
@@ -887,6 +888,22 @@ table.books tr.today { color: var(--c-primary); }
 .mg-item { display: grid; grid-template-columns: 24px 1fr auto; align-items: center; gap: 6px; padding: 3px 0; border-bottom: 1px dashed var(--c-divider); font-size: var(--fs-body); }
 .mg-item b { font-variant-numeric: tabular-nums; }
 @media (max-width: 700px) { .mg-row { grid-template-columns: 28px 1fr auto; } .mg-cond, .mg-row .status { display: none; } }
+
+/* Family tree (Character → Family) */
+.fam-tree { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px; border-radius: var(--r-md); background: var(--c-surface-2); border: 1px solid var(--c-divider); margin-bottom: 8px; }
+.fam-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.fam-node { display: flex; align-items: center; gap: 8px; padding: 5px 10px; border-radius: var(--r-md); background: var(--c-surface); border: 1px solid var(--c-border); font-size: var(--fs-small); }
+.fam-node .portrait { border-radius: 50%; border-width: 1px; }
+.fam-node.you { border-color: var(--c-selected); }
+.fam-node.heir { border-color: var(--c-selected); box-shadow: 0 0 8px rgba(255, 207, 90, 0.3); }
+.fam-node.past { opacity: 0.75; }
+.fam-node.small { padding: 3px 8px; }
+.fam-ghost { font-size: var(--fs-heading); width: 32px; text-align: center; }
+.fam-plus { color: var(--c-text-3); font-weight: 900; }
+.fam-arrow { color: var(--c-text-3); line-height: 1; }
+.fam-child .card-end { min-width: 150px; }
+.fam-matches { margin-top: 6px; }
+.fam-matches .portrait { vertical-align: middle; border-radius: 50%; }
 
 /* Menu */
 .menu-col { display: grid; gap: 10px; }

@@ -29,6 +29,7 @@ import { InteriorView } from '../game/InteriorView.js';
 import { ConstructionViews } from '../game/ConstructionViews.js';
 import { BuildMode } from '../game/BuildMode.js';
 import { CameraDirector } from '../game/CameraDirector.js';
+import { INVENT } from '../data/inventions.js';
 import { WorldOverlay } from '../game/WorldOverlay.js';
 import { FieldViews } from '../game/FieldViews.js';
 import { AnimalViews } from '../game/AnimalViews.js';
@@ -412,6 +413,44 @@ export class GameScene extends Phaser.Scene {
    * Learning (or teaching) takes time: a class, a private lesson, a shift beside your master,
    * a lesson you give, an hour at the library, a week at a university (StudySystem).
    */
+  /** Two hours at the bench on your invention (InventionSystem). */
+  inventTime() {
+    if (this.busy) return;
+    const sim = this.sim;
+    const chk = sim.inventions.canWork();
+    if (!chk.ok) return sim.toast(`reason.${chk.reason}`, chk.params || {}, 'warn');
+    const id = sim.inventions.S.project.id;
+    this.busy = true;
+    this.player.cancelAction();
+    this.ui.showStatus('inventing', { invention: id });
+    sim.time.fastForward(INVENT.sessionMinutes, BALANCE.jobs.shiftRealMs * 0.6, () => {
+      const r = sim.inventions.work();
+      this.busy = false;
+      this.ui.hideStatus();
+      if (!r.ok) return;
+      if (r.finished) sim.toast('toast.invented', { invention: id }, 'good');
+      else sim.toast(r.setback ? 'toast.invent_setback' : 'toast.invent_progress', { invention: id, n: r.pct }, r.setback ? 'warn' : 'info');
+      this.ui.openInventions();
+    });
+  }
+
+  /** An hour with one of your children (DynastySystem): teach them a skill, take them to work, or play. */
+  familyTime(kind, childId, skill = null) {
+    if (this.busy) return;
+    const sim = this.sim;
+    const chk = sim.dynasty.canSpend(childId, kind, skill);
+    if (!chk.ok) return sim.toast(`reason.${chk.reason}`, chk.params || {}, 'warn');
+    this.busy = true;
+    this.player.cancelAction();
+    this.ui.showStatus(`family_${kind}`, { npc: childId, skill });
+    sim.time.fastForward(60, BALANCE.jobs.shiftRealMs * 0.5, () => {
+      const r = sim.dynasty.spend(childId, kind, skill);
+      this.busy = false;
+      this.ui.hideStatus();
+      if (r.ok) sim.toast(r.trait ? 'toast.child_hard_worker' : `toast.child_${kind}`, { npc: childId, skill: skill ? `skill.${skill}.name` : undefined, n: r.pts }, 'good');
+    });
+  }
+
   study(kind, arg = null, extra = null) {
     if (this.busy) return;
     const sim = this.sim;

@@ -7,7 +7,7 @@ import { Panel } from '../Panel.js';
 import { t, npcName, itemName, fmtMoney } from '../../i18n/i18n.js';
 import { tr, escapeHtml } from '../format.js';
 import { button, status, emptyState, bar, tabs, statGrid, stat, notice, icon } from '../widgets.js';
-import { FREIGHT, CARAVAN } from '../../data/freight.js';
+import { FREIGHT, CARAVAN, RIVER } from '../../data/freight.js';
 import { EQUIPMENT } from '../../data/transport.js';
 
 const STEP = 10;
@@ -130,6 +130,15 @@ export class FreightPanel extends Panel {
         <div class="card-sub">${escapeHtml(t('freight.eta', { n: days.toFixed(1) }))}${c.stage === 'back' ? ` · ${escapeHtml(t('freight.sold_for', { money: fmtMoney(Math.round(c.sold - c.spent)) }))}` : ''}${c.robbed ? ` · <span class="danger">${escapeHtml(t('freight.robbed'))}</span>` : ''}</div></div></div>
         <div class="small muted">${Object.entries(c.cargo).map(([i, n]) => `${n} ${escapeHtml(itemName(i))}`).join(', ')}</div></div>`;
     }
+    // Your dock: order a boat (a rowboat, a barge).
+    if (F.docks().length) {
+      html += `<div class="setting-row"><div><b>⚓ ${escapeHtml(t('freight.boats_title'))}</b><div class="hint">${escapeHtml(t('freight.boats_hint'))}</div></div><div class="btn-row">${['rowboat', 'barge']
+        .map((type) => {
+          const c = F.canOrderBoat(type);
+          return button(`${EQUIPMENT[type].icon} ${t(`equip.${type}`)} ${fmtMoney(EQUIPMENT[type].price)} (${EQUIPMENT[type].cap})`, 'order_boat', { type }, { cls: 'sm', disabled: !c.ok, title: c.ok ? '' : tr(sim, `reason.${c.reason}`, c.params || {}) });
+        })
+        .join('')}</div></div>`;
+    }
     const dests = F.destinations();
     if (!dests.length) return html + emptyState('🗺️', t('freight.no_contacts'), t('freight.no_contacts_text'));
     const eqs = F.caravanEquipment();
@@ -143,15 +152,19 @@ export class FreightPanel extends Panel {
     if (d.guard === d.driver || (d.guard && !drivers.some((n) => n.id === d.guard))) d.guard = null;
     const S = sim.settlements;
     const eq = sim.equipment.byId(d.eq);
-    const cap = sim.equipment.cap(eq);
+    const cap = F.caravanCap(eq);
+    const boat = F.isBoat(eq);
+    if (boat && !S.def(d.to).water) d.to = dests.find((id) => S.def(id).water) || d.to;
     const units = Object.values(d.cargo).reduce((a, b) => a + b, 0);
     const row = (label, inner) => `<div class="setting-row"><div><b>${escapeHtml(label)}</b></div><div class="btn-row wrap">${inner}</div></div>`;
     html += `<h4>${escapeHtml(t('freight.new_caravan'))}</h4>`;
     html += row(
       t('freight.to'),
-      dests.map((id) => button(`${t(`settlement_name.${id}`)} · ${t('freight.days', { n: F.caravanDays(id, eq.type) })}${S.danger(id) > 0.1 ? ' ⚠️' : ''}`, 'd_to', { v: id }, { cls: `sm ${d.to === id ? 'selected' : 'ghost'}` })).join(''),
+      dests.map((id) => button(`${S.def(id).water ? '🌊 ' : ''}${t(`settlement_name.${id}`)} · ${t('freight.days', { n: F.caravanDays(id, eq.type) })}${!boat && S.danger(id) > 0.1 ? ' ⚠️' : ''}`, 'd_to', { v: id }, { cls: `sm ${d.to === id ? 'selected' : 'ghost'}`, disabled: boat && !S.def(id).water })).join(''),
     );
-    html += row(t('freight.cart'), eqs.map((e) => button(`${EQUIPMENT[e.type]?.icon || ''} ${t(`equip.${e.type}`)} (${sim.equipment.cap(e)})`, 'd_eq', { v: e.id }, { cls: `sm ${d.eq === e.id ? 'selected' : 'ghost'}` })).join(''));
+    // By boat: the river's mood today.
+    if (boat) html += notice(sim.seasons?.flooding() ? 'danger' : F.lowWater() ? 'warn' : 'info', escapeHtml(t(sim.seasons?.flooding() ? 'freight.river_flood' : F.lowWater() ? 'freight.river_low' : 'freight.river_ok', { n: Math.round(RIVER.pirates * 100) })), '🌊');
+    html += row(t('freight.cart'), eqs.map((e) => button(`${EQUIPMENT[e.type]?.icon || ''} ${t(`equip.${e.type}`)} (${F.caravanCap(e)})`, 'd_eq', { v: e.id }, { cls: `sm ${d.eq === e.id ? 'selected' : 'ghost'}` })).join(''));
     html += row(t('freight.driver'), drivers.map((n) => button(npcName(n), 'd_driver', { v: n.id }, { cls: `sm ${d.driver === n.id ? 'selected' : 'ghost'}` })).join(''));
     html += row(
       t('freight.guard'),
@@ -175,7 +188,7 @@ export class FreightPanel extends Panel {
     const buys = Object.keys(S.def(d.to).produces);
     html += row(t('freight.bring_back'), button(t('freight.nothing'), 'd_buy', { v: '' }, { cls: `sm ${!d.buy ? 'selected' : 'ghost'}` }) + buys.map((i) => button(`${itemName(i)} ${fmtMoney(S.buyPrice(d.to, i, { player: false }))}`, 'd_buy', { v: i }, { cls: `sm ${d.buy === i ? 'selected' : 'ghost'}` })).join(''));
     const chk = F.canSend(d);
-    const danger = Math.round(S.danger(d.to) * CARAVAN.robbery * (d.guard ? CARAVAN.guardCut : 1) * 100);
+    const danger = Math.round(F.risk(d.to, eq, d.guard) * 100);
     html += `<div class="small">${escapeHtml(t('freight.estimate', { money: fmtMoney(F.estimate(d.to, d.cargo)), n: F.caravanDays(d.to, eq.type) * 2, risk: danger }))}</div>`;
     if (!chk.ok && units) html += `<div class="small warn">${escapeHtml(tr(sim, `reason.${chk.reason}`, chk.params || {}))}</div>`;
     html += `<div class="btn-row">${button(t('freight.send'), 'send', {}, { cls: 'primary', disabled: !chk.ok })}</div>`;
@@ -192,7 +205,10 @@ export class FreightPanel extends Panel {
     else if (action === 'found') warn(F.found());
     else if (action === 'close_co') F.close();
     else if (action === 'rate') F.setRate(data.r);
-    else if (action === 'd_to') d.to = data.v;
+    else if (action === 'order_boat') {
+      const r = F.orderBoat(data.type);
+      sim.toast(r.ok ? 'toast.boat_ordered' : `reason.${r.reason}`, r.ok ? { eq: data.type, money: r.price } : r.params || {}, r.ok ? 'good' : 'warn');
+    } else if (action === 'd_to') d.to = data.v;
     else if (action === 'd_eq') d.eq = data.v;
     else if (action === 'd_driver') d.driver = data.v;
     else if (action === 'd_guard') d.guard = data.v || null;

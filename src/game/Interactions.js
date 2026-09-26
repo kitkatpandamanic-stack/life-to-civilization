@@ -365,6 +365,8 @@ function furnitureActions(scene, type, add) {
     case 'stove': {
       const unlocked = sim.progression.hasUnlock('crafting');
       add(`action.craft_${type}`, {}, () => ui.openCraft(type), unlocked ? OK : { ok: false, reason: 'locked', params: { level: sim.progression.unlockLevel('crafting') } });
+      // Your own ideas, worked out at the bench (InventionSystem).
+      if (type === 'workbench') add('action.invent', {}, () => ui.openInventions());
       break;
     }
     case 'shelf':
@@ -444,6 +446,8 @@ function buildingActions(scene, id, add) {
   // Your own business.
   if (bizId && sim.holdings.isMine(bizId)) {
     add('action.manage_enterprise', {}, () => ui.openEnterprise(bizId));
+    // A workshop of yours has a bench for your own ideas (InventionSystem).
+    if (['smithy', 'carpentry', 'sawmill', 'factory', 'brickworks'].includes(def?.type)) add('action.invent', {}, () => ui.openInventions());
     // Your hired workers: send them to work here (they join the staff).
     if (econ.def(bizId)?.workerOccupation && sim.workers.list().length) add('action.send_workers_here', {}, () => ui.openEnterprise(bizId, 'workers'));
     add('action.work_own_shift', {}, () => scene.workOwnShift(bizId), p.energy >= 15 ? OK : { ok: false, reason: 'too_tired' });
@@ -475,6 +479,16 @@ function buildingActions(scene, id, add) {
     if (y) add('action.collect_yard', { n: y }, () => sim.trains.collect());
     add('action.station', {}, () => ui.openStation());
   }
+  // The founding stone of your settlement (ColonySystem): its affairs, and supplies for its store.
+  if (sim.world.buildings[id]?.type === 'founding_stone' && sim.colony?.exists()) {
+    add('action.colony', {}, () => ui.openColony());
+    add('action.colony_supplies', {}, () => {
+      const r = sim.colony.leaveSupplies();
+      sim.toast(r.ok ? 'toast.colony_supplies' : `reason.${r.reason}`, { n: r.n, colony: sim.colony.nameKey() }, r.ok ? 'good' : 'warn');
+    });
+  }
+  // Your dock: boats and trips down the river (FreightSystem caravans by boat).
+  if (sim.world.buildings[id]?.type === 'dock' && sim.property.rec(id)?.owner === 'player') add('action.dock', {}, () => ui.openFreight({ tab: 'caravans' }));
   // Your transport depot: the carting company and your caravans.
   if (sim.world.buildings[id]?.type === 'transport_depot' && sim.property.rec(id)?.owner === 'player') add('action.carting_company', {}, () => ui.openFreight());
 

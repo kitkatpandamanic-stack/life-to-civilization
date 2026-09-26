@@ -23,7 +23,7 @@
  * Which loads come to you is decided by a hash of the shipment (no dice), so signing up never changes
  * anything else that happens in the game.
  */
-import { FREIGHT as F, CARAVAN as CV } from '../data/freight.js';
+import { FREIGHT as F, CARAVAN as CV, RIVER } from '../data/freight.js';
 import { EQUIPMENT } from '../data/transport.js';
 import { TRADE } from '../data/settlements.js';
 import { ITEMS } from '../data/items.js';
@@ -356,10 +356,125 @@ export class FreightSystem {
 
   // ------------------------------------------------------------------ caravans
 
-  /** Carts and wagons of yours that could go on the road now. */
+  /** Carts and wagons of yours that could go on the road now — and boats moored at your dock. */
   caravanEquipment() {
     const E = this.sim.equipment;
-    return E.mine().filter((e) => CV.kinds.includes(EQUIPMENT[e.type]?.kind) && E.usable(e) && e.at.kind === 'ground' && !e.holder);
+    return E.mine().filter((e) => (CV.kinds.includes(EQUIPMENT[e.type]?.kind) || this.isBoat(e)) && E.usable(e) && e.at.kind === 'ground' && !e.holder);
+  }
+
+  // ------------------------------------------------------------------ the river (boats from your dock)
+
+  isBoat(e) {
+    return EQUIPMENT[e?.type || e?.eqType]?.kind === 'boat';
+  }
+
+  /** Your docks (finished). */
+  docks() {
+    return this.sim.construction.finished().filter((c) => c.type === 'dock').map((c) => c.id);
+  }
+
+  /** Where boats tie up at a dock: the water tiles beside it, nearest its door first (slot: the nth boat's place). */
+  mooring(dockId, slot = 0) {
+    const b = this.sim.world.buildings[dockId];
+    if (!b) return null;
+    const W = this.sim.world;
+    const spots = [];
+    for (let y = b.ty - 2; y <= b.ty + b.h + 1; y++) {
+      for (let x = b.tx - 2; x <= b.tx + b.w + 1; x++) if (W.isWater(x, y)) spots.push({ tx: x, ty: y, d: Math.abs(x - b.door.tx) + Math.abs(y - b.door.ty) });
+    }
+    if (!spots.length) return { tx: b.door.tx, ty: b.door.ty };
+    spots.sort((a, c) => a.d - c.d || a.ty - c.ty || a.tx - c.tx);
+    const s = spots[Math.min(spots.length - 1, slot * 2)]; // (every other tile: room between the boats)
+    return { tx: s.tx, ty: s.ty };
+  }
+
+  /** A boat's own place at its dock (the boats tie up side by side). */
+  berth(e) {
+    const boats = this.sim.equipment.mine().filter((x) => this.isBoat(x));
+    return this.mooring(e.home || this.docks()[0], Math.max(0, boats.indexOf(e)));
+  }
+
+  /** The way down the river from a dock to the valley's edge: tile centres (found once, then kept). */
+  riverPath(dockId) {
+    const W = this.sim.world;
+    this.riverCache ??= {};
+    const key = `${dockId}:${W.rev || 0}`;
+    if (this.riverCache[key]) return this.riverCache[key];
+    const start = this.mooring(dockId);
+    if (!start) return null;
+    const seen = new Map([[`${start.tx},${start.ty}`, null]]);
+    const q = [start];
+    let end = null;
+    while (q.length && !end) {
+      const c = q.shift();
+      if (c.tx <= 0 || c.ty <= 0 || c.tx >= W.W - 1 || c.ty >= W.H - 1) {
+        end = c;
+        break;
+      }
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const n = { tx: c.tx + dx, ty: c.ty + dy };
+        const k = `${n.tx},${n.ty}`;
+        if (seen.has(k) || !W.isWater(n.tx, n.ty)) continue;
+        seen.set(k, c);
+        q.push(n);
+      }
+    }
+    if (!end) return (this.riverCache[key] = null);
+    const path = [];
+    for (let c = end; c; c = seen.get(`${c.tx},${c.ty}`)) path.push(W.tileCenter(c.tx, c.ty));
+    return (this.riverCache[key] = path.reverse());
+  }
+
+  /** Order a boat at your dock (built by the carpentry, if the valley has one — else by the village's boatwright). */
+  canOrderBoat(type) {
+    const sim = this.sim;
+    const d = EQUIPMENT[type];
+    if (d?.kind !== 'boat') return { ok: false, reason: 'nothing_here' };
+    if (!sim.tech.has(d.needs)) return { ok: false, reason: 'needs_tech', params: { tech: d.needs } };
+    if (!this.docks().length) return { ok: false, reason: 'need_dock' };
+    if (sim.state.player.level < (d.minLevel || 0)) return { ok: false, reason: 'need_level', params: { level: d.minLevel } };
+    if (sim.state.player.money < d.price) return { ok: false, reason: 'no_money', params: { money: d.price } };
+    return { ok: true, price: d.price };
+  }
+
+  orderBoat(type) {
+    const chk = this.canOrderBoat(type);
+    if (!chk.ok) return chk;
+    const sim = this.sim;
+    const E = sim.economy;
+    const maker = E.active().find((b) => E.def(b)?.type === 'carpentry');
+    sim.state.player.money -= chk.price;
+    if (maker) {
+      E.biz(maker).money += chk.price;
+      E.ledger(maker, 'rev', chk.price);
+    } else sim.state.village.treasury += chk.price;
+    const dock = this.docks()[0];
+    const eq = sim.equipment.create(type, { at: { kind: 'ground', tx: 0, ty: 0 } });
+    eq.home = dock;
+    const m = this.berth(eq);
+    eq.at = { kind: 'ground', tx: m.tx, ty: m.ty };
+    sim.equipment.log?.('bought', eq);
+    sim.chronicle('chronicle.eq_bought', { eq: type });
+    sim.bus.emit('equipment:changed');
+    return { ok: true, id: eq.id, price: chk.price };
+  }
+
+  /** A dry summer: the river runs low this year (by a fixed hash of the year — no dice). */
+  lowWater() {
+    const T = this.sim.time;
+    return T.season === 'summer' && hashStr(`lowwater:${T.year}`, this.sim.state.seed) < RIVER.lowWaterChance;
+  }
+
+  /** What this cart or boat can take on this trip (a barge in low water takes less). */
+  caravanCap(e) {
+    const cap = this.sim.equipment.cap(e);
+    return e.type === 'barge' && this.lowWater() ? Math.floor(cap * RIVER.lowWaterCap) : cap;
+  }
+
+  /** The chance of being robbed on the way (bandits on the road, pirates on the river). */
+  risk(to, e, guard) {
+    if (this.isBoat(e)) return RIVER.pirates * (guard ? RIVER.guardCut : 1);
+    return this.sim.settlements.danger(to) * CV.robbery * (guard ? CV.guardCut : 1);
   }
 
   /** Your workers who could drive (not away, not posted elsewhere). */
@@ -377,7 +492,7 @@ export class FreightSystem {
 
   /** Days there (one way) with this equipment. */
   caravanDays(to, eqType) {
-    return this.sim.settlements.days(to, CV.speed[eqType] || 1);
+    return this.sim.settlements.days(to, RIVER.speed[eqType] || CV.speed[eqType] || 1);
   }
 
   /** What the cargo would fetch there (at their prices now). */
@@ -403,9 +518,14 @@ export class FreightSystem {
     const d = this.drivers().find((n) => n.id === driver);
     if (!d) return { ok: false, reason: 'need_driver' };
     if (guard && (guard === driver || !this.drivers().some((n) => n.id === guard))) return { ok: false, reason: 'need_driver' };
+    if (this.isBoat(e)) {
+      // By water: only to the towns on the water, and not while the river's in flood.
+      if (!sim.settlements.def(to).water) return { ok: false, reason: 'not_on_water' };
+      if (sim.seasons?.flooding()) return { ok: false, reason: 'river_flooded' };
+    }
     const units = Object.values(cargo).reduce((a, b) => a + b, 0);
     if (units < CV.minCargo) return { ok: false, reason: 'cargo_small', params: { n: CV.minCargo } };
-    if (units > E.cap(e)) return { ok: false, reason: 'cargo_big', params: { n: E.cap(e) } };
+    if (units > this.caravanCap(e)) return { ok: false, reason: this.isBoat(e) && this.lowWater() ? 'low_water' : 'cargo_big', params: { n: this.caravanCap(e) } };
     for (const [item, n] of Object.entries(cargo)) if (sim.home.storageCount(item) < n) return { ok: false, reason: 'not_in_storage', params: { item } };
     return { ok: true, days: this.caravanDays(to, e.type), units, worth: this.estimate(to, cargo) };
   }
@@ -436,6 +556,8 @@ export class FreightSystem {
       got: {},
       robbed: false,
       days: chk.days,
+      boat: this.isBoat(e) || undefined,
+      dock: this.isBoat(e) ? e.home || this.docks()[0] : undefined,
     };
     e.at = { kind: 'away', caravan: c.id };
     delete e.cargo;
@@ -456,11 +578,11 @@ export class FreightSystem {
     const sim = this.sim;
     const S = sim.settlements;
     const s = S.get(c.to);
-    // Bandits on the road (half the danger with a guard along).
-    const risk = S.danger(c.to) * CV.robbery * (c.guard ? CV.guardCut : 1);
+    // Bandits on the road (half the danger with a guard along) — or pirates on the river.
+    const risk = this.risk(c.to, { type: c.eqType }, c.guard);
     if (rand.chance(risk)) {
       c.robbed = true;
-      for (const item of Object.keys(c.cargo)) c.cargo[item] = Math.floor(c.cargo[item] * CV.robbedKeep);
+      for (const item of Object.keys(c.cargo)) c.cargo[item] = Math.floor(c.cargo[item] * (c.boat ? RIVER.robbedKeep : CV.robbedKeep));
     }
     for (const [item, n] of Object.entries(c.cargo)) {
       for (let i = 0; i < n; i++) {
@@ -494,7 +616,9 @@ export class FreightSystem {
     const sim = this.sim;
     const E = sim.equipment;
     this.S.caravans.splice(this.S.caravans.indexOf(c), 1);
-    const at = sim.exploration.waymark();
+    // A boat comes home to its dock (its crew step ashore there); a cart to the waymark.
+    const dock = c.boat && sim.world.buildings[c.dock];
+    const at = dock ? sim.world.tileCenter(dock.door.tx, dock.door.ty) : sim.exploration.waymark();
     for (const id of [c.driver, c.guard].filter(Boolean)) {
       const n = sim.npcs.byId(id);
       if (n) {
@@ -506,9 +630,9 @@ export class FreightSystem {
     // The cart: back at the waymark, worn by the road (your workers bring it to the yard).
     const e = E.byId(c.eq);
     if (e) {
-      const t = sim.world.toTile(at.x, at.y);
-      E.park(e, t.tx, t.ty);
-      e.condition = Math.max(5, e.condition - CV.wearPerDay * c.days * 2);
+      const m = dock ? this.berth(e) : sim.world.toTile(at.x, at.y);
+      E.park(e, m.tx, m.ty);
+      e.condition = Math.max(5, e.condition - (c.boat ? RIVER.wearPerDay : CV.wearPerDay) * c.days * 2);
     }
     for (const [item, n] of Object.entries(c.got)) sim.home.store(item, n, { force: true });
     const net = c.sold - c.spent;
@@ -527,6 +651,27 @@ export class FreightSystem {
     sim.bus.emit('equipment:changed');
   }
 
+  /** A boat on the river: down it from the dock (and back up it), the first and last few hours. */
+  boatPosition(c) {
+    const path = this.riverPath(c.dock);
+    if (!path || path.length < 2) return null;
+    const now = this.sim.time.total + (this.sim.time.acc || 0) / 600;
+    const leg = 180;
+    let t;
+    if (c.stage === 'out' && now - c.depart < leg) t = (now - c.depart) / leg;
+    else if (c.stage === 'back' && c.back - now < leg) t = 1 - (c.back - now) / leg;
+    else return null;
+    const f = Math.max(0, Math.min(1, t)) * (path.length - 1);
+    const i = Math.min(path.length - 2, Math.floor(f));
+    const a = path[i];
+    const b = path[i + 1];
+    const k = f - i;
+    const dx = (b.x - a.x) * (c.stage === 'back' ? -1 : 1);
+    const dy = (b.y - a.y) * (c.stage === 'back' ? -1 : 1);
+    const facing = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up';
+    return { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, facing, moving: true, boat: true };
+  }
+
   /** The takings (their own methods, so the ledger files them as trade and wages). */
   caravanPaid(net) {
     this.sim.state.player.money += net;
@@ -537,6 +682,7 @@ export class FreightSystem {
 
   /** Where a caravan is, on the valley's roads (the first and last few hours): for drawing it. */
   caravanPosition(c) {
+    if (c?.boat) return this.boatPosition(c);
     const L = this.sim.logistics;
     const way = this.sim.exploration?.waymark();
     const base = this.sim.workers.baseBuilding()?.id;

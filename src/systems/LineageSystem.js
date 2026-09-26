@@ -17,7 +17,7 @@
 import { PERKS } from '../data/perks.js';
 import { rand, hashStr } from '../core/rng.js';
 import { LOOK_PALETTE } from '../data/npcs.js';
-import { TRAITS } from '../data/traits.js';
+import { TRAITS, consistentTraits } from '../data/traits.js';
 import { SKILLS } from '../data/skills.js';
 import { HOME_ORDER } from '../data/homes.js';
 
@@ -185,7 +185,7 @@ export class LineageSystem {
     const spouse = this.spouse();
     const gender = rand.chance(0.5) ? 'm' : 'f';
     const allTraits = Object.keys(TRAITS);
-    const traits = [...new Set([rand.pick(spouse?.traits || allTraits), rand.pick(allTraits)])];
+    const traits = consistentTraits([rand.pick(spouse?.traits || allTraits), rand.pick(allTraits)]);
     const baby = sim.npcs.spawn({
       gender,
       nameIdx: sim.family.pickName(gender, [spouse, ...this.children()].filter(Boolean)),
@@ -241,9 +241,11 @@ export class LineageSystem {
 
   /** Children old enough to carry on. */
   heirs() {
+    // The heir you named (DynastySystem) first; otherwise the eldest.
+    const chosen = this.sim.dynasty?.D.heir;
     return this.children()
       .filter((c) => c.age >= PLAYER_LIFE.heirMinAge)
-      .sort((a, b) => b.age - a.age);
+      .sort((a, b) => (b.id === chosen ? 1 : 0) - (a.id === chosen ? 1 : 0) || b.age - a.age);
   }
 
   canRetire() {
@@ -260,6 +262,7 @@ export class LineageSystem {
     const p = this.p;
     const gen = p.generation;
     const ancestorId = `anc${gen}`;
+    sim.dynasty?.beforeSucceed();
     const old = { generation: gen, name: p.name, nameIdx: p.nameIdx, gender: p.gender, age: p.age, how, day: sim.time.day, money: Math.round(p.money), level: p.level, children: p.children.length, id: ancestorId };
     sim.state.lineage.push(old);
 
@@ -387,6 +390,8 @@ export class LineageSystem {
         n.met = true;
       }
     }
+    // What they learned at home, and your friends and enemies — they're the family's too (DynastySystem).
+    const inherited = sim.dynasty?.afterSucceed(heir.id);
     // The heir leaves the villager roll — they're you now (their own business stays in the family).
     const heirId = heir.id;
     if (heir.owns) {
@@ -400,7 +405,7 @@ export class LineageSystem {
     sim.chronicle(how === 'died' ? 'chronicle.player_died' : 'chronicle.player_retired', { name: this.who(old), n: old.age, gender: old.gender });
     sim.chronicle('chronicle.heir_continues', { name: this.who(), n: p.generation, gender: p.gender });
     sim.bus.emit('player:succeeded', { old, heirId });
-    return { old, heir: { ...this.who(), age: p.age }, generation: p.generation };
+    return { old, heir: { ...this.who(), age: p.age }, generation: p.generation, inherited };
   }
 
   /** No child to carry on: the story continues with someone new arriving in the village. */

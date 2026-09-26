@@ -125,6 +125,8 @@ export function resolveParams(sim, params = {}) {
     else if (k === 'region') out[k] = t(`region.${v}`);
     else if (k === 'region_name') out[k] = t(`region_name.${v}`);
     else if (k === 'tech') out[k] = t(`tech.${v}.name`);
+    else if (k === 'invention') out[k] = t(`invention.${v}.name`);
+    else if (k === 'colony') out[k] = String(v).startsWith('#') ? t(`colony_name.${String(v).slice(1)}`) : v; // (its own name, or one from the list)
     else if (k === 'quality') out[k] = t(`quality.${v}`);
     else if (k === 'perk') out[k] = t(`perk.${v}.name`);
     else if (k === 'ambition') out[k] = t(`ambition.${v}.name`);

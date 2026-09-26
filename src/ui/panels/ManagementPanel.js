@@ -196,7 +196,7 @@ export class ManagementPanel extends Panel {
     const total = land.reduce((s, q) => s + T2.price(q.id), 0);
     return `${statGrid([stat(t('mgmt.parcels'), String(land.length)), stat(t('mgmt.tiles'), String(land.reduce((s, q) => s + (q.n || 0), 0))), stat(t('mgmt.land_worth'), fmtMoney(Math.round(total)))])}
       ${land.map((q) => `<div class="mg-row"><span class="mg-row-ico">🏞️</span><div class="mg-row-main"><b>${escapeHtml(this.parcelName(q.id))}</b><span class="muted small">${q.n || 0} ${escapeHtml(t('mgmt.tiles').toLowerCase())} · ${fmtMoney(Math.round(T2.price(q.id)))}</span></div><div class="mg-row-btns">${iconButton('🔍', t('bcard.inspect'), 'land', { id: q.id })}</div></div>`).join('') || emptyState('🏞️', t('mgmt.no_land'), t('mgmt.no_land_hint'))}
-      <div class="btn-row">${button(t('map.layer_ownership'), 'open_map', { layer: 'ownership' }, { ico: '🗺️' })}</div>`;
+      <div class="btn-row">${button(t('map.layer_ownership'), 'open_map', { layer: 'ownership' }, { ico: '🗺️' })}${sim.colony?.exists() ? button(t('colony.open'), 'open_colony', {}, { ico: '🏕️', cls: 'primary' }) : ''}</div>`;
   }
 
   parcelName(id) {
@@ -236,6 +236,7 @@ export class ManagementPanel extends Panel {
       return;
     }
     if (action === 'inspect') return ui.openProperty(data.id);
+    if (action === 'open_colony') return ui.openColony();
     if (action === 'land') return ui.openLand(data.id);
     if (action === 'show_building') {
       const b = sim.world.buildings[data.id];

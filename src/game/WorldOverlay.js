@@ -15,6 +15,7 @@ import { escapeHtml, buildingLabel } from '../ui/format.js';
 import { contractPlace } from '../ui/contracts.js';
 import { icon } from '../ui/widgets.js';
 import { getSetting, setSetting } from '../ui/settings.js';
+import { colonyName } from '../ui/panels/ColonyPanel.js';
 
 const TS = 32;
 const NEAR = 260; // px from you: labels show without info mode
@@ -94,6 +95,21 @@ export class WorldOverlay {
       if (!inView(p.x, p.y) || !(this.info || tracked || near(p.x, p.y))) continue;
       const pct = Math.round(sim.contracts.progress(c) * 100);
       out.push({ key: `c:${c.id}`, x: p.x, y: p.y - 58, cls: 'job', html: `<b>${KIND_ICON[c.kind] || '📜'} ${escapeHtml(t(`contract.kind.${c.kind}`))}</b><span>${pct}%</span>${(c.workers || []).length ? `<span>👷 ${c.workers.length}</span>` : ''}` });
+    }
+    // Your settlement: its name, how far it's grown and how many live there; its plan's empty plots (info mode).
+    const Cy = sim.state.colony;
+    if (Cy) {
+      const x = Cy.tx * TS + TS / 2;
+      const y = Cy.ty * TS - 34;
+      if (show(x, y, Cy.stone)) out.push({ key: 'colony', x, y, cls: sim.state.colony.hungry ? 'warn' : 'mine', html: `<b>🏕️ ${escapeHtml(colonyName(sim))}</b><span>${escapeHtml(t(`colony_stage.${Cy.stage}`))}</span><span>👪 ${sim.colony.settlers().length}</span>` });
+      if (this.info) {
+        for (const [i, p] of Cy.plan.entries()) {
+          if (p.site) continue;
+          const px = p.tx * TS + TS;
+          const py = p.ty * TS;
+          if (inView(px, py)) out.push({ key: `plot${i}`, x: px, y: py, cls: 'plot', html: `<span>${p.kind === 'home' ? '🏠' : p.kind === 'well' ? '⛲' : '🏪'} ${escapeHtml(t(`colony_plot.${p.kind}`))}</span>` });
+        }
+      }
     }
     // Info mode: your buildings' level and condition.
     if (this.info) {

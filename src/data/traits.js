@@ -11,6 +11,16 @@
  * workSpeed   — how fast they work (chopping, mining, farm output)
  * tireMult    — how early they give up and go home to rest when tired
  */
+/** Traits that can't go together (a child born to a hard worker and a lazy parent gets one of them, not both). */
+export const TRAIT_OPPOSITES = { hard_worker: 'lazy', lazy: 'hard_worker', greedy: 'generous', generous: 'greedy', careful: 'risk_taker', risk_taker: 'careful', friendly: 'aggressive', aggressive: 'friendly' };
+
+/** A trait list with no contradictions (the first of a clashing pair stays). */
+export function consistentTraits(list) {
+  const out = [];
+  for (const t of list) if (!out.includes(t) && !out.includes(TRAIT_OPPOSITES[t])) out.push(t);
+  return out;
+}
+
 export const TRAITS = {
   hard_worker: { workXp: 1.25, quitChance: 0.5, workSpeed: 1.15, tireMult: 0.6 },
   lazy: { workXp: 0.8, lateWake: 1, workSpeed: 0.85, tireMult: 1.8 },

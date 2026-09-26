@@ -15,7 +15,7 @@
  */
 import { NPC_ROSTER, LOOK_PALETTE } from '../data/npcs.js';
 import { OCCUPATIONS } from '../data/occupations.js';
-import { TRAITS } from '../data/traits.js';
+import { TRAITS, consistentTraits } from '../data/traits.js';
 import { GOALS } from '../data/goals.js';
 import { BALANCE } from '../config/balance.js';
 import { hashStr, rand } from '../core/rng.js';
@@ -285,7 +285,7 @@ export class FamilySystem {
       age: 0,
       occupation: 'child',
       homeId: mother.homeId,
-      traits: [...new Set(traits)].slice(0, 2),
+      traits: consistentTraits(traits).slice(0, 2),
       money: 0,
       look: {
         skin: rand.pick([mother.look.skin, father.look.skin]),

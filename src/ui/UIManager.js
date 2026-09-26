@@ -20,6 +20,8 @@ import { RivalPanel } from './panels/RivalPanel.js';
 import { StoryPanel } from './panels/StoryPanel.js';
 import { MeetingPanel } from './panels/MeetingPanel.js';
 import { ManagementPanel } from './panels/ManagementPanel.js';
+import { InventionPanel } from './panels/InventionPanel.js';
+import { ColonyPanel } from './panels/ColonyPanel.js';
 import { t, fmtMoney, onLanguageChange, npcName, itemName } from '../i18n/i18n.js';
 import { tr, escapeHtml, hoodLabel, districtLabel, buildingLabel } from './format.js';
 import { WEATHER_ICONS } from '../systems/WeatherSystem.js';
@@ -108,6 +110,7 @@ export class UIManager {
       sim.bus.on('works:completed', (d) => this.notifyWorks(d)),
       sim.bus.on('worker:stuck', (d) => this.notifyStuck(d)),
       sim.bus.on('construction:waiting', (c) => this.notifyMaterials(c)),
+      sim.bus.on('dynasty:offer', (o) => this.notifyOffer(o)),
       sim.bus.on('player:levelup', (d) => this.showLevelUp(d)),
       onLanguageChange(() => this.onLanguage()),
       sim.bus.on('land:changed', () => (this.landKey = null)),
@@ -568,6 +571,42 @@ export class UIManager {
     });
   }
 
+  openInventions() {
+    this.openPanel(new InventionPanel(this));
+  }
+  openColony() {
+    this.openPanel(new ColonyPanel(this));
+  }
+
+  /** A family proposes a match for one of your children. */
+  notifyOffer(o) {
+    const sim = this.sim;
+    const head = sim.npcs.byId(o.head);
+    const their = sim.npcs.byId(o.their);
+    const child = sim.npcs.byId(o.child);
+    if (!head || !their || !child) return;
+    this.notify({
+      kind: 'info',
+      ico: '💌',
+      title: t('fam.offer_title'),
+      lines: [escapeHtml(t(head === their ? 'fam.offer_self' : 'fam.offer', { head: npcName(head), their: npcName(their), child: npcName(child) }))],
+      actions: [
+        { label: t('fam.accept'), ico: '💍', run: () => sim.dynasty.answer(o.id, true) },
+        { label: t('fam.decline'), ico: '✖', run: () => sim.dynasty.answer(o.id, false) },
+        { label: t('fam.tab'), ico: '🌳', run: () => this.openCharacter('family') },
+      ],
+      sticky: true,
+    });
+  }
+
+  openCharacter(tab = 'main') {
+    this.openPanel(new CharacterPanel(this));
+    if (this.panel) {
+      this.panel.tab = tab;
+      this.renderPanel();
+    }
+  }
+
   /** A site of yours waiting for materials: what it's short of, and where it is. */
   notifyMaterials(c) {
     const sim = this.sim;
@@ -781,7 +820,7 @@ export class UIManager {
 
   updateStatus() {
     const s = this.status;
-    const icons = { sleep: '🌙', work: '🛠️', passout: '💫', collapse: '🩹', travel: '🧭', own_shift: '🏪', exploring: '🔦', journey: '🐎', study_class: '📚', study_tutor: '📖', study_beside: '⚒️', study_teach: '🧑‍🏫', study_read: '📖', study_university: '🎓' };
+    const icons = { sleep: '🌙', work: '🛠️', passout: '💫', collapse: '🩹', travel: '🧭', own_shift: '🏪', exploring: '🔦', journey: '🐎', study_class: '📚', study_tutor: '📖', study_beside: '⚒️', study_teach: '🧑‍🏫', study_read: '📖', study_university: '🎓', family_teach: '🧑‍🏫', family_work: '🔨', family_play: '🪁', inventing: '💡' };
     let pct = '';
     if (s.kind === 'work') {
       const done = Math.min(1, (this.sim.time.total - s.startTotal) / s.data.minutes);
@@ -800,6 +839,15 @@ export class UIManager {
     }
     if (s.kind === 'journey') {
       this.statusEl.innerHTML = `<div class="st-card"><div class="st-icon">${icons.journey}</div><div class="st-title">${escapeHtml(tr(this.sim, j?.stage === 'back' ? 'status.journey_home' : 'status.journey', { settlement: s.data.settlement }))}</div><div class="st-clock">${this.sim.time.clockString()}</div>${pct}</div>`;
+      return;
+    }
+    if (s.kind === 'inventing') {
+      const r = this.sim.inventions.race();
+      this.statusEl.innerHTML = `<div class="st-card"><div class="st-icon">💡</div><div class="st-title">${escapeHtml(tr(this.sim, 'status.inventing', { invention: s.data.invention }))}</div><div class="st-clock">${this.sim.time.clockString()}</div>${r ? `<div class="st-bar"><div class="fill" style="width:${r.you}%"></div></div>` : ''}</div>`;
+      return;
+    }
+    if (s.kind.startsWith('family_')) {
+      this.statusEl.innerHTML = `<div class="st-card"><div class="st-icon">${icons[s.kind] || ''}</div><div class="st-title">${escapeHtml(tr(this.sim, `status.${s.kind}`, { npc: s.data.npc, skill: s.data.skill || undefined }))}</div><div class="st-clock">${this.sim.time.clockString()}</div></div>`;
       return;
     }
     const title = s.kind === 'exploring' ? tr(this.sim, 'status.exploring', { site: s.data.site }) : s.kind === 'own_shift' ? tr(this.sim, 'status.own_shift', { building: s.data.building }) : s.kind === 'work' ? tr(this.sim, 'status.work', { job: s.data.job }) : s.kind === 'travel' ? tr(this.sim, 'status.travel', { region_name: s.data.region }) : s.kind.startsWith('study_') ? tr(this.sim, `status.${s.kind}`, s.data) : t(`status.${s.kind}`);

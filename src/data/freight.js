@@ -35,6 +35,18 @@ export const FREIGHT = {
 };
 
 /** Your own caravans: your cart, a worker driving it, goods from your storage, to another settlement. */
+/** The river (boats from your dock to the towns on the water — FreightSystem caravans with a boat). */
+export const RIVER = {
+  speed: { rowboat: 1.5, barge: 1.2 }, // × the road caravan's pace (on top of the water being quicker anyway)
+  wearPerDay: 2, // condition lost a day afloat
+  pirates: 0.16, // chance a boat is robbed on the way (the river pirates)…
+  guardCut: 0.35, // …with a guard aboard, this share of it
+  robbedKeep: 0.4,
+  lowWaterChance: 0.4, // some summers the river runs low…
+  lowWaterCap: 0.5, // …and a barge can take only this share of its load (a rowboat floats anyway)
+  dockExport: 1.05, // a dock in the valley: the village's shops get this much more for what they sell away
+};
+
 export const CARAVAN = {
   kinds: ['push', 'pull', 'animal'], // barrows no, carts and wagons yes (not baskets)
   minCargo: 10,

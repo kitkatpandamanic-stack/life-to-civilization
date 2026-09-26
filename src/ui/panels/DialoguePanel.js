@@ -12,6 +12,7 @@ import { ITEMS } from '../../data/items.js';
 import { JobBoardPanel } from './JobBoardPanel.js';
 import { GOAL_AGAINST } from '../../data/goals.js';
 import { RENTAL } from '../../data/housing.js';
+import { DYNASTY } from '../../systems/DynastySystem.js';
 import { contractAction, crewPicker, openCrew, contractCard } from '../contracts.js';
 
 /** An icon for each thing you can say (options whose words already start with one keep theirs). */
@@ -21,6 +22,7 @@ const OPT_ICONS = {
   offer_sponsor: '🎓', propose: '💍', court: '🌹', how_work: '👷', manage: '👷', go_work_at: '🏪', ask_manage: '🧑‍💼', come_back: '↩️',
   hire_view: '🤝', hire_offer: '🤝', trade: '🛒', about: 'ℹ️', close: '👋', back: '↩️', job_accept: '✅', job_decline: '✖️', job_details: '🔍',
   job_myself: '🙋', accept_request: '✅', pay: '💰', time: '⏳',
+  colony_invite: '🏕️', child_teach_view: '🧑‍🏫', child_time: '🧒', child_heir: '⭐', child_future: '🌳', match_talk: '💍',
 };
 
 export class DialoguePanel extends Panel {
@@ -206,8 +208,39 @@ export class DialoguePanel extends Panel {
         const open = sim.economy.isOpen(biz);
         opt(t('dialog.opt.trade'), 'trade', {}, !open, open ? '' : tr(sim, 'reason.closed', { hour: sim.economy.def(biz).openHours[0] }));
       }
+      // Your own child (DynastySystem): time together, and whether they'll carry on.
+      const Dy = sim.dynasty;
+      if (Dy?.mine(npc.id)) {
+        if (npc.age >= DYNASTY.childMin && npc.age <= DYNASTY.childMax) {
+          const done = Dy.up(npc.id).lastDay === sim.time.day;
+          opt(t('dialog.opt.child_teach'), 'child_teach_view', {}, done || !Dy.teachable().length, done ? t('fam.done_today') : Dy.teachable().length ? '' : t('fam.nothing_to_teach', { n: DYNASTY.teachSkill }));
+          if (npc.age >= DYNASTY.workMin) opt(t('dialog.opt.child_work'), 'child_time', { kind: 'work' }, done, done ? t('fam.done_today') : '');
+          opt(t('dialog.opt.child_play'), 'child_time', { kind: 'play' }, done, done ? t('fam.done_today') : '');
+        }
+        if (npc.age >= 14 && Dy.D.heir !== npc.id) opt(t('dialog.opt.child_heir'), 'child_heir');
+        if (npc.age >= DYNASTY.roleMin || (npc.age >= DYNASTY.matchMin && !npc.kin.spouse)) opt(t('dialog.opt.child_future'), 'child_future');
+      } else if (Dy) {
+        // Their family has someone for one of your grown children.
+        const mine = sim.lineage.children().filter((c) => c.age >= DYNASTY.matchMin && !c.kin.spouse);
+        const fits = mine.find((c) => Dy.matchesFor(c.id).some((m) => m.head.id === npc.id || m.npc.id === npc.id));
+        if (fits) opt(t('dialog.opt.match_talk', { name: npcName(fits) }), 'match_talk', { id: fits.id });
+      }
+      // Your settlement (ColonySystem): come and live there.
+      if (sim.colony?.exists() && !sim.colony.isSettler(npc) && npc.age >= 16) {
+        const c = sim.colony.canRecruit(npc);
+        opt(tr(sim, 'dialog.opt.colony_invite', { colony: sim.colony.nameKey() }), 'colony_invite', {}, !c.ok, c.ok ? '' : tr(sim, `reason.${c.reason}`, c.params || {}));
+      }
       opt(t('dialog.opt.about'), 'about');
       opt(t('dialog.opt.bye'), 'close');
+      return opts.join('');
+    }
+
+    if (this.view === 'child_teach') {
+      for (const s of sim.dynasty.teachable()) {
+        const chk = sim.dynasty.canSpend(npc.id, 'teach', s);
+        opt(`${t(`skill.${s}.name`)} (${sim.state.player.skills[s].level})`, 'child_time', { kind: 'teach', skill: s }, !chk.ok, chk.ok ? '' : tr(sim, `reason.${chk.reason}`, chk.params || {}));
+      }
+      opt(t('dialog.opt.back'), 'back');
       return opts.join('');
     }
 
@@ -347,6 +380,34 @@ export class DialoguePanel extends Panel {
     const sim = this.sim;
     const npc = this.npc;
     if (action === 'story') return this.ui.openStory(data.id);
+    if (action === 'colony_invite') {
+      const r = sim.colony.recruit(npc);
+      if (r.ok) {
+        this.line = this.say('dialog.colony_yes');
+        sim.toast('toast.colony_settler', { npc: npc.id, n: r.n, colony: sim.colony.nameKey() }, 'good');
+      } else this.line = this.say('dialog.colony_no');
+      return;
+    }
+    // Your child: an hour together (in person — the day moves on), naming the heir, their future.
+    if (action === 'child_teach_view') return (this.view = 'child_teach');
+    if (action === 'child_time') {
+      this.ui.closePanel();
+      return this.ui.scene.familyTime(data.kind, npc.id, data.skill || null);
+    }
+    if (action === 'child_heir') {
+      sim.dynasty.setHeir(npc.id);
+      this.line = this.say('dialog.child_heir_line');
+      sim.toast('toast.heir_named', { npc: npc.id }, 'good');
+      return;
+    }
+    if (action === 'child_future' || action === 'match_talk') {
+      this.ui.openCharacter('family');
+      if (this.ui.panel?.id === 'character' && action === 'match_talk') {
+        this.ui.panel.famView = { matchFor: data.id };
+        this.ui.renderPanel();
+      }
+      return;
+    }
     if (action === 'rival') return this.ui.openRival();
     // Contract buttons (the worker picker).
     if (contractAction(sim, action, data)) {

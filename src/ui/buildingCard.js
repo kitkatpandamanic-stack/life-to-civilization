@@ -19,6 +19,8 @@ import { stateBadge } from './transport.js';
 
 /** The icon for a building: its business's, or what it is. */
 const BUILDING_ICONS = [
+  [/founding_stone/, '🏕️'],
+  [/dock/, '⚓'],
   [/school|univers|institute|library/, '🏫'],
   [/hall|council/, '🏛️'],
   [/church|chapel|temple/, '⛪'],

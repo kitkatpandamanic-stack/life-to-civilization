@@ -163,7 +163,7 @@ export class EconomySystem {
     const owner = this.owner(id);
     let p = this.unitPrice(id, item) * (1 + E.shopMargin);
     p *= 1 + (owner ? traitValue(owner.traits, 'priceMarkup', 0) : 0);
-    p *= 1 - Mod.tradeBonus(this.sim.state.player) - Mod.buyBonus(this.sim.state.player) - this.relationshipDiscount(id);
+    p *= 1 - Mod.tradeBonus(this.sim.state.player) - Mod.buyBonus(this.sim.state.player) - this.relationshipDiscount(id) - (this.sim.dynasty?.allyDiscount(owner) || 0);
     return Math.max(1, Math.round(p));
   }
 

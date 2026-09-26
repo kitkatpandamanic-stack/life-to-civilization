@@ -49,6 +49,9 @@ export const EQUIPMENT = {
   pack_horse: { tier: 'mid', kind: 'animal', cap: 60, road: 1.6, offroad: 1.4, wear: 0.4, minLevel: 2, needs: 'draft_animals', price: 220, soldBy: ['farm', 'carters'], journey: 'pack_horse', upkeep: 3, icon: '🐴' },
   horse_cart: { tier: 'mid', kind: 'animal', cap: 200, road: 1.7, offroad: 1, wear: 0.5, minLevel: 3, needs: 'draft_animals', price: 380, soldBy: ['carters'], journey: 'horse_cart', upkeep: 4, parkTiles: 2, icon: '🐎' },
   wagon: { tier: 'mid', kind: 'animal', cap: 400, road: 1.5, offroad: 0.8, wear: 0.4, minLevel: 4, needs: 'wagons', price: 650, soldBy: ['carters'], journey: 'wagon', upkeep: 6, parkTiles: 2, icon: '🛞' },
+  // On the water (RIVER in data/freight.js): kept at your dock, sailed down the river to the towns on the water.
+  rowboat: { tier: 'mid', kind: 'boat', cap: 90, road: 1, offroad: 1, wear: 0.3, minLevel: 1, needs: 'boats', price: 180, soldBy: ['carpentry'], icon: '🚣' },
+  barge: { tier: 'mid', kind: 'boat', cap: 420, road: 1, offroad: 1, wear: 0.25, minLevel: 3, needs: 'boats', price: 700, soldBy: ['carpentry'], icon: '⛴️' },
   // Later on (the architecture is ready for them; nothing makes them yet).
   truck: { tier: 'late', kind: 'vehicle', cap: 1200, road: 4, offroad: 1.5, wear: 0.3, minLevel: 5, needs: 'engines', price: 4000, soldBy: [], future: true, fuel: true, icon: '🚚' },
   tractor: { tier: 'late', kind: 'vehicle', cap: 500, road: 2, offroad: 1.6, wear: 0.3, minLevel: 5, needs: 'engines', price: 3000, soldBy: [], future: true, fuel: true, icon: '🚜' },

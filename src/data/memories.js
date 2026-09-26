@@ -20,6 +20,10 @@ export const MEMORY_KINDS = {
   // ---- stories (StorySystem)
   player_took_side: { imp: 4, val: -3, bond: { f: -8, t: -10, c: 12 }, share: true }, // you sided against them in a quarrel
   player_made_peace: { imp: 4, val: 3, bond: { f: 6, t: 8, r: 10 }, share: true },
+  became_settler: { imp: 5, val: 3, bond: { t: 8, r: 6 }, share: true }, // went to live in your settlement
+  family_alliance: { imp: 5, val: 4, bond: { f: 10, t: 12, r: 6 }, share: true }, // their child married into your family
+  match_refused: { imp: 4, val: -3, bond: { f: -8, r: -4, c: 10 }, share: true }, // you turned down their match
+  inherited_grudge: { imp: 3, val: -2, bond: { t: -6, c: 8 } }, // they hated your parent, and don't trust you
   player_found_kin: { imp: 5, val: 5, bond: { f: 20, t: 20, r: 10 }, share: true },
   player_helped_stranger: { imp: 5, val: 4, bond: { f: 12, t: 15, r: 5 }, share: true },
   player_fired: { imp: 4, val: -3, bond: { f: -10, t: -20, c: 15 }, share: true },

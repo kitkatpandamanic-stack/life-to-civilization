@@ -63,6 +63,9 @@ export class GrowthSystem {
     const T2 = this.sim.territory;
     const world = this.sim.world;
     const m = G.lotMargin;
+    // In your settlement (ColonySystem) settlers build on the open land there — wild or not yet sold —
+    // but never on anyone else's.
+    const colony = !!this.sim.colony?.covers(tx, ty);
     for (let y = ty - m; y < ty + h + m; y++) {
       for (let x = tx - m; x < tx + w + m; x++) {
         if (!world.inBounds(x, y)) return false;
@@ -71,9 +74,12 @@ export class GrowthSystem {
         if (world.staticBlocked[world.idx(x, y)]) return false;
         if (inside && [T.WATER, T.DEEP, T.CLIFF, T.MOUNTAIN, T.FARMLAND, T.ROAD, T.PLAZA, T.BRIDGE].includes(tile)) return false;
         if (!inside && [T.WATER, T.DEEP, T.CLIFF].includes(tile)) return false;
-        if (this.sim.land.plotAt(x, y)) return false; // plots are for sale to you
+        if (!colony && this.sim.land.plotAt(x, y)) return false; // plots are for sale to you
         // The building itself goes on land they own or the village will sell them; nobody builds hard against your land.
-        if (T2 && (inside ? !T2.mayAcquire(by, x, y) : T2.ownerAt(x, y) === 'player')) return false;
+        if (colony) {
+          const o = T2?.ownerAt(x, y);
+          if (inside && o && o !== 'village' && o !== by) return false;
+        } else if (T2 && (inside ? !T2.mayAcquire(by, x, y) : T2.ownerAt(x, y) === 'player')) return false;
         if (this.sim.state.fields[`${x},${y}`]) return false;
       }
     }
@@ -224,7 +230,10 @@ export class GrowthSystem {
 
   start(owner, type, purpose, near, extra = {}) {
     const by = owner === 'village' ? 'village' : owner.id;
-    const lot = this.findLot(type, near, by);
+    // (a lot already chosen — ColonySystem's plan — or the best one near there)
+    const { lot: chosen, ...more } = extra;
+    extra = more;
+    const lot = chosen || this.findLot(type, near, by);
     if (!lot) return null;
     const cost = this.estimate(type);
     let budget = 0;

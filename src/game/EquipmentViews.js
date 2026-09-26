@@ -7,7 +7,7 @@
 import { EQUIPMENT } from '../data/transport.js';
 
 const OFFSET = { push: 15, pull: 20, animal: 18, vehicle: 22, hand: 7 };
-const LOAD_Y = { wheelbarrow: 9, handcart: 9, wooden_wagon: 10, pack_horse: 14, horse_cart: 16, wagon: 16, basket: 8, sack: 9, crate: 8 };
+const LOAD_Y = { rowboat: 7, barge: 9, wheelbarrow: 9, handcart: 9, wooden_wagon: 10, pack_horse: 14, horse_cart: 16, wagon: 16, basket: 8, sack: 9, crate: 8 };
 
 export class EquipmentViews {
   constructor(scene, sim) {

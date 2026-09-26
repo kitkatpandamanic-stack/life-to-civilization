@@ -38,6 +38,7 @@ export const TYPE_FAMILY = {
   storage_shed: ['warehouse', 1],
   barn: ['warehouse', 1],
   transport_depot: ['depot', 1],
+  dock: ['depot', 1],
   rail_station: ['depot', 2],
   construction_office: ['office', 1],
   lumberyard: ['yard', 2],

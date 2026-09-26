@@ -1365,6 +1365,7 @@ export class NPCSystem {
     if (npc.traits.includes('friendly')) m += 3;
     if (npc.traits.includes('greedy') && npc.money < 50) m -= 5;
     m += this.sim.civic?.moodEffect(npc) || 0; // how the headman's taxes and poor relief land
+    m += this.sim.colony?.moodEffect(npc) || 0; // settlers in your settlement (a hungry winter, or pioneers' pride)
     return Math.max(0, Math.min(100, Math.round(m)));
   }
 
