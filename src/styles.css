@@ -190,6 +190,13 @@ h3:first-child { margin-top: 0; }
 .wcard { margin: 6px 0; }
 .round-row { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; font-size: 11px; font-weight: 800; margin-top: 6px; }
 .round-row .stage { padding: 2px 7px; }
+.objective[data-guide] { cursor: pointer; }
+.objective[data-guide]:hover { filter: brightness(1.12); }
+.obj-more { font-size: 11px; color: var(--c-text-3); margin-top: 3px; }
+.guide-step { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; padding: 4px 0; border-bottom: 1px dashed var(--c-divider); font-size: 13px; }
+.guide-step.done { color: var(--c-text-3); }
+.guide-step.now { font-weight: 700; }
+.aff-row.done { opacity: 0.7; }
 .eq-icon { font-size: 28px; line-height: 1; width: 36px; text-align: center; }
 .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: var(--s2); margin: var(--s2) 0; }
 .stat { background: var(--c-surface-2); border: 1px solid var(--c-divider); border-radius: var(--r-md); padding: 8px 10px; }

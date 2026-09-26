@@ -30,6 +30,8 @@ export const EVENT_DEFS = {
   slump: { weight: 0.3, days: [8, 14], mods: { export_price: 0.65, migration: 0.6 }, cooldown: 80 },
   migration_wave: { weight: 0.25, days: [1, 1], disaster: 'migrants', needs: 'roomForMore', cooldown: 70 },
   trade_fair: { seasons: ['summer', 'autumn'], weight: 0.5, days: [3, 5], disaster: 'trade_fair', cooldown: 40 },
+  // Bandits on the roads out of the valley: journeys and caravans are riskier until they move on.
+  bandits: { weight: 0.3, days: [6, 10], mods: { road_danger: 2.5 }, needs: 'tradeRoutes', cooldown: 45 },
 };
 
 export const DISASTER = {

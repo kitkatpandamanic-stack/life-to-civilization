@@ -120,12 +120,14 @@ export class World {
   }
 
   blockRect(tx, ty, w, h, value) {
+    this.rev = (this.rev || 0) + 1; // (routes worked out before are stale — see Pathfinder's cache)
     for (let y = ty; y < ty + h; y++) for (let x = tx; x < tx + w; x++) if (this.inBounds(x, y)) this.staticBlocked[this.idx(x, y)] = value;
   }
 
   /** Turn a tile into road (roads are cheaper to walk on for everyone). */
   setRoad(tx, ty) {
     if (!this.inBounds(tx, ty)) return;
+    this.rev = (this.rev || 0) + 1;
     this.tiles[this.idx(tx, ty)] = T.ROAD;
   }
 
@@ -143,7 +145,9 @@ export class World {
     if (obj.kind !== 'tree' && obj.kind !== 'rock') return;
     if (!this.inBounds(obj.tx, obj.ty)) return;
     const solid = obj.kind === 'tree' ? obj.state === 'grown' || obj.state === 'young' : obj.state === 'full';
-    this.dynBlocked[this.idx(obj.tx, obj.ty)] = solid ? 1 : 0;
+    const i = this.idx(obj.tx, obj.ty);
+    if (this.dynBlocked[i] !== (solid ? 1 : 0)) this.rev = (this.rev || 0) + 1;
+    this.dynBlocked[i] = solid ? 1 : 0;
   }
 }
 

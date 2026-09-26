@@ -19,7 +19,7 @@ export class ObjectiveIndicator {
     const now = this.scene.time.now;
     // Finding the nearest resource is not free, so refresh the objective a few times per second.
     if (now - this.cacheAt > 300) {
-      this.cache = this.sim.jobs.objective() || this.sim.contracts.objective();
+      this.cache = this.sim.jobs.objective() || this.sim.contracts.objective() || (!this.sim.state.jobs.requests.some((r) => r.accepted) && this.sim.guide?.objective()) || null;
       this.cacheAt = now;
     }
     const target = this.cache?.target;

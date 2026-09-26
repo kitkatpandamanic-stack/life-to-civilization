@@ -19,6 +19,9 @@ import { eduTools } from './eduTools.js';
 import { buildTools } from './buildTools.js';
 import { contractTools } from './contractTools.js';
 import { transportTools } from './transportTools.js';
+import { guideTools } from './guideTools.js';
+import { reportTools } from './reportTools.js';
+import { pathStats } from '../world/Pathfinder.js';
 
 const KEYS = {
   w: ['w', 'KeyW', 87], a: ['a', 'KeyA', 65], s: ['s', 'KeyS', 83], d: ['d', 'KeyD', 68],
@@ -104,5 +107,8 @@ dev.edu = eduTools(dev);
 dev.bt = buildTools(dev);
 dev.ct = contractTools(dev);
 dev.tr = transportTools(dev);
+dev.gd = guideTools(dev);
+dev.eco = reportTools(dev);
+dev.pathStats = pathStats;
 window.dev = dev;
 installDebugPanel(dev);

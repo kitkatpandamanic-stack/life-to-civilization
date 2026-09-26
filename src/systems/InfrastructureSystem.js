@@ -58,12 +58,12 @@ export class InfrastructureSystem {
     const w = this.world;
     for (const k of this.S.bridges) {
       const [x, y] = k.split(',').map(Number);
-      w.tiles[w.idx(x, y)] = T.BRIDGE;
+      w.tiles[w.idx(x, y)] = T.BRIDGE; w.rev = (w.rev || 0) + 1;
       w.staticBlocked[w.idx(x, y)] = 0;
     }
     for (const k of this.S.paved) {
       const [x, y] = k.split(',').map(Number);
-      w.tiles[w.idx(x, y)] = T.PLAZA;
+      w.tiles[w.idx(x, y)] = T.PLAZA; w.rev = (w.rev || 0) + 1;
     }
     for (const l of this.S.lamps) this.addLampDecor(l);
   }
@@ -190,7 +190,7 @@ export class InfrastructureSystem {
   /** Lay a tile and tell everyone (the terrain is redrawn, links are worked out afresh). */
   setTile(x, y, tile) {
     const w = this.world;
-    w.tiles[w.idx(x, y)] = tile;
+    w.tiles[w.idx(x, y)] = tile; w.rev = (w.rev || 0) + 1;
     if (tile === T.BRIDGE) w.staticBlocked[w.idx(x, y)] = 0;
     this.sim.bus.emit('road:built', { tx: x, ty: y, tile });
   }

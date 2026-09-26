@@ -1,9 +1,14 @@
 /**
  * SaveSystem — saves the whole game state to the browser's localStorage.
  *
- * Slots: 'auto' (written every time you sleep) + three manual slots.
+ * Slots: 'auto' (written every time you sleep, and every few minutes of play) + three manual slots.
  * The terrain isn't saved — it's regenerated from the seed. Everything that
  * changes during play (player, NPCs, objects, businesses, time...) is saved.
+ *
+ * Safety: before a slot is written, what was in it is kept as that slot's backup; a save is read
+ * back to check it was written whole; if the browser's storage is full, the other slots' backups
+ * are cleared to make room. Loading a slot that turns out to be damaged (it won't read, or the game
+ * won't start from it) falls back to its backup — and says so (SaveSystem.lastLoad).
  */
 import { SAVE_VERSION } from '../core/GameState.js';
 import { rand } from '../core/rng.js';
@@ -53,11 +58,34 @@ export const SaveSystem = {
       },
       state: sanitize(sim.state),
     };
+    const raw = JSON.stringify(data);
+    const write = () => {
+      // The last good save of this slot is kept as its backup.
+      const prev = localStorage.getItem(PREFIX + slot);
+      if (prev && readable(prev)) localStorage.setItem(PREFIX + slot + BACKUP, prev);
+      localStorage.setItem(PREFIX + slot, raw);
+      // Read it back: written whole?
+      return localStorage.getItem(PREFIX + slot)?.length === raw.length;
+    };
     try {
-      localStorage.setItem(PREFIX + slot, JSON.stringify(data));
-      return true;
+      return write();
     } catch (e) {
-      console.error('Save failed', e);
+      // Storage full: make room (other slots' backups first), then try once more.
+      try {
+        for (const s of SAVE_SLOTS) if (s !== slot) localStorage.removeItem(PREFIX + s + BACKUP);
+        return write();
+      } catch (e2) {
+        console.error('Save failed', e2);
+        return false;
+      }
+    }
+  },
+
+  /** Does this slot have a backup (the save before the last)? */
+  hasBackup(slot) {
+    try {
+      return readable(localStorage.getItem(PREFIX + slot + BACKUP));
+    } catch {
       return false;
     }
   },
@@ -74,16 +102,38 @@ export const SaveSystem = {
     });
   },
 
-  load(slot) {
+  load(slot, { backup = false } = {}) {
     try {
-      const raw = localStorage.getItem(PREFIX + slot);
+      const raw = localStorage.getItem(PREFIX + slot + (backup ? BACKUP : ''));
       if (!raw) return null;
       const data = JSON.parse(raw);
+      if (!data?.state?.player || !Array.isArray(data.state.npcs)) throw new Error('incomplete save');
       return migrate(data.state);
     } catch (e) {
-      console.error('Load failed', e);
+      console.warn('Load failed:', e?.message);
       return null;
     }
+  },
+
+  /**
+   * Load a slot and start the game from it — or, if it's damaged (unreadable, or the game won't
+   * start from it), from its backup. make(state) builds the game. Returns the game or null;
+   * SaveSystem.lastLoad says which it was ('ok' | 'backup' | 'failed').
+   */
+  loadGame(slot, make) {
+    for (const backup of [false, true]) {
+      const state = this.load(slot, { backup });
+      if (!state) continue;
+      try {
+        const game = make(state);
+        this.lastLoad = backup ? 'backup' : 'ok';
+        return game;
+      } catch (e) {
+        console.warn(backup ? 'The backup would not start either:' : 'The save would not start — trying its backup:', e?.message);
+      }
+    }
+    this.lastLoad = 'failed';
+    return null;
   },
 
   /** The most recently written slot, or null. */
@@ -93,6 +143,18 @@ export const SaveSystem = {
     return best;
   },
 };
+
+const BACKUP = '.bak';
+
+/** Can this be read as a save? */
+function readable(raw) {
+  if (!raw) return false;
+  try {
+    return !!JSON.parse(raw)?.state?.player;
+  } catch {
+    return false;
+  }
+}
 
 /** Upgrade old save formats here as the game evolves. */
 function migrate(state) {

@@ -12,6 +12,7 @@
  */
 import { EnterprisePanel } from './panels/EnterprisePanel.js';
 import { EquipmentPanel } from './panels/EquipmentPanel.js';
+import { OrdersPanel } from './panels/OrdersPanel.js';
 import { t, fmtMoney, onLanguageChange, npcName, itemName } from '../i18n/i18n.js';
 import { tr, escapeHtml, hoodLabel, districtLabel } from './format.js';
 import { WEATHER_ICONS } from '../systems/WeatherSystem.js';
@@ -112,6 +113,10 @@ export class UIManager {
     this.leftCol = el('hud-col');
     this.hudLeft = el('hud hud-left', this.leftCol);
     this.objectiveEl = el('hud objective hidden', this.leftCol);
+    // The guide's step (or advice) in the HUD: click it for the Guide (what next, your path).
+    this.objectiveEl.addEventListener('click', () => {
+      if (this.objectiveEl.dataset.guide) this.openJournal('guide');
+    });
     this.hudRight = el('hud hud-right');
     this.floatEl = el('float-layer');
     this.promptEl = el('world-prompt hidden');
@@ -329,6 +334,7 @@ export class UIManager {
     this.updateLandChip();
 
     const obj = sim.jobs.objective();
+    delete this.objectiveEl.dataset.guide;
     if (obj) {
       const job = sim.jobs.active;
       this.objectiveEl.classList.remove('hidden');
@@ -344,6 +350,14 @@ export class UIManager {
         const co = sim.contracts.objective();
         this.objectiveEl.classList.remove('hidden');
         this.objectiveEl.innerHTML = `<div class="obj-head">📜 ${escapeHtml(t(`contract.kind.${co.contract.kind}`))}</div><div class="obj-text">${escapeHtml(tr(sim, co.key, co.params))}</div>`;
+      } else if (sim.guide?.objective()) {
+        // The guide: the next step of "Getting started", something pressing, or your path's next milestone.
+        const g = sim.guide.objective();
+        const head = g.kind === 'step' ? `${g.step.icon} ${t('guide.hud_step', { n: sim.guide.progress().done, total: sim.guide.progress().total })} · ${t(`guide.step.${g.step.id}.name`)}` : g.kind === 'path' ? `🧭 ${t(`path.${sim.guide.S.path}.name`)}` : `${g.advice.icon} ${t('guide.next_title')}`;
+        const extra = g.kind === 'path' ? ` (${g.progress.value}/${g.progress.target})` : '';
+        this.objectiveEl.classList.remove('hidden');
+        this.objectiveEl.dataset.guide = '1';
+        this.objectiveEl.innerHTML = `<div class="obj-head">${escapeHtml(head)}</div><div class="obj-text">${escapeHtml(tr(sim, g.key, g.params))}${escapeHtml(extra)}</div><div class="obj-more">${escapeHtml(t('guide.hud_more'))}</div>`;
       } else if (p.level === 1 && sim.state.stats.jobsCompleted === 0) {
         this.objectiveEl.classList.remove('hidden');
         this.objectiveEl.innerHTML = `<div class="obj-head">💡 ${escapeHtml(t('ui.tip'))}</div><div class="obj-text">${escapeHtml(t('objective.first_tip'))}</div>`;
@@ -763,6 +777,9 @@ export class UIManager {
   }
   openJournal(tab = 'tasks') {
     this.openPanel(new JournalPanel(this, tab));
+  }
+  openOrders(opts = {}) {
+    this.openPanel(new OrdersPanel(this, opts));
   }
 
   /** Translate with id-params resolved (used by world-space text like build hints). */

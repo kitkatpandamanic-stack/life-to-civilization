@@ -77,6 +77,7 @@ export class ResourceSystem {
     let out;
     if (obj.variant === 'iron') out = { item: 'iron_ore', qty: rand.int(R.oreAmount[0], R.oreAmount[1]) };
     else if (obj.variant === 'coal') out = { item: 'coal', qty: rand.int(R.oreAmount[0], R.oreAmount[1]) };
+    else if (obj.variant === 'clay') out = { item: 'clay', qty: rand.int(3, 5) }; // a clay pit by the river (IndustrySystem)
     else out = { item: 'stone', qty: rand.int(R.rockStone[0], R.rockStone[1]) };
     // Deposits are finite: take what's left, and a worked-out outcrop stays worked out.
     if (this.sim.nature && obj.state === 'rubble') {

@@ -99,13 +99,14 @@ export class MenuPanel extends Panel {
       const ok = SaveSystem.save(data.slot, this.sim);
       this.sim.toast(ok ? 'toast.saved' : 'toast.save_failed', { n: data.slot }, ok ? 'good' : 'danger');
     } else if (action === 'load') {
-      const state = SaveSystem.load(data.slot);
-      if (!state) {
+      const sim = SaveSystem.loadGame(data.slot, (state) => new Simulation(state));
+      if (!sim) {
         this.sim.toast('toast.load_failed', {}, 'danger');
         return;
       }
       this.ui.closePanel();
-      this.ui.scene.loadSimulation(new Simulation(state));
+      this.ui.scene.loadSimulation(sim);
+      if (SaveSystem.lastLoad === 'backup') sim.toast('toast.loaded_backup', {}, 'warn');
     } else if (action === 'lang') {
       setLanguage(data.code);
     } else if (action === 'quit') {

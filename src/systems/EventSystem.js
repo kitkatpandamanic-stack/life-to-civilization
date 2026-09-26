@@ -60,8 +60,16 @@ export class EventSystem {
     return this.sim.state.npcs.some((n) => n.employer === 'quarry' || n.owns === 'quarry');
   }
 
+  /** There are roads out of the valley worth robbing on (a settlement you trade with). */
+  tradeRoutes() {
+    return (this.sim.settlements?.known().length || 0) > 0;
+  }
+
   roomForMore() {
-    return (this.sim.growth?.attractiveness() ?? 0) > -1;
+    // (A whole wave of newcomers only when there are real homes standing empty — not just beds in the hall.)
+    const P = this.sim.property;
+    const empty = P ? P.homes().filter((id) => id !== 'hall' && P.isVacant(id)).length : 1;
+    return empty >= 1 && (this.sim.growth?.attractiveness() ?? 0) > -1;
   }
 
   canHappen(id, def) {

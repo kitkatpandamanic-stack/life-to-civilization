@@ -26,6 +26,10 @@ export const TECHS = {
   draft_animals: { cost: 30, needs: { tech: ['handcart'], biz: 'farm', pop: 24 }, from: ['farmer', 'carter_master', 'carter'], users: ['farmer', 'farmhand', 'carter', 'carter_master'], icon: '🐴', effects: { farm_output: 1.1 } },
   writing: { cost: 20, needs: { civic: 'school', knowledge: 8 }, from: [], school: true, icon: '✒️', effects: { learning: 1.25 } },
   wagons: { cost: 38, needs: { tech: ['draft_animals', 'better_tools'], biz: 'carpentry' }, from: ['carpenter', 'blacksmith', 'carter_master'], skill: 'carpentry', users: ['carter', 'carter_master', 'merchant'], icon: '🛞' },
+  // Early industry: bricks fired in a kiln, planks sawn in bulk, and the first factory.
+  brickmaking: { cost: 24, needs: { biz: 'quarry', built: 3 }, from: ['master_builder', 'builder', 'quarry_foreman', 'miner'], skill: 'construction', users: ['brickmaker', 'clay_digger', 'builder', 'master_builder'], icon: '🧱' },
+  sawing: { cost: 28, needs: { tech: ['better_tools'], biz: 'carpentry' }, from: ['carpenter', 'carpenter_hand', 'lumber_foreman', 'woodcutter'], skill: 'carpentry', users: ['sawyer', 'sawmill_hand', 'carpenter', 'carpenter_hand'], icon: '🪚' },
+  manufacture: { cost: 50, needs: { tech: ['sawing', 'brickmaking'], biz: 'smithy', pop: 30 }, from: ['blacksmith', 'smith_hand', 'carpenter', 'sawyer', 'brickmaker'], skill: 'smithing', users: ['factory_master', 'factory_hand'], icon: '🏭' },
   milling: { cost: 30, needs: { tech: ['masonry'], biz: 'farm', pop: 28 }, from: ['baker', 'farmer', 'master_builder', 'miller'], users: ['miller', 'mill_hand', 'baker', 'baker_hand'], icon: '⚙️' },
   printing: { cost: 45, needs: { tech: ['writing'], civic: 'library', pop: 32 }, from: [], school: true, icon: '📰', effects: { rumor_distort: 0.4, learning: 1.15 } },
   // Towards civilization: travel by water, watered fields, stone bridges and proper accounts.

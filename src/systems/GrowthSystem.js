@@ -583,9 +583,10 @@ export class GrowthSystem {
     const npcs = sim.state.npcs;
     const jobs = sim.npcs.vacancies().reduce((s, [id]) => s + Math.max(0, sim.npcs.maxStaff(id) - sim.npcs.staffOf(id).length), 0);
     const P = sim.property;
-    const homes = P.homes().filter((id) => P.isVacant(id)).length + Math.max(0, P.capacity('hall') - P.occupants('hall'));
+    // (A bed in the village hall is a shelter, not a home: it counts for half — and those sleeping there count as nearly homeless.)
+    const homes = P.homes().filter((id) => P.isVacant(id)).length + Math.max(0, P.capacity('hall') - P.occupants('hall')) * G.hallHomeShare;
     const unemployed = npcs.filter((n) => n.occupation === 'unemployed' && n.age >= 16).length;
-    const homeless = npcs.filter((n) => !n.homeId && n.age >= 16).length;
+    const homeless = npcs.filter((n) => !n.homeId && n.age >= 16).length + npcs.filter((n) => n.homeId === 'hall' && n.age >= 16).length * G.hallHomeless;
     const bread = sim.economy.sellersOf('bread');
     const food = bread.length ? bread.reduce((s, id) => s + sim.economy.priceFactor(id, 'bread'), 0) / bread.length : 1.5;
     const economy = (sim.events.modifier('migration') - 1) * 2; // a boom draws people in, a slump drives them off

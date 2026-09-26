@@ -107,8 +107,12 @@ export class TitleScreen {
   }
 
   loadSlot(slot) {
-    const state = slot && SaveSystem.load(slot);
-    if (state) this.onStart(new Simulation(state));
+    if (!slot) return;
+    // (A damaged save falls back to its backup — SaveSystem.loadGame.)
+    const sim = SaveSystem.loadGame(slot, (state) => new Simulation(state));
+    if (!sim) return;
+    this.onStart(sim);
+    if (SaveSystem.lastLoad === 'backup') setTimeout(() => sim.toast('toast.loaded_backup', {}, 'warn'), 1500);
   }
 
   destroy() {

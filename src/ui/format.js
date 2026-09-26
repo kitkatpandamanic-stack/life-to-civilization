@@ -170,6 +170,13 @@ export function resolveParams(sim, params = {}) {
     else if (k === 'role') out[k] = t(`assignment.${v}`);
     else if (k === 'ckind') out[k] = t(`contract.kind.${v}`);
     else if (k === 'eq') out[k] = t(`equip.${v}`).toLowerCase(); // a wheelbarrow, inside a sentence
+    else if (k === 'step') out[k] = t(`guide.step.${v}.name`);
+    else if (k === 'festival') out[k] = t(`festival.${v}.name`);
+    else if (k === 'path') out[k] = t(`path.${v}.name`);
+    else if (k === 'milestone') {
+      const [pid, mid] = String(v).split('.');
+      out[k] = t(`path.${pid}.m.${mid}`);
+    }
     else if (k === 'edu_level') out[k] = t(`edu_level.${v}`);
     else if (k === 'works') out[k] = worksLabel(sim, params.building, v);
     else if (k === 'slevel') {

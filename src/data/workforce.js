@@ -24,7 +24,7 @@ export const FOCUS = {
 };
 
 /** The trade each kind of work trains (education fields — see data/education.js). */
-export const WORK_FIELDS = { build: 'building', repair: 'building', gather_wood: 'forestry', gather_stone: 'mining', farm: 'farming', workshop: 'carpentry', haul: null, buy: 'trade', charvest: 'farming', crepair: 'building', chaul: 'trade', cfetch: 'trade', cbuy: 'trade', corder: 'trade', cpost: 'trade', csite: 'trade', cshift: null, gather_berries: 'farming', cwater: 'farming', csaw: 'carpentry' };
+export const WORK_FIELDS = { build: 'building', repair: 'building', gather_wood: 'forestry', gather_stone: 'mining', farm: 'farming', workshop: 'carpentry', haul: null, buy: 'trade', charvest: 'farming', crepair: 'building', chaul: 'trade', cfetch: 'trade', cbuy: 'trade', corder: 'trade', cpost: 'trade', csite: 'trade', ofetch: 'trade', cshift: null, gather_berries: 'farming', cwater: 'farming', csaw: 'carpentry' };
 
 /** What a worker is called from what they're best at. */
 export const PROFESSIONS = { building: 'builder', forestry: 'woodcutter', mining: 'miner', farming: 'farmer', carpentry: 'carpenter', trade: 'carrier' };

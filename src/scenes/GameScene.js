@@ -32,6 +32,8 @@ import { FieldViews } from '../game/FieldViews.js';
 import { AnimalViews } from '../game/AnimalViews.js';
 import { CartViews } from '../game/CartViews.js';
 import { EquipmentViews } from '../game/EquipmentViews.js';
+
+const AUTOSAVE_MS = 10 * 60 * 1000; // real time between autosaves while you play
 import { FireViews } from '../game/FireViews.js';
 import { UIManager } from '../ui/UIManager.js';
 import { icon } from '../ui/widgets.js';
@@ -130,6 +132,12 @@ export class GameScene extends Phaser.Scene {
     this.npcViews.update(delta);
     this.animals.update(delta);
     this.carts.update(delta);
+    // Autosave every few minutes of play (not while asleep or in a menu) — as well as each morning.
+    this.autosaveT = (this.autosaveT || 0) + delta;
+    if (this.autosaveT > AUTOSAVE_MS && !this.busy && !this.ui.isPaused() && !window.dev?.noAutosave) {
+      this.autosaveT = 0;
+      if (SaveSystem.save('auto', this.sim)) this.sim.toast('toast.autosaved', {}, 'info');
+    }
     this.equipmentViews.update(delta);
     this.fireViews.update();
     this.interaction.update(blocked);

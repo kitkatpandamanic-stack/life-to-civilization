@@ -226,6 +226,9 @@ export class HabitSystem {
 
   newPlan(npc) {
     const sim = this.sim;
+    // A festival on the square (FestivalSystem): most people go.
+    const fest = sim.festivals?.pull(npc);
+    if (fest) return fest;
     const h = npc.habits || this.derive(npc);
     const now = sim.time.total;
     const wd = sim.time.weekday;

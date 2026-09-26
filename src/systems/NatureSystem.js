@@ -33,7 +33,7 @@ export const NATURE = {
   wildGrowth: { deer: 0.05, rabbit: 0.12 },
   wildPerTree: { deer: 0.12, rabbit: 0.25 }, // carrying capacity per grown tree
   rabbitMeadow: 40, // rabbits also live on open meadows
-  reserve: { stone: [28, 55], coal: [16, 34], iron: [14, 30] },
+  reserve: { stone: [28, 55], coal: [16, 34], iron: [14, 30], clay: [60, 90] },
   discoveryChance: 0.012, // per rock mined out in the mountains
 };
 
@@ -137,6 +137,11 @@ export class NatureSystem {
     obj.reserve = Math.max(0, obj.reserve - qty);
     if (obj.reserve > 0) return false;
     obj.state = 'depleted';
+    // A clay pit dug out for good: another is found along the bank (IndustrySystem).
+    if (obj.variant === 'clay') {
+      this.sim.industry?.newPit(obj);
+      return true;
+    }
     // Working the mountains sometimes turns up a new seam.
     if (obj.variant !== 'stone' || rand.chance(0.5)) {
       if (rand.chance(NATURE.discoveryChance * 10)) this.discoverVein(obj.variant === 'stone' ? rand.pick(['coal', 'iron', 'stone']) : obj.variant);

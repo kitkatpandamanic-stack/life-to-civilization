@@ -338,7 +338,7 @@ function drawRock(variant, season) {
   const c = makeCanvas(36, 32);
   const ctx = c.getContext('2d');
   ellipse(ctx, 18, 27, 16, 4, 'rgba(0,0,0,0.22)');
-  const base = variant === 'coal' ? '#6a6a6a' : variant === 'iron' ? '#8d847c' : '#8e8e8a';
+  const base = variant === 'coal' ? '#6a6a6a' : variant === 'iron' ? '#8d847c' : variant === 'clay' ? '#a8704a' : '#8e8e8a';
   ctx.fillStyle = base;
   ctx.beginPath();
   ROCK_POLY.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
@@ -366,7 +366,13 @@ function drawRock(variant, season) {
   ctx.closePath();
   ctx.fill();
   const rnd = mulberry32(variant.length * 17);
-  if (variant === 'iron') {
+  if (variant === 'clay') {
+    // A clay bank: smooth, reddish, with wet dark streaks.
+    for (let i = 0; i < 5; i++) {
+      ctx.fillStyle = i % 2 ? '#8a5436' : '#c08a5e';
+      ctx.fillRect(6 + rnd() * 22, 10 + rnd() * 12, 5, 2);
+    }
+  } else if (variant === 'iron') {
     for (let i = 0; i < 7; i++) circle(ctx, 7 + rnd() * 22, 8 + rnd() * 14, 1.8 + rnd(), i % 2 ? '#c0703d' : '#d9955a');
   } else if (variant === 'coal') {
     for (let i = 0; i < 7; i++) {
@@ -1170,7 +1176,7 @@ export function createAllTextures(scene) {
     addCanvas(scene, `tree_pine_${s}`, drawPine(s));
     addCanvas(scene, `stump_${s}`, drawStump(s));
     addCanvas(scene, `rubble_${s}`, drawRubble(s));
-    for (const v of ['stone', 'iron', 'coal']) addCanvas(scene, `rock_${v}_${s}`, drawRock(v, s));
+    for (const v of ['stone', 'iron', 'coal', 'clay']) addCanvas(scene, `rock_${v}_${s}`, drawRock(v, s));
     addCanvas(scene, `bush_full_${s}`, drawBush(true, s));
     addCanvas(scene, `bush_empty_${s}`, drawBush(false, s));
     for (let st = 0; st <= 3; st++) addCanvas(scene, `crop_${st}_${s}`, drawCrop(st, s));

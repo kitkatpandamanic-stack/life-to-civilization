@@ -133,6 +133,9 @@ export class WorkersPanel extends Panel {
     // Your equipment: barrows and carts to lend (what each worker has is on their card).
     const eqN = sim.equipment?.mine().length || 0;
     html += `<div class="setting-row"><div><b>🛒 ${escapeHtml(t('workers.equipment_title'))}</b><div class="hint">${escapeHtml(t(eqN ? 'workers.equipment_hint' : 'workers.equipment_none', { n: eqN }))}</div></div>${button(t('workers.equipment_open'), 'equipment', {}, { cls: 'sm' })}</div>`;
+    // Standing orders: carrying done day after day ("60 wood a day to the warehouse").
+    const ordN = W.orderList().length;
+    html += `<div class="setting-row"><div><b>🔁 ${escapeHtml(t('orders.title'))}</b><div class="hint">${escapeHtml(t(ordN ? 'workers.orders_hint' : 'workers.orders_none', { n: ordN }))}</div></div>${button(t('workers.orders_open'), 'orders', {}, { cls: 'sm' })}</div>`;
     if (!list.length) {
       html += emptyState('👷', t('ui.no_workers_title'), t(sim.progression.hasUnlock('hire_worker') ? 'ui.no_workers' : 'ui.workers_locked', { level: sim.progression.unlockLevel('hire_worker') }));
     }
@@ -206,6 +209,7 @@ export class WorkersPanel extends Panel {
     const W = this.sim.workers;
     if (workerCardAction(this.ui, action, data)) return;
     if (action === 'equipment') return this.ui.openEquipment();
+    if (action === 'orders') return this.ui.openOrders();
     if (action === 'assign') {
       const a = { type: data.a };
       if (data.a === 'build') a.siteId = this.sim.construction.playerSites()[0]?.id;

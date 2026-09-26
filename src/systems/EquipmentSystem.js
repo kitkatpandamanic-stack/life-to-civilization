@@ -22,6 +22,7 @@
 import { EQUIPMENT, EQUIP, conditionBand } from '../data/transport.js';
 import { ITEMS } from '../data/items.js';
 import { BUILDABLES } from '../data/buildables.js';
+import { INDUSTRY } from './IndustrySystem.js';
 
 export const EQUIP_STATUS = ['available', 'assigned_player', 'assigned_worker', 'assigned_building', 'in_use', 'damaged', 'broken', 'under_repair'];
 
@@ -108,20 +109,31 @@ export class EquipmentSystem {
     return !!eq && !this.broken(eq) && !this.underRepair(eq);
   }
 
-  /** Movement with it (× walking speed): wheels are quick on a road and slow over grass. */
-  moveMult(eq, onRoad) {
+  /**
+   * Movement with it (× walking speed): wheels are quick on a road (quicker on cobbles) and slow
+   * over grass — and in the rain the grass and dirt turn to mud (IndustrySystem INDUSTRY.mudOffroad).
+   */
+  moveMult(eq, onRoad, paved = false) {
     const d = this.def(eq);
     if (!d) return 1;
-    return (onRoad ? d.road : d.offroad) * (this.damaged(eq) ? EQUIP.damagedSpeed : 1);
+    let m = (onRoad ? d.road : d.offroad) * (this.damaged(eq) ? EQUIP.damagedSpeed : 1);
+    if (d.kind === 'hand') return m;
+    if (onRoad && paved) m *= INDUSTRY.pavedWheels;
+    if (!onRoad && this.muddy()) m *= INDUSTRY.mudOffroad;
+    return m;
+  }
+  /** Rain, storm or snow: the ground off the roads is mud. */
+  muddy() {
+    return ['rain', 'storm', 'snow'].includes(this.sim.weather?.type);
   }
   /** For the movement code (every frame): what this villager is pushing, if anything. */
-  moveMultFor(npc, onRoad) {
+  moveMultFor(npc, onRoad, paved = false) {
     const eq = npc.eq && this.byId(npc.eq);
-    return eq ? this.moveMult(eq, onRoad) : 1;
+    return eq ? this.moveMult(eq, onRoad, paved) : 1;
   }
-  playerMoveMult(onRoad) {
+  playerMoveMult(onRoad, paved = false) {
     const eq = this.playerHeld();
-    return eq ? this.moveMult(eq, onRoad) : 1;
+    return eq ? this.moveMult(eq, onRoad, paved) : 1;
   }
 
   /** How much more a trip moves than carrying by hand (the "transport efficiency" shown). */

@@ -10,6 +10,7 @@ import { t, npcName, occupationName, fmtMoney, itemName, cap } from '../../i18n/
 import { tr, escapeHtml, buildingLabel, dateString, rumorText } from '../format.js';
 import { button, tabs, portrait, hearts, bar } from '../widgets.js';
 import { WEATHER_ICONS } from '../../systems/WeatherSystem.js';
+import { guidePageHtml, guideAction } from '../guide.js';
 
 export class JournalPanel extends Panel {
   constructor(ui, tab = 'tasks') {
@@ -27,12 +28,13 @@ export class JournalPanel extends Panel {
   render() {
     const list = [
       ['tasks', t('ui.tab_tasks')],
+      ['guide', t('guide.tab')],
       ['people', t('ui.tab_people')],
       ['news', t('ui.tab_news')],
       ['world', t('ui.tab_world')],
       ['history', t('ui.tab_history')],
     ];
-    const body = { tasks: () => this.renderTasks(), people: () => this.renderPeople(), news: () => this.renderNews(), world: () => this.renderWorld(), history: () => this.renderHistory() }[this.tab]();
+    const body = { guide: () => guidePageHtml(this.sim, { showPaths: this.showPaths }), tasks: () => this.renderTasks(), people: () => this.renderPeople(), news: () => this.renderNews(), world: () => this.renderWorld(), history: () => this.renderHistory() }[this.tab]();
     return tabs(list, this.tab) + body;
   }
 
@@ -207,6 +209,7 @@ export class JournalPanel extends Panel {
   }
 
   onAction(action, data) {
+    if (guideAction(this, action, data)) return;
     if (contractAction(this.sim, action, data)) return;
     if (action === 'job_hand_over') {
       const r = this.sim.contracts.handOver();

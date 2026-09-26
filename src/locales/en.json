@@ -244,7 +244,31 @@
     "teacher": "Teacher",
     "doctor": "Doctor",
     "engineer": "Engineer",
-    "researcher": "Researcher"
+    "researcher": "Researcher",
+    "brickmaker": {
+      "m": "Brickmaker",
+      "f": "Brickmaker"
+    },
+    "clay_digger": {
+      "m": "Clay digger",
+      "f": "Clay digger"
+    },
+    "sawyer": {
+      "m": "Sawyer",
+      "f": "Sawyer"
+    },
+    "sawmill_hand": {
+      "m": "Sawmill hand",
+      "f": "Sawmill hand"
+    },
+    "factory_master": {
+      "m": "Factory master",
+      "f": "Factory mistress"
+    },
+    "factory_hand": {
+      "m": "Factory hand",
+      "f": "Factory hand"
+    }
   },
   "building": {
     "hall": "Village Hall",
@@ -624,7 +648,8 @@
     "rock_iron": "Iron deposit",
     "rock_coal": "Coal deposit",
     "bush_berry": "Berry bush",
-    "crop_wheat": "Wheat"
+    "crop_wheat": "Wheat",
+    "rock_clay": "Clay pit"
   },
   "decor": {
     "well": "Well",
@@ -727,7 +752,8 @@
     "buy_equipment": "Buy baskets, barrows, carts",
     "manage_equipment": "Equipment and parking",
     "open_contracts": "Your contracts",
-    "manage_workers": "Your workers"
+    "manage_workers": "Your workers",
+    "festival_gift": "Give {money} towards the festival"
   },
   "reason": {
     "nothing_here": "Nothing to do here.",
@@ -953,7 +979,17 @@
     "eq_full": "It's full.",
     "eq_nothing_to_load": "Nothing in storage that your sites need.",
     "not_sold_here": "They don't sell that here.",
-    "max_level": "It can't be improved any further."
+    "max_level": "It can't be improved any further.",
+    "order_bad": "That isn't an order your workers understand.",
+    "order_too_many": "You can have at most {n} standing orders.",
+    "order_no_target": "Choose a place of yours to take it to.",
+    "order_no_item": "Choose what to carry.",
+    "order_no_qty": "Choose how much.",
+    "order_same_place": "From and to are the same place.",
+    "order_no_source": "That place isn't yours.",
+    "order_cant_gather": "{item} can't be gathered — buy it or fetch it from somewhere.",
+    "order_use_supply": "For a building site, use \"Supply a building site\".",
+    "no_festival": "There's no festival on."
   },
   "toast": {
     "hungry": "You're getting hungry. Press Q to eat.",
@@ -997,7 +1033,8 @@
       "boom": "Trade is booming — traders pay more for local goods.",
       "slump": "Trade has slumped.",
       "migration_wave": "A group of newcomers has arrived.",
-      "trade_fair": "Trade fair! Shops pay top price for {item}."
+      "trade_fair": "Trade fair! Shops pay top price for {item}.",
+      "bandits": "Bandits on the roads out of the valley! Journeys and caravans are riskier for a while."
     },
     "good_morning": "Good morning! A new day begins.",
     "autosaved": "Game autosaved.",
@@ -1156,7 +1193,16 @@
     "eq_repaired": "Your {eq} is repaired — as good as new.",
     "eq_upgraded": "Your {eq} is better made now (level {n}).",
     "eq_loaded": "Loaded {qty} into the {eq}.",
-    "eq_unloaded": "Unloaded {qty} into storage."
+    "eq_unloaded": "Unloaded {qty} into storage.",
+    "order_made": "Order given — your workers will see to it.",
+    "guide_step": "✔ {step} (+{money} · +{n} XP)",
+    "path_milestone": "🧭 {path}: {milestone}! (+{n} XP)",
+    "festival_on": "🎉 It's {festival}! The village is gathering on the square until {hour}.",
+    "festival_joined": "You join in with {festival} — people are glad to see you.",
+    "festival_gift": "You gave {money} towards {festival}. People will remember it.",
+    "festival_over": "{festival} is over — {n} villagers went, and they're in good spirits.",
+    "business_copied": "{npc} has opened a {biz_type} too — competition for yours.",
+    "loaded_backup": "That save was damaged — the one before it was loaded instead."
   },
   "objective": {
     "harvest": "Harvest ripe wheat in the farm fields ({have}/{qty})",
@@ -1314,7 +1360,8 @@
       "boom": "Traders are paying well — good times for the village's producers.",
       "slump": "Trade has slumped: the traders are paying next to nothing.",
       "migration_wave": "A wave of newcomers arrived: {n} people looking for a new home.",
-      "trade_fair": "A trade fair: a merchant is buying {item} at top prices."
+      "trade_fair": "A trade fair: a merchant is buying {item} at top prices.",
+      "bandits": "Bandits were about on the roads out of the valley."
     },
     "npc_rank_skilled": "{npc} is now a skilled {occ}.",
     "npc_rank_master": "{npc} has become a true master {occ}.",
@@ -1569,7 +1616,11 @@
     "contractor_rank": "The contracts you've seen through earned you a new standing: {crank}.",
     "company_founded": "{name} founded a contracting company.",
     "workforce_manager": "{npc} took charge of your workers as manager.",
-    "eq_bought": "You bought a {eq}."
+    "eq_bought": "You bought a {eq}.",
+    "path_milestone": "On the road to {path}: {milestone}.",
+    "festival": "The village celebrated {festival} on the square.",
+    "festival_donated": "You gave {money} towards {festival}.",
+    "business_copied": "{npc} opened a {biz_type} of their own, to compete with yours."
   },
   "event": {
     "good_harvest": {
@@ -1631,6 +1682,10 @@
     "trade_fair": {
       "name": "Trade fair",
       "desc": "A merchant is paying top price for one kind of goods — any shop will buy it."
+    },
+    "bandits": {
+      "name": "Bandits on the roads",
+      "desc": "Journeys and caravans out of the valley are far riskier until the bandits move on."
     }
   },
   "trait": {
@@ -3003,7 +3058,8 @@
     "loading": "Loading {item}",
     "unloading": "Unloading {item}",
     "fetching_equipment": "Fetching the {eq}",
-    "returning_equipment": "Taking the {eq} back to your yard"
+    "returning_equipment": "Taking the {eq} back to your yard",
+    "fetching_order": "Fetching {item} (standing order)"
   },
   "schedule": {
     "wake": "Wake up",
@@ -4373,6 +4429,10 @@
         "trade_fair": [
           "There's a merchant paying top price for {item}! Sell while you can.",
           "Got any {item}? The fair merchant is buying."
+        ],
+        "bandits": [
+          "Don't travel if you can help it — there are bandits on the roads.",
+          "A carter was robbed on the east road, I heard. Bandits."
         ]
       },
       "student_away": [
@@ -4678,7 +4738,10 @@
     "mill": "mill",
     "mining_camp": "mining camp",
     "hunting_lodge": "hunting cabin",
-    "trading_post": "trading post"
+    "trading_post": "trading post",
+    "brickworks": "brickworks",
+    "sawmill": "sawmill",
+    "factory": "factory"
   },
   "biz_name": {
     "general_store": [
@@ -4810,6 +4873,36 @@
       "The Toll House",
       "Carter's Rest",
       "Last Mile Post"
+    ],
+    "brickworks": [
+      "Riverside Brickworks",
+      "Red Kiln",
+      "The Clay Pit",
+      "Hearth & Brick",
+      "The Old Kiln",
+      "Firebrick Works",
+      "Bank Street Bricks",
+      "Sunfired Bricks"
+    ],
+    "sawmill": [
+      "The Sawmill",
+      "Straight Plank Mill",
+      "Oak & Pine",
+      "The Long Saw",
+      "Timber Works",
+      "Riverside Sawmill",
+      "Board & Beam",
+      "The Whetted Blade"
+    ],
+    "factory": [
+      "The Valley Works",
+      "Hammer & Chair",
+      "The Manufactory",
+      "Union Works",
+      "Ironwood Works",
+      "The New Works",
+      "Toolmakers' Hall",
+      "Many Hands Works"
     ]
   },
   "career": {
@@ -4969,7 +5062,15 @@
     "extra_engaged": "They're getting married, apparently!",
     "new_region": "Someone found the way to {region_name}!",
     "settlement_boom": "they say there's plenty of {item} in {settlement} and it's going cheap",
-    "settlement_shortage": "they say {settlement} is short of {item} and paying well"
+    "settlement_shortage": "they say {settlement} is short of {item} and paying well",
+    "you_built": "They say you've put up a {building_type}. Busy, aren't you!",
+    "you_helped": "I heard you helped {npc}. Good of you.",
+    "you_fired": "They say you let {npc} go. Hard times for them.",
+    "you_business": "You've got {building} now, they say. Moving up in the world!",
+    "you_ambition": "People say you've become a real {ambition}.",
+    "you_path": "Word is you're on your way — {milestone}!",
+    "you_generous": "You gave {money} towards {festival}, didn't you? People noticed.",
+    "copied": "{npc} has started a {biz_type} — going after your trade, some say."
   },
   "lineage": {
     "title": "The torch passes",
@@ -5225,7 +5326,19 @@
       "name": "Blast furnace",
       "desc": "A hotter furnace, driven by bellows: better iron, and more of it."
     },
-    "adoption": "· {n}% use it"
+    "adoption": "· {n}% use it",
+    "brickmaking": {
+      "name": "Brickmaking",
+      "desc": "Clay from the riverbank, fired in a kiln: bricks made here instead of brought in. Someone can open a brickworks."
+    },
+    "sawing": {
+      "name": "The sawmill",
+      "desc": "Sawing planks in bulk instead of one at a time by hand. Someone can open a sawmill."
+    },
+    "manufacture": {
+      "name": "Manufacture",
+      "desc": "Many hands, each doing one part: tools and furniture made by the dozen. The valley can have its first factory."
+    }
   },
   "education": {
     "some": "some",
@@ -6305,7 +6418,8 @@
     "scholarships": "Paying for others' studies",
     "wages_apprentice": "An apprentice's pay",
     "upkeep": "Upkeep of houses you let",
-    "management": "Property manager"
+    "management": "Property manager",
+    "rewards": "Rewards"
   },
   "letting": {
     "title": "Tenants",
@@ -7096,7 +7210,8 @@
     "minspect": "Looking over a job",
     "mplan": "Planning who works where",
     "take_eq": "Fetching their equipment",
-    "return_eq": "Taking equipment back"
+    "return_eq": "Taking equipment back",
+    "ofetch": "Standing order: {item}"
   },
   "jobcat": {
     "construction": "Construction",
@@ -7162,7 +7277,10 @@
     "equipment_title": "Equipment",
     "equipment_hint": "You have {n} pieces. Lend a barrow or cart to a worker and they carry four times as much a trip.",
     "equipment_none": "Buy or make a barrow or basket, and lend it to a worker: they'll carry far more a trip.",
-    "equipment_open": "Your equipment"
+    "equipment_open": "Your equipment",
+    "orders_hint": "{n} standing orders at work.",
+    "orders_none": "Carrying you set up once: \"60 wood a day to my warehouse\", \"keep 50 planks in store\".",
+    "orders_open": "Standing orders"
   },
   "land_name": {
     "lot": "{building} lot",
@@ -7841,5 +7959,265 @@
     "damaged": "Damaged",
     "critical": "Critical",
     "abandoned": "Abandoned"
+  },
+  "guide": {
+    "tab": "Guide",
+    "next_title": "What next?",
+    "go": "Go",
+    "all_good": "All's well — carry on as you like.",
+    "path_title": "Your path",
+    "change_path": "Change path",
+    "paths_hint": "Pick a path to follow: a career, milestone by milestone, with rewards along the way. You can change it any time.",
+    "following": "Following",
+    "follow": "Follow",
+    "stop_path": "Stop following",
+    "start_title": "Getting started",
+    "at_level": "opens at level {n}",
+    "show_hud": "Show the guide in the corner",
+    "hide_hud": "Hide the guide from the corner",
+    "hud_step": "Getting started {n}/{total}",
+    "hud_more": "Click for more · Journal → Guide",
+    "chapter": {
+      "feet": "1 · On your feet",
+      "crew": "2 · Hands to help",
+      "land": "3 · A place of your own",
+      "goods": "4 · Moving goods",
+      "name": "5 · Making a name"
+    },
+    "step": {
+      "first_job": {
+        "name": "Find your first job",
+        "hint": "Read the notice board on the plaza (walk up to it, press E) and take a job. Villagers sometimes offer work when you talk to them, too."
+      },
+      "chop_wood": {
+        "name": "Chop some wood",
+        "hint": "Walk up to a tree with your axe and press E. Wood sells, and you'll need it to build."
+      },
+      "earn_100": {
+        "name": "Earn your first $100",
+        "hint": "Jobs from the notice board, and selling what you gather or make at the store."
+      },
+      "craft": {
+        "name": "Make something",
+        "hint": "At the workbench in your home: planks from wood, then tools and furniture. Better skill, better quality."
+      },
+      "hire": {
+        "name": "Hire a worker",
+        "hint": "Talk to someone out of work and offer them a job. Your workers (key K) gather, carry and build for you."
+      },
+      "contract": {
+        "name": "Finish a contract",
+        "hint": "Villagers ask for help — a harvest, a repair, a building. Take it on, put your workers on it (Journal → Tasks), get paid."
+      },
+      "two_workers": {
+        "name": "A crew of two",
+        "hint": "Hire another pair of hands: two can carry and build at the same time."
+      },
+      "buy_land": {
+        "name": "Buy land",
+        "hint": "Open the map (M), click a plot for sale, or walk up to a land sign and press E."
+      },
+      "build_store": {
+        "name": "Build a storage shed or barn",
+        "hint": "Build menu (B) → Storage. Your workers fetch from it and bring goods back to it."
+      },
+      "build_two": {
+        "name": "Put up two buildings",
+        "hint": "Build menu (B): a house, a workshop, a barn… Deliver the materials, then work on it (or let your workers)."
+      },
+      "get_equipment": {
+        "name": "Get a wheelbarrow (or a basket)",
+        "hint": "Buy one at the smithy or the store, or make one at your workbench. It lets a worker carry four times as much."
+      },
+      "lend_equipment": {
+        "name": "Lend it to a worker",
+        "hint": "Workers (K) → a worker's card → Equipment → Lend… They fetch it and carry far more a trip."
+      },
+      "big_store": {
+        "name": "A warehouse or transport depot",
+        "hint": "Build menu (B): a warehouse holds 400, a depot keeps your barrows and carts (and repairs them)."
+      },
+      "standing_order": {
+        "name": "Set up a standing order",
+        "hint": "Workers (K) → Standing orders: \"move 60 wood a day to my warehouse\", \"keep 50 planks in store\"… and it gets done every day."
+      },
+      "contracts_3": {
+        "name": "Become a handyman",
+        "hint": "Finish three contracts well: your name as a contractor grows, and bigger jobs come your way."
+      },
+      "business": {
+        "name": "Own a business",
+        "hint": "Buy one that's for sale, or open your own in a building of yours."
+      },
+      "path": {
+        "name": "Choose your path",
+        "hint": "Journal → Guide: pick a career to follow — contractor, transport, landlord, business, founder or craftsman."
+      }
+    }
+  },
+  "path": {
+    "contractor": {
+      "name": "Master contractor",
+      "desc": "Build for others: from odd jobs to your own construction company.",
+      "m": {
+        "first": "Finish a contract",
+        "handyman": "Become a handyman",
+        "crew": "A crew of four",
+        "contractor": "Become a contractor",
+        "company": "Found your company",
+        "master": "Become a master builder"
+      }
+    },
+    "transport": {
+      "name": "Transport company",
+      "desc": "Barrows, carts and wagons: move the valley's goods.",
+      "m": {
+        "barrow": "Own a wheelbarrow",
+        "lend_two": "Two workers with equipment",
+        "depot": "Build a transport depot",
+        "orders": "Three standing orders at work",
+        "cart": "Two carts or wagons",
+        "tonnage": "3000 units carried"
+      }
+    },
+    "landlord": {
+      "name": "Landlord",
+      "desc": "Own land and houses, and let them to tenants.",
+      "m": {
+        "land": "Own land",
+        "two_buildings": "Own two buildings",
+        "tenant": "Your first tenant",
+        "three_tenants": "Three tenants",
+        "estate": "Own eight properties"
+      }
+    },
+    "business": {
+      "name": "Business owner",
+      "desc": "Own businesses, staff them, and grow rich.",
+      "m": {
+        "first": "Own a business",
+        "staffed": "Two of your workers staffing them",
+        "two": "Own two businesses",
+        "earnings": "Earn $5000",
+        "tycoon": "Own four businesses"
+      }
+    },
+    "founder": {
+      "name": "Town founder",
+      "desc": "Win the valley over and help it grow into a town.",
+      "m": {
+        "known": "Reputation 20",
+        "benefactor": "Give $300 to the village",
+        "large_village": "The village grows into a large village",
+        "headman": "Be elected headman",
+        "town": "The village becomes a town"
+      }
+    },
+    "craftsman": {
+      "name": "Master craftsman",
+      "desc": "Carpentry, smithing or cooking — make the finest work in the valley.",
+      "m": {
+        "skill3": "A craft at level 3",
+        "fine": "25 things made",
+        "skill6": "A craft at level 6",
+        "masterwork": "A masterwork",
+        "master": "A craft at level 10"
+      }
+    }
+  },
+  "advice": {
+    "eat": "You're hungry — eat something (Q) before your health suffers.",
+    "sleep": "You're exhausted — get some sleep.",
+    "health": "Your health is low — rest, eat well, or see the clinic.",
+    "rent": "You owe {money} in rent — pay it before you're thrown out.",
+    "payroll": "Your workers' wages are {money} a day and you can't pay them tomorrow.",
+    "idle_workers": "{n} of your workers have nothing to do — give them a site, a contract or a standing order.",
+    "site_waiting": "A building site is waiting for {item} — none in your storage. Buy it, fetch it, or let your workers buy it.",
+    "contract_risk": "A contract ({ckind}) may not be finished in time — put more hands on it.",
+    "offers": "{n} job offers are waiting for an answer.",
+    "lend": "Your {eq} stands unused — lend it to a worker.",
+    "repair_eq": "Your {eq} is badly worn — repair it.",
+    "get_equipment": "Your workers carry by the armful — a wheelbarrow would let them carry four times as much.",
+    "repair_building": "{building} is falling apart — have it repaired.",
+    "can_hire": "You can hire workers now — talk to someone out of work.",
+    "can_buy_land": "You can buy land now — have a look at the map (M).",
+    "can_build": "You own land — build something on it (B).",
+    "try_orders": "Try a standing order: your workers keep your stores stocked every day.",
+    "manager": "With three workers, a manager could organise them for you.",
+    "guide": "Next step: {step}.",
+    "guide_locked": "Next: {step} (opens at level {level}).",
+    "path": "{path}: {milestone} ({n}/{max}).",
+    "choose_path": "Choose a path to follow (Journal → Guide).",
+    "festival_now": "It's {festival} — go to the square and join in (people will warm to you).",
+    "festival_soon": "Tomorrow is {festival}: the village will gather on the square."
+  },
+  "orders": {
+    "title": "Standing orders",
+    "hint": "Set it up once, and your workers do it every day: they walk to the source, load up (a barrow-load if they have one), carry it over and unload.",
+    "new": "New order",
+    "none": "No standing orders",
+    "none_hint": "For example: move 60 wood a day from your lumberyard to your warehouse, or keep 50 planks in store.",
+    "place_store": "Your storage",
+    "src_buy": "Buy it",
+    "src_gather": "Gather it",
+    "src_auto": "Wherever there's some",
+    "sum_move": "Move {n} {item} a day: {from} → {to}",
+    "sum_keep": "Keep {n} {item} at {to} (from: {from})",
+    "sum_supply": "Keep {site} supplied (from: {from})",
+    "today": "Today: {n} / {max}",
+    "level": "There now: {n} / {max}",
+    "left": "Still needed: {n}",
+    "who": "Who: {list}",
+    "busy": "on it now: {list}",
+    "total": "moved in all: {n}",
+    "anyone": "Anyone",
+    "pause": "Pause",
+    "resume": "Resume",
+    "cancel": "Cancel order",
+    "kind": {
+      "move": "Move so much a day",
+      "keep": "Keep stocked",
+      "supply": "Supply a building site"
+    },
+    "kind_hint": {
+      "move": "Every day, this much is carried from one place to the other.",
+      "keep": "Whenever there's less than this, they fetch more (from where you choose).",
+      "supply": "Everything the site still needs is carried over, until it's built."
+    },
+    "f_kind": "Order",
+    "f_site": "Site",
+    "f_from": "From",
+    "f_to": "To",
+    "f_item": "What",
+    "f_qty": "A day",
+    "f_keep": "Keep at least",
+    "f_workers": "Who",
+    "f_prio": "Priority",
+    "no_sites": "You have no building sites to supply.",
+    "create": "Give the order",
+    "need_workers": "You need workers to carry out orders.",
+    "state": {
+      "working": "Under way",
+      "done_today": "Done for today",
+      "waiting": "Waiting for a free hand",
+      "paused": "Paused",
+      "no_source": "Nothing to fetch",
+      "no_money": "Today's spending limit reached",
+      "no_target": "The place isn't yours any more"
+    }
+  },
+  "festival": {
+    "spring_fair": {
+      "name": "the spring fair"
+    },
+    "midsummer": {
+      "name": "midsummer"
+    },
+    "harvest": {
+      "name": "the harvest festival"
+    },
+    "midwinter": {
+      "name": "the midwinter feast"
+    }
   }
 }

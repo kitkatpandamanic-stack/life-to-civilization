@@ -387,9 +387,35 @@ export class EnterpriseSystem {
         score = -1;
     }
     if (T.needsTech && !this.sim.tech?.has(T.needsTech)) return -9;
+    // Your business of this kind is doing well: someone may want a share of that trade (a competitor).
+    score += this.copyDraw(type);
     // Can trained hands be found here? (A skilled workforce draws trades; its lack holds them back.)
     score += ((this.sim.eduworld?.laborFactor(type) ?? 1) - 1) * 3;
     return T.openable ? score : -9;
+  }
+
+  /** How much your success in a trade draws a villager into it: your businesses of this kind, and what they made last week. */
+  copyDraw(type) {
+    const E = this.econ;
+    let profit = 0;
+    let n = 0;
+    for (const id of this.sim.holdings?.mine() || []) {
+      if (E.def(id)?.type !== type) continue;
+      n++;
+      profit += (E.biz(id).history || []).slice(-7).reduce((s, d) => s + (d.rev || 0) - (d.exp || 0), 0);
+    }
+    if (type === 'carpentry') {
+      for (const b of this.sim.businesses?.list() || []) {
+        n++;
+        profit += (b.history || []).slice(-7).reduce((s, d) => s + (d.revenue || 0) - (d.expenses || 0), 0);
+      }
+    }
+    if (!n || profit < EN.copyProfit) return 0;
+    return Math.min(EN.copyMax, profit / EN.copyProfit);
+  }
+  /** Do you run a business of this kind? */
+  playerRuns(type) {
+    return (this.sim.holdings?.mine() || []).some((id) => this.econ.def(id)?.type === type) || (type === 'carpentry' && (this.sim.businesses?.list().length || 0) > 0);
   }
 
   /** Starting from your own home is cheaper (no premises to fit out). */
@@ -674,6 +700,11 @@ export class EnterpriseSystem {
     sim.memory.remember(n, 'opened_business', { params: { building: premises.building, biz_type: type } });
     if (spouse) sim.memory.remember(spouse, 'family_business', { who: n.id, params: { npc: n.id, building: premises.building } });
     sim.chronicle('chronicle.business_opened_npc', { npc: n.id, gender: n.gender, biz_type: type, building: premises.building });
+    // In your line of trade: a competitor.
+    if (this.playerRuns(type)) {
+      sim.chronicle('chronicle.business_copied', { npc: n.id, gender: n.gender, biz_type: type, building: premises.building });
+      sim.toast('toast.business_copied', { npc: n.id, biz_type: type }, 'warn');
+    }
     sim.goals?.opened(n, id); // if you backed them, you now own a share
     sim.bus.emit('business:opened', id);
     sim.bus.emit('building:changed', premises.building);

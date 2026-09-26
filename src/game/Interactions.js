@@ -164,6 +164,11 @@ export function getActions(scene, target) {
         if (sim.farming.canNeedsRefill()) add('action.fill_can', {}, () => sim.farming.refillCan());
       }
       if (target.type === 'notice_board') add('action.read_board', {}, () => ui.openJobBoard());
+      // A festival on the square: give something towards it (FestivalSystem).
+      if (target.type === 'notice_board' && sim.festivals?.active()) add('action.festival_gift', { money: 50 }, () => {
+        const r = sim.festivals.donate(50);
+        if (!r.ok) sim.toast(`reason.${r.reason}`, r.params || {}, 'warn');
+      }, sim.festivals.canDonate(50));
       if (target.type === 'expedition') {
         const away = sim.state.exploration.trip || sim.state.region?.journey ? { ok: false, reason: 'already_away' } : OK;
         add('action.expedition', {}, () => ui.openExpedition(), away);

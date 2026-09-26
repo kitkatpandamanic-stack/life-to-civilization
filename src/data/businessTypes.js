@@ -26,7 +26,7 @@ export const BUSINESS_TYPES = {
     kind: 'shop', sector: 'grocery', icon: '🧺', openHours: [8, 19],
     ownerOccupation: 'shopkeeper', workerOccupation: 'store_clerk', maxWorkers: 1,
     sells: ['bread', 'apple', 'cheese', 'potato', 'carrot', 'cabbage', 'fish', 'wheat_seeds', 'carrot_seeds', 'potato_seeds', 'cabbage_seeds', 'pumpkin_seeds', 'watering_can', 'fishing_rod', 'bow', 'bricks', 'glass'],
-    buys: ['wood', 'stone', 'clay', 'wheat', 'berries', 'apple', 'carrot', 'potato', 'cabbage', 'pumpkin', 'planks', 'stool', 'chair', 'table', 'fish', 'meat', 'hide'],
+    buys: ['wood', 'stone', 'clay', 'wheat', 'berries', 'apple', 'carrot', 'potato', 'cabbage', 'pumpkin', 'planks', 'stool', 'chair', 'table', 'fish', 'meat', 'hide', 'bricks'],
     targets: { bread: 20, apple: 14, cheese: 8, potato: 12, carrot: 12, cabbage: 8, fish: 6, wheat_seeds: 20, carrot_seeds: 20, potato_seeds: 20, cabbage_seeds: 12, pumpkin_seeds: 8, watering_can: 2, fishing_rod: 2, bow: 1, bricks: 14, glass: 6, wood: 20, stone: 16, clay: 10, wheat: 20, berries: 10, pumpkin: 4, planks: 12, stool: 3, chair: 3, table: 2 },
     // Bread from the mill's flour; without flour, grinding wheat by hand is slow work.
     recipes: { bread: { alts: [{ in: { flour: 1 }, out: 2 }, { in: { wheat: 1 }, out: 1, cost: 1.5 }], perDay: 9, perWorker: 3, import: true } },
@@ -95,6 +95,39 @@ export const BUSINESS_TYPES = {
     targets: { wheat: 30, flour: 30 },
     recipes: { flour: { alts: [{ in: { wheat: 2 }, out: 3 }], perDay: 8, perWorker: 10, cap: 2 } },
     startCost: 380, openable: true,
+  },
+  // Early industry: making in bulk what used to be made by hand (see TechSystem — the village has to learn how first).
+  brickworks: {
+    kind: 'producer', sector: 'bricks', icon: '🧱', needsTech: 'brickmaking', premises: 'warehouse',
+    ownerOccupation: 'brickmaker', workerOccupation: 'clay_digger', maxWorkers: 2,
+    buys: ['clay', 'coal', 'wood'],
+    targets: { clay: 24, coal: 10, wood: 12, bricks: 30 },
+    // Clay dug from the riverbank pits, fired in the kiln (coal burns hotter than wood).
+    recipes: { bricks: { alts: [{ in: { clay: 2, coal: 1 }, out: 5 }, { in: { clay: 2, wood: 1 }, out: 3, cost: 1.3 }], perDay: 6, perWorker: 6, cap: 2 } },
+    startCost: 340, openable: true,
+  },
+  sawmill: {
+    kind: 'producer', sector: 'sawing', icon: '🪚', needsTech: 'sawing', premises: 'warehouse',
+    ownerOccupation: 'sawyer', workerOccupation: 'sawmill_hand', maxWorkers: 2,
+    buys: ['wood'],
+    targets: { wood: 40, planks: 36 },
+    recipes: { planks: { alts: [{ in: { wood: 2 }, out: 1 }], perDay: 10, perWorker: 12, cap: 2 } },
+    startCost: 360, openable: true,
+  },
+  factory: {
+    kind: 'producer', sector: 'manufacture', icon: '🏭', needsTech: 'manufacture', premises: 'warehouse',
+    ownerOccupation: 'factory_master', workerOccupation: 'factory_hand', maxWorkers: 4,
+    buys: ['planks', 'iron_ore', 'coal'],
+    targets: { planks: 30, iron_ore: 16, coal: 16, hammer: 4, axe: 4, saw: 3, chair: 5, table: 3 },
+    // The first factory: tools and furniture made many at a time, by hands that each do one part.
+    recipes: {
+      hammer: { alts: [{ in: { iron_ore: 1, coal: 1, planks: 1 }, out: 2 }], perDay: 1, perWorker: 1, cap: 2 },
+      axe: { alts: [{ in: { iron_ore: 1, coal: 1, planks: 1 }, out: 2 }], perDay: 1, perWorker: 1, cap: 2 },
+      saw: { alts: [{ in: { iron_ore: 1, coal: 1, planks: 1 }, out: 2 }], perDay: 0.6, perWorker: 0.8, cap: 2 },
+      chair: { alts: [{ in: { planks: 3 }, out: 2 }], perDay: 1.5, perWorker: 1.5, cap: 2 },
+      table: { alts: [{ in: { planks: 5 }, out: 2 }], perDay: 0.8, perWorker: 1, cap: 2 },
+    },
+    startCost: 600, openable: true,
   },
   // Outposts (built at discovery sites — see data/sites.js; villagers don't open these themselves)
   mining_camp: {
@@ -187,5 +220,7 @@ export const ENTERPRISE = {
   managerAtWorkers: 3,
   expandAbove: 700, // money that lets a business take on more staff
   historyDays: 14,
+  copyProfit: 60, // your business of a kind made this much in a week: villagers take notice (and a competitor may open)
+  copyMax: 2,
   retryAfterFailDays: 112, // after a business fails, its owner waits this long before trying again (unless set on it)
 };

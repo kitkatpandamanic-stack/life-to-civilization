@@ -131,6 +131,9 @@ import { DevelopmentSystem } from '../systems/DevelopmentSystem.js';
 import { FlatSystem } from '../systems/FlatSystem.js';
 import { PointSystem } from '../systems/PointSystem.js';
 import { EquipmentSystem } from '../systems/EquipmentSystem.js';
+import { GuideSystem } from '../systems/GuideSystem.js';
+import { IndustrySystem } from '../systems/IndustrySystem.js';
+import { FestivalSystem } from '../systems/FestivalSystem.js';
 import { buildParcels } from '../world/Parcels.js';
 import { rand } from './rng.js';
 
@@ -175,6 +178,7 @@ export class Simulation {
     this.property = new PropertySystem(this);
     this.structures = new StructureSystem(this);
     this.territory = new TerritorySystem(this); // who owns which land
+    this.industry = new IndustrySystem(this); // clay pits by the river, and what the new trades dig
     this.enterprise = new EnterpriseSystem(this);
     this.growth = new GrowthSystem(this);
     this.disasters = new DisasterSystem(this);
@@ -209,6 +213,8 @@ export class Simulation {
     this.flats = new FlatSystem(this); // blocks of flats: a household in each flat, each with its own tenancy
     this.points = new PointSystem(this); // where people stand at buildings and sites: doors, loading bays, parking, work
     this.equipment = new EquipmentSystem(this); // baskets, barrows, carts, wagons: real things that help move goods
+    this.festivals = new FestivalSystem(this); // a day each season when the village gathers on the square
+    this.guide = new GuideSystem(this); // getting started, what next, and paths to follow
     this.ledger = new LedgerSystem(this); // last: it watches the others handle your money
     this.jobs.ensureOpenings();
     this.bus.on('time:day', () => this.onNewDay());

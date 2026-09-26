@@ -30,6 +30,8 @@ export const VILLAGE_BUILDINGS = {
 };
 
 export const GROWTH = {
+  hallHomeShare: 0.75, // a free bed in the village hall counts this much as a home (for newcomers deciding to come)
+  hallHomeless: 0.4, // …and someone sleeping there this much as homeless
   civicSaveShare: 0.4, // of each week's taxes the village puts aside for the school (or library, mill…) it wants next
   lotMargin: 1, // free tiles kept around a new building
   maxLotDistance: 30, // tiles from the plaza a new building may go (grows with the village)

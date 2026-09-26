@@ -119,7 +119,7 @@ export class PlayerController {
       if (this.sim.world.isRoad(tile.tx, tile.ty)) speed *= 1 + BALANCE.player.roadSpeedBonus + (this.sim.world.tileAt(tile.tx, tile.ty) === T.PLAZA ? INFRA.pavedSpeedBonus : 0); // cobbles are quicker still
       if (p.energy < BALANCE.needs.lowThreshold) speed *= 0.8;
       // Pushing a barrow, pulling a cart: quick on a road, slow across grass (EquipmentSystem).
-      if (p.eq) speed *= this.sim.equipment.playerMoveMult(this.sim.world.isRoad(tile.tx, tile.ty));
+      if (p.eq) speed *= this.sim.equipment.playerMoveMult(this.sim.world.isRoad(tile.tx, tile.ty), this.sim.world.tileAt(tile.tx, tile.ty) === T.PLAZA);
       this.sprite.setVelocity((vx / len) * speed, (vy / len) * speed);
       if (Math.abs(vx) >= Math.abs(vy) && vx !== 0) this.facing = vx > 0 ? 'right' : 'left';
       else this.facing = vy > 0 ? 'down' : 'up';

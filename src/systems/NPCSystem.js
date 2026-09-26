@@ -167,6 +167,8 @@ export class NPCSystem {
   /** What they physically do at work. A foreman with no crew picks up the axe (or pick) himself. */
   activityOf(npc) {
     const occ = this.occ(npc);
+    // A brickmaker with no diggers digs the clay themselves.
+    if (npc.owns && this.sim.economy.def(npc.owns)?.type === 'brickworks' && !this.staffOf(npc.owns).length && occ.activity === 'inside') return 'mine';
     if (occ.activity === 'spot' && npc.owns && ['lumberyard', 'quarry'].includes(this.sim.economy.def(npc.owns)?.type) && !this.staffOf(npc.owns).length) {
       return this.sim.economy.def(npc.owns).type === 'lumberyard' ? 'chop' : 'mine';
     }
@@ -226,7 +228,7 @@ export class NPCSystem {
       const ageMult = npc.age < 14 ? 1.15 : npc.age > 60 ? 0.85 : 1;
       const road = this.world.isRoad(path[0].tx, path[0].ty) ? 1 + NB.roadSpeedBonus + (this.world.tileAt(path[0].tx, path[0].ty) === T.PLAZA ? INFRA.pavedSpeedBonus : 0) : 1;
       // Pushing a barrow or driving a cart (EquipmentSystem): quick on a road, slow over grass.
-      const eqMove = npc.eq ? this.sim.equipment.moveMultFor(npc, road > 1) : 1;
+      const eqMove = npc.eq ? this.sim.equipment.moveMultFor(npc, road > 1, this.world.tileAt(path[0].tx, path[0].ty) === T.PLAZA) : 1;
       let step = NB.walkSpeed * weatherMove * ageMult * road * eqMove * (deltaMs / 1000);
       while (step > 0 && path.length) {
         const c = this.world.tileCenter(path[0].tx, path[0].ty);
@@ -384,10 +386,12 @@ export class NPCSystem {
       const shop = this.groceryShop(npc);
       if (shop) return shop;
     }
-    if (this.sim.weather.isBad()) return { type: 'home' };
+    // A festival on the square (FestivalSystem): those going go, rain or not, and stay till it's over.
+    const fest = this.sim.festivals?.active() && habits.currentPlan(npc).kind === 'festival';
+    if (this.sim.weather.isBad() && !fest) return { type: 'home' };
     if (npc.energy < 30) return { type: 'rest' };
     const homeBy = sleep - (npc.habits?.chronotype === 'late' || npc.traits.includes('friendly') ? 1 : 2);
-    if (h >= homeBy && !this.isTavern(npc.task?.enter)) return { type: 'home' };
+    if (h >= homeBy && !fest && !this.isTavern(npc.task?.enter)) return { type: 'home' };
     // Free time follows personal habits (and sticks for a while).
     const plan = habits.currentPlan(npc);
     if (plan.kind === 'home' && npc.homeId) return { type: 'home' };
@@ -993,11 +997,13 @@ export class NPCSystem {
     const bld = this.workBuilding(npc);
     // No point felling trees nobody will buy: when the yard is overflowing, wait at the yard.
     const biz = this.workBusiness(npc);
-    const mainItem = kind === 'tree' ? 'wood' : 'stone';
+    // A brickworks digs clay at the river; a quarry breaks stone (and leaves the clay pits alone).
+    const rock = kind === 'rock' ? this.sim.industry?.rockFor(biz) || 'stone' : null;
+    const mainItem = kind === 'tree' ? 'wood' : rock === 'clay' ? 'clay' : 'stone';
     const wants = this.sim.economy.wantsMore(biz, mainItem);
     // Woodcutters only fell full-grown trees (young ones are left to grow).
     // …and leave your land alone: what grows on it is yours.
-    const usable = (o) => (kind !== 'tree' || o.state === 'grown') && (!o.reservedBy || o.reservedBy === npc.id) && !this.sim.land.ownsTile(o.tx, o.ty);
+    const usable = (o) => (kind !== 'tree' || o.state === 'grown') && (kind !== 'rock' || (rock === 'clay') === (o.variant === 'clay')) && (!o.reservedBy || o.reservedBy === npc.id) && !this.sim.land.ownsTile(o.tx, o.ty);
     // Nothing left near the yard? Go deeper into the woods (a longer walk, but there's work).
     const target = wants ? this.sim.resources.findNearest(kind, bld.door.tx, bld.door.ty, NB.searchRadius, usable) || this.sim.resources.findNearest(kind, bld.door.tx, bld.door.ty, NB.searchRadius * 2.2, usable) : null;
     if (!target) {
@@ -1187,6 +1193,11 @@ export class NPCSystem {
       }
       case 'market':
         return this.walkTo(npc, rand.int(P.x1 + 1, P.x2 - 1), P.y2 - 2);
+      case 'festival': {
+        // The whole square, crowded (they'll stand and talk with whoever's near).
+        const s = this.world.nearestWalkable(rand.int(P.x1 + 1, P.x2 - 1), rand.int(P.y1 + 1, P.y2 - 1), 3);
+        return this.walkTo(npc, s.tx, s.ty);
+      }
       case 'build': {
         const c = this.sim.construction.byId(plan.site);
         if (!c || c.status !== 'site') return plaza();

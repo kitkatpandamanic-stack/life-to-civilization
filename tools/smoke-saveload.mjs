@@ -112,6 +112,10 @@ const s2 = snap(sim2);
 const shape = (s) => JSON.stringify(Object.entries(s.state.territory.plots).map(([id, r]) => [id, r.owner, r.type]));
 s1.plots = shape(sim);
 s2.plots = shape(sim2);
+// (Public works: what's been done — cobbles, bridges, lamps — not the fund, which follows the week's trade.)
+const works = (x) => JSON.stringify({ paved: x.state.infra.paved, bridges: x.state.infra.bridges, lamps: x.state.infra.lamps });
+s1.infra = works(sim);
+s2.infra = works(sim2);
 const same = ['buildings', 'tiles', 'parcels', 'plots', 'hoods', 'districts', 'infra'].filter((k) => s1[k] === s2[k]);
 check('a week on, the saved game and the one that went on without saving agree', same.length === 7, `the same: ${same.join(', ')}`);
 

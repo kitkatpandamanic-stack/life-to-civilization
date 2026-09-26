@@ -32,6 +32,13 @@ export const OCCUPATIONS = {
   blacksmith: { workplace: 'smithy', restDay: 6, start: 8, end: 18, lunch: true, activity: 'spot', wake: 7, sleep: 22 },
   // Trades villagers can open businesses in (see businessTypes.js).
   hunter: { workplace: 'business', restDay: 0, start: 5, end: 13, activity: 'inside', wake: 4, sleep: 21, wage: 13 },
+  // Early industry (see businessTypes.js brickworks / sawmill / factory).
+  brickmaker: { workplace: 'business', restDay: 6, start: 7, end: 17, lunch: true, activity: 'inside', wake: 6, sleep: 22 },
+  clay_digger: { workplace: 'business', restDay: 6, start: 7, end: 17, lunch: true, activity: 'mine', wake: 6, sleep: 22, wage: 14 },
+  sawyer: { workplace: 'business', restDay: 6, start: 7, end: 17, lunch: true, activity: 'inside', wake: 6, sleep: 22 },
+  sawmill_hand: { workplace: 'business', restDay: 6, start: 7, end: 17, lunch: true, activity: 'inside', wake: 6, sleep: 22, wage: 14 },
+  factory_master: { workplace: 'business', restDay: 6, start: 7, end: 18, lunch: true, activity: 'inside', wake: 6, sleep: 22 },
+  factory_hand: { workplace: 'business', restDay: 6, start: 7, end: 17, lunch: true, activity: 'inside', wake: 6, sleep: 22, wage: 15 },
   miller: { workplace: 'business', start: 6, end: 17, lunch: true, activity: 'inside', wake: 5, sleep: 21, restDay: 6 },
   mill_hand: { workplace: 'business', restDay: 6, start: 6, end: 16, lunch: true, activity: 'inside', wake: 5, sleep: 22, wage: 13 },
   baker: { workplace: 'business', start: 5, end: 14, activity: 'inside', wake: 4, sleep: 21 },

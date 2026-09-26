@@ -19,6 +19,8 @@ import { rand } from '../core/rng.js';
 const MAX_PER_NPC = 6;
 const MAX_AGE = 35; // days before a rumor is forgotten
 const DISTORT = 0.12; // chance a retelling changes the story
+/** Rumors about you: how much hearing one changes what someone thinks of you. */
+export const YOU_RUMORS = { you_built: 0.4, you_helped: 1, you_fired: -1, you_business: 0.2, you_ambition: 0.5, you_path: 0.4, you_generous: 1 };
 
 export class RumorSystem {
   constructor(sim) {
@@ -50,6 +52,10 @@ export class RumorSystem {
     if (npc.rumors.includes(id)) return false;
     npc.rumors.push(id);
     if (npc.rumors.length > MAX_PER_NPC) npc.rumors.shift();
+    // What they hear about you changes what they think of you (a little).
+    const r = this.get(id);
+    const feel = r && YOU_RUMORS[r.kind];
+    if (feel && this.sim.social) this.sim.social.addRel(npc, feel);
     return true;
   }
 
@@ -135,6 +141,33 @@ export class RumorSystem {
         break;
       case 'chronicle.business_failed':
         this.seed('closing', { building: p.building });
+        break;
+      // What you do gets talked about (YOU_RUMORS: and people think better or worse of you for it).
+      case 'chronicle.player_built':
+      case 'chronicle.player_upgraded':
+        this.seed('you_built', { building_type: p.building_type });
+        break;
+      case 'chronicle.player_helped':
+        this.seed('you_helped', { npc: p.npc });
+        break;
+      case 'chronicle.player_fired':
+        if (p.unfair !== false) this.seed('you_fired', { npc: p.npc });
+        break;
+      case 'chronicle.player_bought_business':
+      case 'chronicle.player_opened_business':
+        this.seed('you_business', { building: p.building, biz_type: p.biz_type });
+        break;
+      case 'chronicle.player_ambition':
+        this.seed('you_ambition', { ambition: p.ambition });
+        break;
+      case 'chronicle.path_milestone':
+        this.seed('you_path', { path: p.path, milestone: p.milestone });
+        break;
+      case 'chronicle.festival_donated':
+        this.seed('you_generous', { festival: p.festival, money: p.money });
+        break;
+      case 'chronicle.business_copied':
+        this.seed('copied', { npc: p.npc, biz_type: p.biz_type });
         break;
       default:
     }

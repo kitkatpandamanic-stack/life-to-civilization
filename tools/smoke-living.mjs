@@ -74,7 +74,10 @@ check('firing is remembered', sim.memory.has(nikita, 'player_fired', 'player') |
 check('firing costs trust', sim.social.playerBond(nikita).t < trustBefore, `${trustBefore} → ${sim.social.playerBond(nikita).t}`);
 // Word of mouth: after a couple of weeks, others have heard about you.
 run(sim, 14 * 1440);
-const heard = npcs.filter((n) => n.memories.some((m) => m.k === 'heard_player_good' || m.k === 'heard_player_bad'));
+const heardOf = () => npcs.filter((n) => n.memories.some((m) => m.k === 'heard_player_good' || m.k === 'heard_player_bad'));
+// (Who chats with whom is chance: give it up to two more weeks.)
+for (let i = 0; i < 14 && !heardOf().length; i++) run(sim, 1440);
+const heard = heardOf();
 check('word of mouth spreads what you did', heard.length >= 1, heard.map((n) => n.id).join(', '));
 
 // ---------------------------------------------------------------- dialogue topics

@@ -133,7 +133,8 @@ export class SettlementSystem {
 
   danger(id) {
     // A night watch patrols the roads out of the valley (see CivicSystem).
-    return REGIONS[this.def(id).region].danger * (1 - T.roadDangerCut * this.get(id).road) * (this.sim.tech?.mod('road_danger') ?? 1);
+    // Bandits about (EventSystem 'bandits'): the roads are much less safe until they've moved on.
+    return REGIONS[this.def(id).region].danger * (1 - T.roadDangerCut * this.get(id).road) * (this.sim.tech?.mod('road_danger') ?? 1) * (this.sim.events?.modifier('road_danger') ?? 1);
   }
 
   // ------------------------------------------------------------------ the week out there

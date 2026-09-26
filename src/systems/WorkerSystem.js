@@ -29,12 +29,13 @@ import { STANDARD } from '../data/quality.js';
 import { GATHERABLE } from './ContractSystem.js';
 import { COMPANY } from '../data/contracting.js';
 import { WorkforceManager, MANAGER } from './WorkforceManager.js';
+import { StandingOrders } from './StandingOrders.js';
 import { FOCUS, PRIORITY_WEIGHT, WORK_FIELDS, PROFESSIONS, WORKFORCE as WF } from '../data/workforce.js';
 import { EQUIP } from '../data/transport.js';
 import { RATES } from '../data/contracting.js';
 
 /** Work that's fetching and carrying (a transport round: collect → load → transport → unload → return). */
-const HAUL_KINDS = new Set(['haul', 'buy', 'haul_ws', 'cfetch', 'cbuy', 'csite', 'chaul', 'csaw', 'corder']);
+const HAUL_KINDS = new Set(['haul', 'buy', 'haul_ws', 'cfetch', 'cbuy', 'csite', 'chaul', 'csaw', 'corder', 'ofetch']);
 
 export const WORKER_RANKS = ['worker', 'skilled', 'supervisor', 'manager'];
 const W = {
@@ -486,6 +487,8 @@ export class WorkerSystem {
       if (job) this.contractTasks(npc, job, pos, add);
       else delete S.job;
     }
+    // Your standing orders (StandingOrders): carrying you set up once, done day after day.
+    this.orderTasks(npc, c, pos, add);
     const storage = (item) => sim.home.storageCount(item);
     const buyLeft = this.buyBudgetLeft();
     for (const site of cons.playerSites()) {
@@ -713,7 +716,7 @@ export class WorkerSystem {
     const taken = new Set(this.list().filter((c) => c.npcId !== npc.id && c.task).map((c) => c.task.target));
     const blocked = this.contract(npc.id)?.blocked || {};
     const now = this.sim.time.total;
-    const ok = (o) => (!o.reservedBy || o.reservedBy === npc.id) && !taken.has(o.id) && !((blocked[`gather:${o.id}`] || 0) > now) && (kind !== 'rock' || o.variant === 'stone' || o.variant === 'coal') && (!only || only(o));
+    const ok = (o) => (!o.reservedBy || o.reservedBy === npc.id) && !taken.has(o.id) && !((blocked[`gather:${o.id}`] || 0) > now) && (kind !== 'rock' || (only ? true : o.variant === 'stone' || o.variant === 'coal')) && (!only || only(o));
     for (const r of WF.gatherRadii) {
       const o = res.findNearest(kind, base.door.tx, base.door.ty, r, ok);
       if (o) return o;
@@ -888,7 +891,7 @@ export class WorkerSystem {
       stand = (bid && sim.points.standAt(bid, npc.id, sim.world.toTile(npc.x, npc.y))) || sim.world.nearestWalkable(task.tx, task.ty, 3);
       if (!this.reachable(npc, stand)) return this.block(c, task);
     }
-    c.task = { key: task.key, kind: task.kind, target: task.target, item: task.item, seller: task.seller, forSite: task.forSite, farmJob: task.farmJob, contract: task.contract, spot: { tx: stand.tx, ty: stand.ty }, since: sim.time.total, status: 'reserved' };
+    c.task = { key: task.key, kind: task.kind, target: task.target, item: task.item, seller: task.seller, forSite: task.forSite, farmJob: task.farmJob, contract: task.contract, order: task.order, from: task.from, spot: { tx: stand.tx, ty: stand.ty }, since: sim.time.total, status: 'reserved' };
     this.phase(c, HAUL_KINDS.has(task.kind) ? (c.phase === 'unload' ? 'return' : 'collect') : task.kind === 'take_eq' ? 'fetch_equipment' : task.kind === 'return_eq' ? 'return_equipment' : task.kind === 'build' ? 'construct' : 'work');
     npc.task.stage = 'to_task';
     npc.task.siteId = task.kind === 'build' ? task.target : npc.task.siteId;
@@ -957,7 +960,14 @@ export class WorkerSystem {
       if (t.kind === 'csite') return K.goodsLeft(job) > 0 && sim.construction.byId(job.siteId)?.status === 'site';
       if (t.kind.startsWith('gather') && K.isGoods(job) && K.goodsLeft(job) <= 0) return false;
     }
+    // A standing order's work: only while the order's on and still wants it.
+    if (t.order !== undefined) {
+      const o = this.orderById(t.order);
+      if (!o || o.paused || !this.placeOk(o.to) || this.orderNeed(o, t.item) <= 0) return false;
+    }
     switch (t.kind) {
+      case 'ofetch':
+        return true;
       case 'take_eq': {
         const eq = sim.equipment?.byId(t.target);
         return !!eq && eq.holder?.kind === 'worker' && eq.holder.id === npc.id && eq.at.kind === 'ground' && sim.equipment.usable(eq) && !eq.recall;
@@ -1020,6 +1030,7 @@ export class WorkerSystem {
     const t = c.task;
     if (!t) return this.next(npc);
     if (t.kind === 'take_eq' || t.kind === 'return_eq') return this.arriveEquipment(npc, c, t);
+    if (t.kind === 'ofetch') return this.orderFetch(npc, c, t);
     // Check again on arrival: things change while you walk.
     if (!this.valid(npc, c, t)) return this.next(npc);
     this.setState(c, 'working');
@@ -1354,6 +1365,8 @@ export class WorkerSystem {
   /** Take whatever they're carrying where it belongs: the site it's for, your workshop, or your storage. */
   deliverCarry(npc, c) {
     const to = npc.carry?.to;
+    // A standing order's load: to wherever the order wants it.
+    if (to && String(to).startsWith('ord:') && this.orderDeliver(npc, c)) return;
     // Goods for a business (the farmer's wheat, a haul): to its door.
     if (to && String(to).startsWith('ebiz:')) {
       const b = this.sim.world.buildings[this.sim.economy.biz(to.slice(5))?.building];
@@ -1411,7 +1424,9 @@ export class WorkerSystem {
       const ebiz = load.to && String(load.to).startsWith('ebiz:') && sim.economy.biz(load.to.slice(5));
       const person = load.to && String(load.to).startsWith('bld:');
       const post = load.to && String(load.to).startsWith('post:');
-      if (npc.task.stage === 'carry_site' && post) {
+      if (npc.task.stage === 'carry_site' && load.order !== undefined && String(load.to).startsWith('ord:')) {
+        this.orderUnload(npc, c, load);
+      } else if (npc.task.stage === 'carry_site' && post) {
         // One parcel or letter at this house; on round to the next.
         const job = sim.contracts.S.active.find((x) => x.id === load.contract);
         const at = load.at;
@@ -1577,6 +1592,7 @@ export class WorkerSystem {
         // contract to whoever wants them; the rest to your storage.
         const job = t.contract !== undefined && sim.contracts.S.active.find((x) => x.id === t.contract);
         if (job && carry.item === job.item) npc.carry = { ...carry, items: { [carry.item]: carry.qty }, to: sim.contracts.destOf(job), contract: job.id };
+        else if (t.order !== undefined && this.orderById(t.order)) npc.carry = { ...carry, items: { [carry.item]: carry.qty }, to: `ord:${t.order}`, order: t.order };
         else npc.carry = { ...carry, items: { [carry.item]: carry.qty }, to: t.forSite || null };
         return this.deliverCarry(npc, c);
       }
@@ -1757,6 +1773,7 @@ export class WorkerSystem {
     if (k === 'mplan') return { key: 'managing_plan', params: {} };
     if (k === 'chaul' || k === 'cfetch' || k === 'csite' || k === 'corder' || k === 'cpost') return { key: 'carrying_contract', params: {} };
     if (k === 'cbuy') return { key: 'buying_materials', params: { item: c.task.item } };
+    if (k === 'ofetch') return { key: c.task.from === 'buy' ? 'buying_materials' : 'fetching_order', params: { item: c.task.item } };
     if (k === 'cshift') return { key: npc.moving ? 'going_to_work' : 'working_for_you', params: {} };
     if (k === 'gather_berries') return { key: 'working_forage', params: {} };
     if (k === 'haul') return { key: 'fetching_materials', params: {} };
@@ -1774,3 +1791,5 @@ export { W as WORKER_TUNING };
 
 // Your manager, if you appoint one: rounds of the jobs, who goes where, roles, notes.
 Object.assign(WorkerSystem.prototype, WorkforceManager);
+// Your standing orders: "60 wood a day from the lumberyard to the warehouse", "keep 50 planks in store".
+Object.assign(WorkerSystem.prototype, StandingOrders);
