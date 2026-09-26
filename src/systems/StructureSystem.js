@@ -184,6 +184,10 @@ export class StructureSystem {
   qualityCap(id) {
     const r = this.rec(id);
     if (!r) return 100;
+    return this.qualityCapOf(r);
+  }
+  /** The same, for a building record as it would be (an upgrade's "after"). */
+  qualityCapOf(r) {
     const mods = Object.values(r.mods).reduce((s, n) => s + n, 0);
     return Math.min(100, Math.round(QL.capBase + r.lvl * QL.capPerLevel + mods * QL.capPerModule));
   }
@@ -647,6 +651,7 @@ export class StructureSystem {
     const r = this.rec(id);
     if (!r) return;
     const job = c.job;
+    const fromLvl = r.lvl;
     r.work = null;
     const wq = this.workQuality(c);
     // What's left of the money put by for the work goes back where it came from.
@@ -691,6 +696,7 @@ export class StructureSystem {
     sim.bus.emit('property:changed', id);
     const owner = sim.npcs.byId(c.owner);
     if (c.owner === 'player') {
+      sim.bus.emit('works:completed', { id, job, from: fromLvl, to: r.lvl });
       sim.toast('toast.works_done', { building: id, works: this.jobKey(job) }, 'good');
       sim.chronicle('chronicle.player_improved', { building: id, works: this.jobKey(job) });
       if (id === sim.state.player.homeId && job.type === 'level') sim.progression.addReputation(HOME_TIERS[HOME_TIER_OF_LEVEL[r.lvl]]?.reputation ? 2 : 1);

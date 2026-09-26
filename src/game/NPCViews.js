@@ -9,6 +9,7 @@ import { npcName } from '../i18n/i18n.js';
 import { BALANCE } from '../config/balance.js';
 import { ensureCharacter, idleFrame, CHAR_ORIGIN_Y } from './characters.js';
 import { DEPTH } from './depth.js';
+import { workerIndicator } from '../ui/workerCard.js';
 
 const WORK_FX = { chop: 'chip', mine: 'dot', spot: 'spark', build: 'chip' };
 
@@ -18,6 +19,9 @@ export class NPCViews {
     this.sim = sim;
     this.views = new Map();
     for (const npc of sim.state.npcs) this.create(npc);
+    // The villager you picked (their card is open) or are following: a ring at their feet.
+    this.selected = null;
+    this.ring = scene.add.ellipse(0, 0, 30, 12).setStrokeStyle(2, 0xffcf5a, 0.95).setFillStyle(0xffcf5a, 0.18).setVisible(false);
     this.fx = {};
     for (const tex of new Set(Object.values(WORK_FX))) {
       this.fx[tex] = scene.add
@@ -52,10 +56,21 @@ export class NPCViews {
     this.views.set(npc.id, { npc, tex, sprite, tag, bubble, thought, thoughtText: '', bubbleUntil: 0, fxTimer: 0, anim: '' });
   }
 
+  /** Pick a villager (their card is open): the ring goes round them. */
+  select(id) {
+    this.selected = id;
+  }
+
+  /** A villager's sprite while they're out in the world (null indoors / away) — for the camera to follow. */
+  spriteOf(id) {
+    const v = this.views.get(id);
+    return v && v.sprite.visible ? v.sprite : null;
+  }
+
   destroyView(id) {
     const v = this.views.get(id);
     if (!v) return;
-    for (const o of [v.sprite, v.tag, v.bubble, v.thought]) o.destroy();
+    for (const o of [v.sprite, v.tag, v.bubble, v.thought, v.badge]) o?.destroy();
     this.views.delete(id);
   }
 
@@ -119,6 +134,11 @@ export class NPCViews {
   update(delta) {
     const p = this.sim.state.player;
     const now = this.scene.time.now;
+    const followed = this.scene.camDir?.following() || null;
+    // The picked villager stays picked while their card is open (or while you follow them).
+    if (this.selected && !this.scene.ui?.menu && this.selected !== followed) this.selected = null;
+    const ringOn = this.selected || followed;
+    let ringShown = false;
     for (const v of this.views.values()) {
       const npc = v.npc;
       const visible = !npc.inside && npc.simLevel !== 'abstract';
@@ -127,7 +147,13 @@ export class NPCViews {
         v.tag.setVisible(false);
         v.bubble.setVisible(false);
         v.thought.setVisible(false);
+        v.badge?.setVisible(false);
         continue;
+      }
+      if (npc.id === ringOn) {
+        this.ring.setPosition(npc.x, npc.y + 1).setDepth(npc.y - 1).setVisible(true);
+        this.ring.setScale(1 + Math.sin(now / 250) * 0.06);
+        ringShown = true;
       }
       v.sprite.setPosition(npc.x, npc.y).setDepth(npc.y);
 
@@ -157,8 +183,9 @@ export class NPCViews {
         }
       }
 
-      // Name tag when the player is close
-      const near = Math.hypot(npc.x - p.x, npc.y - p.y) < 120 || npc.talkingToPlayer;
+      // Name tag when the player is close (or it's who you picked / follow)
+      // (info mode: your workers' names too)
+      const near = Math.hypot(npc.x - p.x, npc.y - p.y) < 120 || npc.talkingToPlayer || npc.id === ringOn || (this.scene.overlay?.info && !!this.sim.workers.contract(npc.id));
       v.tag.setVisible(near);
       if (near) {
         v.tag.setText(npcName(npc));
@@ -180,7 +207,20 @@ export class NPCViews {
       }
       v.thought.setVisible(!!icon);
       if (icon) v.thought.setPosition(npc.x + (near ? 22 : 0), npc.y - (npc.age < 14 ? 38 : 48) + Math.sin(now / 300) * 2);
+
+      // Your workers: what they're at, as one small icon — only near you, or for the one you picked / follow.
+      const wIcon = dist < BALANCE.npc.thoughtRadius * 2.2 || npc.id === ringOn || this.scene.overlay?.info ? workerIndicator(this.sim, npc) : null;
+      if (wIcon && !v.badge) v.badge = this.scene.add.text(0, 0, '', { fontFamily: '"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif', fontSize: '12px', backgroundColor: 'rgba(20,14,9,0.72)', padding: { x: 3, y: 1 } }).setOrigin(0.5, 1).setDepth(DEPTH.WORLD_UI);
+      if (v.badge) {
+        if (wIcon !== v.badgeText) {
+          v.badgeText = wIcon;
+          v.badge.setText(wIcon || '');
+        }
+        v.badge.setVisible(!!wIcon);
+        if (wIcon) v.badge.setPosition(npc.x - (icon ? 16 : 0), npc.y - (npc.age < 14 ? 38 : 48) - (near ? 16 : 0));
+      }
     }
+    if (!ringShown) this.ring.setVisible(false);
   }
 
   destroy() {

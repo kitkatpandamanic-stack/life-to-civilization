@@ -4,13 +4,24 @@
  */
 import { FOG } from '../../data/regions.js';
 import { Panel } from '../Panel.js';
-import { t } from '../../i18n/i18n.js';
+import { t, npcName } from '../../i18n/i18n.js';
 import { escapeHtml, buildingLabel, districtLabel, hoodLabel, hamletName, villageName } from '../format.js';
 import { button, filters } from '../widgets.js';
+import { stateBadge, taskText, jobText } from '../transport.js';
+import { statusGroup, placeText } from '../workerCard.js';
+import { buildingActivity, buildingIcon } from '../buildingCard.js';
+import { contractPlace } from '../contracts.js';
+import { PUBLIC_TYPES } from '../../data/housing.js';
 import { PLOTS } from '../../data/land.js';
 
 /** Map layers — one at a time, only when you ask for it. */
-const LAYERS = ['normal', 'ownership', 'value', 'land_use', 'places', 'infrastructure', 'transport', 'population'];
+const LAYERS = ['normal', 'buildings', 'workers', 'jobs', 'resources', 'transport', 'infrastructure', 'ownership', 'land_use', 'value', 'places', 'population'];
+/** Buildings by what they are (the Buildings layer). */
+const BCAT_COLORS = { home: '#f0c060', farm: '#9ad050', shop: '#e0603a', industry: '#a0a0b8', storage: '#c890ff', public: '#60a0f0', site: '#60d0a0' };
+/** Your workers by what they're doing (the Workers layer) — the same groups as the Workers screen. */
+const GROUP_COLORS = { working: '#8fd08f', traveling: '#8fc3e8', waiting: '#ffb04a', resting: '#b0a080', idle: '#d8d0c0', stuck: '#ff7b68' };
+/** What grows and lies about (the Resources layer). */
+const RES_COLORS = { tree: '#2f9a3a', rock: '#b8b2a6', clay: '#c0703a', bush: '#e05a70', crop: '#e8d060' };
 const OWNER_COLORS = { player: '#ffcf5a', village: '#60a0f0', npc: '#9ad07a', nobody: '#e06a5a' };
 import { T } from '../../world/WorldGenerator.js';
 import { BUILDABLES } from '../../data/buildables.js';
@@ -31,6 +42,52 @@ const DISTRICT_COLORS = { residential: '#f0c060', commercial: '#e0603a', industr
 export class MapPanel extends Panel {
   get id() {
     return 'map';
+  }
+
+  /** What kind of building this is, for the Buildings layer. */
+  category(b) {
+    const sim = this.sim;
+    if (sim.construction.sites().some((s) => s.id === b.id && s.status === 'site')) return 'site';
+    const biz = sim.economy.businessAtBuilding(b.id);
+    const def = biz && sim.economy.def(biz);
+    if (def) return def.sector === 'farming' ? 'farm' : def.kind === 'shop' || def.kind === 'service' ? 'shop' : def.kind === 'depot' ? 'storage' : 'industry';
+    const type = sim.property.type?.(b.id) || b.type;
+    if (BUILDABLES[b.type]?.effect?.storage || ['warehouse_bld', 'storage_shed', 'barn', 'transport_depot'].includes(b.type)) return 'storage';
+    if (PUBLIC_TYPES.includes(type) || ['hall', 'school', 'clinic', 'library', 'institute', 'market_hall', 'watch_house', 'rail_station'].includes(type)) return 'public';
+    if (sim.property.isHome(b.id)) return 'home';
+    return 'industry';
+  }
+
+  /** The thing picked on the map: a line about it and what you can do. */
+  selectionHtml() {
+    const sim = this.sim;
+    const s = this.sel;
+    if (!s) return '';
+    const b2 = (label, action, data, cls = 'sm', ico = '') => button(label, action, data, { cls, ico });
+    if (s.kind === 'worker') {
+      const npc = sim.npcs.byId(s.id);
+      const c = sim.workers.contract(s.id);
+      if (!npc || !c) return '';
+      return `<div class="map-sel"><div class="map-sel-head"><b>👷 ${escapeHtml(npcName(npc))}</b>${stateBadge(c.state || 'idle')}</div>
+        <div class="small">${escapeHtml(taskText(sim, npc))} · 📍 ${escapeHtml(placeText(sim, npc))}</div>
+        <div class="btn-row">${b2(t('wcard2.follow'), 'sel_follow', { npc: s.id }, 'sm primary', '👁')}${b2(t('bcard.locate'), 'sel_show', { x: npc.x, y: npc.y - 20 }, 'sm', '🎯')}${b2(t('wcard2.manage'), 'sel_manage', { npc: s.id }, 'sm', '👷')}</div></div>`;
+    }
+    if (s.kind === 'building') {
+      const b = sim.world.buildings[s.id];
+      if (!b) return '';
+      const [kind, ico, words] = buildingActivity(sim, s.id);
+      return `<div class="map-sel"><div class="map-sel-head"><b>${buildingIcon(sim, s.id)} ${escapeHtml(buildingLabel(sim, s.id))}</b><span class="status s-${kind}">${ico} ${escapeHtml(words)}</span></div>
+        <div class="btn-row">${b2(t('bcard.locate'), 'sel_show', { x: (b.tx + b.w / 2) * 32, y: b.ty * 32 }, 'sm primary', '🎯')}${sim.property.rec(s.id) ? b2(t('bcard.inspect'), 'sel_inspect', { id: s.id }, 'sm', '🔍') : ''}</div></div>`;
+    }
+    if (s.kind === 'job') {
+      const c = sim.state.contracts.active.find((x) => x.id === s.id);
+      if (!c) return '';
+      const p = contractPlace(sim, c);
+      return `<div class="map-sel"><div class="map-sel-head"><b>📜 ${escapeHtml(t(`contract.kind.${c.kind}`))} #${c.id}</b><span class="small">${Math.round(sim.contracts.progress(c) * 100)}% · 👷 ${(c.workers || []).length}</span></div>
+        <div class="small">${p ? `📍 ${escapeHtml(p.label)}` : ''}</div>
+        <div class="btn-row">${p ? b2(t('contract.view_place'), 'sel_show', { x: p.x, y: p.y }, 'sm primary', '🎯') : ''}${(c.workers || []).length ? b2(t('contract.follow_worker'), 'sel_follow', { npc: c.workers[0] }, 'sm', '👁') : ''}${b2(t('contract.manage_workers'), 'sel_contract', {}, 'sm', '📋')}</div></div>`;
+    }
+    return '';
   }
   title() {
     return `🗺️ ${escapeHtml(t('ui.map'))}`;
@@ -82,6 +139,10 @@ export class MapPanel extends Panel {
     else if (L === 'places') legend = Object.entries(DISTRICT_COLORS).filter(([k]) => this.sim.state.districts.list.some((d) => d.type === k)).map(([k, c]) => `<span><i class="lg" style="background:${c}"></i>${escapeHtml(t(`district.kind.${k}`))}</span>`).join('') + `<span><i class="lg" style="border:2px dashed #ffe7a8;border-radius:2px"></i>${escapeHtml(t('map.hoods'))}</span>`;
     else if (L === 'transport') legend = [['#e8d4a8', 'map.roads'], ['#ffcf5a', 'map.t_stores'], ['#c890ff', 'map.t_depots'], ['#60d0a0', 'map.t_sites'], ['#e07050', 'map.t_waiting'], ['#ffffff', 'map.t_equipment'], ['#ff9a6a', 'map.t_carrying']].map(([c, k]) => `<span><i class="lg" style="background:${c};border-radius:2px"></i>${escapeHtml(t(k))}</span>`).join('');
     else if (L === 'population') legend = `<span><i class="lg" style="background:#ff9a6a"></i>${escapeHtml(t('map.people_hint'))}</span>`;
+    else if (L === 'buildings') legend = Object.entries(BCAT_COLORS).map(([k, c]) => `<span><i class="lg" style="background:${c};border-radius:2px"></i>${escapeHtml(t(`map.bcat_${k}`))}</span>`).join('') + `<span><i class="lg" style="border:2px solid #ffcf5a;border-radius:2px"></i>${escapeHtml(t('map.yours'))}</span>`;
+    else if (L === 'workers') legend = Object.entries(GROUP_COLORS).map(([k, c]) => `<span><i class="lg" style="background:${c}"></i>${escapeHtml(t(`wf.group_${k}`))}</span>`).join('');
+    else if (L === 'jobs') legend = `<span><i class="lg" style="background:#ffcf5a"></i>${escapeHtml(t('map.jobs_contracts'))}</span><span><i class="lg" style="background:#60d0a0;border-radius:2px"></i>${escapeHtml(t('map.jobs_sites'))}</span>`;
+    else if (L === 'resources') legend = Object.entries(RES_COLORS).map(([k, c]) => `<span><i class="lg" style="background:${c};border-radius:2px"></i>${escapeHtml(t(`map.res_${k}`))}</span>`).join('');
     return `${filters(LAYERS.map((l) => [l, t(`map.layer_${l}`)]), L, 'layer')}
       <div class="map-wrap"><canvas class="map-canvas clickable" title="${escapeHtml(t('map.click_hint'))}"></canvas></div>
       <div class="map-legend">
@@ -91,7 +152,8 @@ export class MapPanel extends Panel {
         <span><i class="lg home"></i>${escapeHtml(t('ui.map_home'))}</span>
       </div>
       ${legend ? `<div class="map-legend">${legend}</div>` : ''}
-      <div class="hint">${escapeHtml(t(L === 'places' ? 'map.click_hint_places' : ['ownership', 'land_use', 'value'].includes(L) ? 'map.click_hint_land' : 'map.click_hint'))}</div>
+      ${this.selectionHtml()}
+      <div class="hint">${escapeHtml(t(L === 'places' ? 'map.click_hint_places' : ['ownership', 'land_use', 'value'].includes(L) ? 'map.click_hint_land' : ['workers', 'jobs', 'buildings'].includes(L) ? 'map.click_hint_pick' : 'map.click_hint'))}</div>
       ${this.settlementsHtml()}`;
   }
 
@@ -122,7 +184,16 @@ export class MapPanel extends Panel {
   }
 
   onAction(action, data) {
-    if (action === 'layer') this._layer = data.f;
+    if (action === 'layer') {
+      this._layer = data.f;
+      this.sel = null;
+    }
+    // The picked thing: go and see it (the map closes, the camera goes there).
+    if (action === 'sel_follow') this.sim.bus.emit('ui:follow', { npc: data.npc });
+    if (action === 'sel_show') this.sim.bus.emit('ui:look', { x: Number(data.x), y: Number(data.y) });
+    if (action === 'sel_manage') this.ui.openWorkers({ focus: data.npc });
+    if (action === 'sel_inspect') this.ui.openProperty(data.id);
+    if (action === 'sel_contract') this.ui.openJournal('tasks');
   }
 
   afterRender(body) {
@@ -132,6 +203,21 @@ export class MapPanel extends Panel {
       const r = this.canvas.getBoundingClientRect();
       const tx = ((e.clientX - r.left) / r.width) * this.sim.world.W;
       const ty = ((e.clientY - r.top) / r.height) * this.sim.world.H;
+      // A marker (a worker, a job) under the pointer: pick it.
+      const mx = tx * SCALE;
+      const my = ty * SCALE;
+      const hit = (this.markers || []).filter((m) => Math.hypot(m.x - mx, m.y - my) <= m.r + 4).sort((a, b) => Math.hypot(a.x - mx, a.y - my) - Math.hypot(b.x - mx, b.y - my))[0];
+      if (hit) {
+        this.sel = { kind: hit.kind, id: hit.id };
+        this.ui.renderPanel();
+        return;
+      }
+      if (this.layer === 'buildings') {
+        const bb = this.sim.world.buildingList.find((o) => tx >= o.tx && tx < o.tx + o.w && ty >= o.ty - 0.5 && ty < o.ty + o.h + 0.5);
+        this.sel = bb ? { kind: 'building', id: bb.id } : null;
+        this.ui.renderPanel();
+        return;
+      }
       // On the places map: the neighbourhood (or district) there.
       if (this.layer === 'places' && this.sim.places) {
         const h = this.sim.places.hoodAt(Math.floor(tx), Math.floor(ty));
@@ -326,6 +412,76 @@ export class MapPanel extends Panel {
         ctx.arc(n.x / 32 * SCALE, n.y / 32 * SCALE, 4, 0, Math.PI * 2);
         ctx.fill();
       }
+    } else if (L === 'buildings') {
+      // Every building by what it is; yours outlined in gold.
+      ctx.fillStyle = 'rgba(10,8,5,0.35)';
+      ctx.fillRect(0, 0, sim.world.W * SCALE, sim.world.H * SCALE);
+      for (const b of sim.world.buildingList) {
+        rect(b, BCAT_COLORS[this.category(b)] || '#fff', 0.9);
+        if (P.rec(b.id)?.owner === 'player') {
+          ctx.strokeStyle = '#ffcf5a';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(b.tx * SCALE - 1, b.ty * SCALE - 1, b.w * SCALE + 2, b.h * SCALE + 2);
+        }
+        if (this.sel?.kind === 'building' && this.sel.id === b.id) {
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 3;
+          ctx.strokeRect(b.tx * SCALE - 3, b.ty * SCALE - 3, b.w * SCALE + 6, b.h * SCALE + 6);
+        }
+      }
+    } else if (L === 'workers') {
+      // Your workers where they are, coloured by what they're doing (click one).
+      ctx.fillStyle = 'rgba(10,8,5,0.45)';
+      ctx.fillRect(0, 0, sim.world.W * SCALE, sim.world.H * SCALE);
+      for (const c of sim.workers.list()) {
+        const n = sim.npcs.byId(c.npcId);
+        if (!n || n.away) continue;
+        const x = (n.x / 32) * SCALE;
+        const y = (n.y / 32) * SCALE;
+        const g = statusGroup(sim, c);
+        ctx.fillStyle = GROUP_COLORS[g];
+        ctx.strokeStyle = this.sel?.id === c.npcId ? '#ffffff' : '#1a120a';
+        ctx.lineWidth = this.sel?.id === c.npcId ? 3 : 1.5;
+        ctx.beginPath();
+        ctx.arc(x, y, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        this.markers.push({ kind: 'worker', id: c.npcId, x, y, r: 6 });
+      }
+    } else if (L === 'jobs') {
+      // Your contracts where the work is (with how far along), and your building sites.
+      ctx.fillStyle = 'rgba(10,8,5,0.45)';
+      ctx.fillRect(0, 0, sim.world.W * SCALE, sim.world.H * SCALE);
+      const C = sim.construction;
+      for (const c of C.sites()) if (C.isPlayers(c) || c.contractor === 'player') rect(c, '#60d0a0');
+      for (const c of sim.state.contracts.active) {
+        const p = contractPlace(sim, c);
+        if (!p) continue;
+        const x = (p.x / 32) * SCALE;
+        const y = (p.y / 32) * SCALE;
+        ctx.fillStyle = '#ffcf5a';
+        ctx.strokeStyle = this.sel?.kind === 'job' && this.sel.id === c.id ? '#ffffff' : '#5a2a00';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x, y, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#1a1410';
+        ctx.fillText(`${Math.round(sim.contracts.progress(c) * 100)}`, x, y + 3.5);
+        this.markers.push({ kind: 'job', id: c.id, x, y, r: 8 });
+      }
+    } else if (L === 'resources') {
+      // What there is to gather: trees, stone, clay, berry bushes, crops.
+      ctx.fillStyle = 'rgba(10,8,5,0.45)';
+      ctx.fillRect(0, 0, sim.world.W * SCALE, sim.world.H * SCALE);
+      for (const o of Object.values(sim.state.objects)) {
+        if (!sim.resources.isHarvestable(o)) continue;
+        const k2 = o.kind === 'rock' && o.variant === 'clay' ? 'clay' : o.kind;
+        const col = RES_COLORS[k2];
+        if (!col) continue;
+        ctx.fillStyle = col;
+        ctx.fillRect(o.tx * SCALE, o.ty * SCALE, SCALE, SCALE);
+      }
     } else if (L === 'population') {
       for (const b of sim.world.buildingList) {
         const n = sim.npcs.residentsOf(b.id).length;
@@ -398,6 +554,7 @@ export class MapPanel extends Panel {
     for (const o of Object.values(sim.state.objects)) {
       if (o.kind === 'tree' && o.state === 'grown') ctx.fillRect(o.tx * SCALE + 1, o.ty * SCALE + 1, SCALE - 2, SCALE - 2);
     }
+    this.markers = [];
     if (this.layer !== 'normal' && this.layer !== 'land_use') {
       ctx.font = 'bold 10px Nunito, sans-serif';
       ctx.textAlign = 'center';
@@ -465,7 +622,7 @@ export class MapPanel extends Panel {
       ctx.font = 'bold 11px Nunito, sans-serif';
     }
     for (const n of sim.state.npcs) {
-      if (n.inside) continue;
+      if (n.inside || this.layer === 'workers') continue;
       ctx.fillStyle = '#4fc3f7';
       ctx.beginPath();
       ctx.arc(n.x * k, n.y * k, 3, 0, Math.PI * 2);

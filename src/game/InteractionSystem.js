@@ -7,6 +7,9 @@ import { BALANCE } from '../config/balance.js';
 import { getActions, targetName, targetSubtitle } from './Interactions.js';
 import { DEPTH } from './depth.js';
 import { escapeHtml } from '../ui/format.js';
+import { buildingIcon, buildingCard, siteCard } from '../ui/buildingCard.js';
+import { workerCard } from '../ui/workerCard.js';
+import { play } from '../audio/AudioEngine.js';
 
 /** The tool each kind of work takes (the hotbar hints at it). */
 const TOOL_FOR = { chop: 'axe', mine: 'pickaxe', till: 'hoe', water: 'watering_can', fish: 'fishing_rod', hunt: 'bow', build: 'hammer' };
@@ -15,22 +18,6 @@ const TOOL_FOR = { chop: 'axe', mine: 'pickaxe', till: 'hoe', water: 'watering_c
 const OBJECT_ICONS = { tree: '🌳', rock: '🪨', bush: '🫐', crop: '🌾', log: '🪵', deadwood: '🪵', herb: '🌿', mushroom: '🍄', flower: '🌼' };
 const DECOR_ICONS = { notice_board: '📋', well: '🪣', land_sign: '🪧', expedition: '🧭' };
 const FURNITURE_ICONS = { bed: '🛏️', chest: '🧰', table: '🍽️', workbench: '🪚', stove: '🍳', door: '🚪', forge: '🔥', shelf: '📚', fireplace: '🔥' };
-const BUILDING_ICONS = [
-  [/school|univers|institute/, '🏫'],
-  [/hall|council/, '🏛️'],
-  [/church|chapel|temple/, '⛪'],
-  [/station|rail/, '🚉'],
-  [/barn|stable/, '🐄'],
-  [/warehouse|depot|shed/, '📦'],
-  [/clinic|doctor/, '⚕️'],
-  [/watch/, '🛡️'],
-  [/market/, '🏷️'],
-  [/office/, '🗂️'],
-  [/apartment|flats/, '🏢'],
-  [/shack|hut/, '🛖'],
-  [/farm/, '🌾'],
-  [/works|factory|mill/, '🏭'],
-];
 
 export function targetIcon(scene, target) {
   const sim = scene.sim;
@@ -45,14 +32,8 @@ export function targetIcon(scene, target) {
       if (obj?.kind === 'rock' && obj.variant === 'clay') return '🟫';
       return OBJECT_ICONS[obj?.kind] || '✋';
     }
-    case 'building': {
-      if (target.id === sim.state.player.homeId) return '🏡';
-      const biz = sim.economy?.businessAtBuilding(target.id);
-      const def = biz && sim.economy.def(biz);
-      if (def?.icon) return def.icon;
-      const type = `${sim.property?.type?.(target.id) || ''} ${sim.world.buildings[target.id]?.type || ''}`;
-      return BUILDING_ICONS.find(([re]) => re.test(type))?.[1] || '🏠';
-    }
+    case 'building':
+      return buildingIcon(sim, target.id);
     case 'decor':
       return DECOR_ICONS[target.type] || '📍';
     case 'furniture':
@@ -99,6 +80,8 @@ export class InteractionSystem {
       .setDepth(DEPTH.PROMPT)
       .setVisible(false);
     this.marker = scene.add.image(0, 0, 'marker').setOrigin(0.5, 1).setDepth(DEPTH.PROMPT).setVisible(false);
+    // Click a building or a building site in the world: its card (what it is, what's going on there).
+    scene.input.on('pointerdown', (ptr) => this.onClick(ptr));
 
     // Fixed interaction points: interactive decorations (well, notice board, land signs).
     // Buildings and construction sites are read live because they appear during play.
@@ -192,6 +175,9 @@ export class InteractionSystem {
     const player = this.scene.player;
     if (blocked || player.hidden || player.isBusy()) {
       this.hide();
+      // The building whose card is open stays lit up.
+      const sel = this.scene.ui.menu?.sel;
+      if (sel) this.scene.buildings?.highlight(sel);
       return;
     }
     this.target = this.findTarget();
@@ -264,6 +250,8 @@ export class InteractionSystem {
       return true;
     }
     if (key !== 'E') return false;
+    // A building or a site: its card — what it is and what's going on, with what you can do here.
+    if ((target.kind === 'building' || target.kind === 'site') && actions.filter((a) => a.key !== 'F').length > 1) return this.openCard(target, actions, true);
     if (actions.length === 1) {
       const a = actions[0];
       if (a.disabled) this.scene.ui.toastText(a.reason, 'warn');
@@ -275,5 +263,110 @@ export class InteractionSystem {
     const sy = (target.y - target.labelY - cam.worldView.y) * cam.zoom;
     this.scene.ui.openContextMenu({ title: targetName(this.scene, target), actions, x: sx, y: sy });
     return true;
+  }
+
+  /** What's under the mouse in the world: a building or a building site (null if nothing). */
+  pick(wx, wy) {
+    const sim = this.sim;
+    // A villager (the nearest one whose sprite is under the pointer — about a tile wide, a tile and a half tall).
+    let who = null;
+    let best = Infinity;
+    for (const npc of sim.state.npcs) {
+      if (npc.inside || npc.away || npc.simLevel === 'abstract') continue;
+      const dx = Math.abs(wx - npc.x);
+      const dy = npc.y - wy;
+      if (dx > 14 || dy < -6 || dy > 46) continue;
+      const d = dx + Math.abs(dy - 20);
+      if (d < best) {
+        best = d;
+        who = npc;
+      }
+    }
+    if (who) return { kind: 'npc', id: who.id, x: who.x, y: who.y, labelY: 48 };
+    const tx = Math.floor(wx / TS);
+    const ty = Math.floor(wy / TS);
+    for (const c of sim.construction.sites()) {
+      if (c.kind !== 'building') continue;
+      if (tx >= c.tx && tx < c.tx + c.w && ty >= c.ty && ty < c.ty + c.h) return { kind: 'site', id: c.id, x: (c.tx + c.w / 2) * TS, y: (c.ty + c.h) * TS, labelY: c.h * TS };
+    }
+    for (const b of sim.world.buildingList) {
+      // (the roof overhangs the footprint by about a tile)
+      if (tx >= b.tx && tx < b.tx + b.w && ty >= b.ty - 1 && ty < b.ty + b.h) return { kind: 'building', id: b.id, x: (b.tx + b.w / 2) * TS, y: (b.ty + b.h) * TS, labelY: (b.h + 1) * TS };
+    }
+    return null;
+  }
+
+  onClick(ptr) {
+    const scene = this.scene;
+    if (ptr.button !== 0 || scene.buildMode?.active || scene.inside || scene.busy) return;
+    // A click out in the world while a card is open just closes it.
+    if (scene.ui.menu) return scene.ui.closeContextMenu();
+    if (scene.ui.isBlocking()) return;
+    const hit = this.pick(ptr.worldX, ptr.worldY);
+    if (!hit) return;
+    // Right next to it: the full card (with what you can do there). Further off: what it is, and the bigger screens.
+    const near = (this.target && this.target.kind === hit.kind && this.target.id === hit.id) || (hit.kind === 'npc' && Math.hypot(hit.x - scene.player.x, hit.y - scene.player.y) < BALANCE.player.interactRadius + 24);
+    const t = near && this.target?.id === hit.id ? this.target : hit;
+    this.openCard(t, near ? getActions(scene, t) : [], near);
+  }
+
+  /** The building (or site, or villager) card, beside it on the screen. */
+  openCard(target, actions, near) {
+    const scene = this.scene;
+    const card =
+      target.kind === 'npc'
+        ? workerCard(this.sim, target.id, { near, following: scene.camDir?.following() === target.id })
+        : target.kind === 'site'
+          ? siteCard(this.sim, target.id, { near })
+          : buildingCard(this.sim, target.id, { near });
+    if (!card) return false;
+    const cam = scene.cameras.main;
+    const sx = (target.x - cam.worldView.x) * cam.zoom;
+    const sy = (target.y - (target.labelY || 40) - cam.worldView.y) * cam.zoom;
+    scene.buildings?.highlight(target.kind === 'building' ? target.id : null);
+    play('click');
+    scene.ui.openContextMenu({
+      title: targetName(scene, target),
+      // (a villager's card has its own buttons: talking and inspecting are E and F)
+      actions: near && target.kind !== 'npc' ? actions.filter((a) => a.key !== 'F') : near ? actions.filter((a) => !a.key) : [],
+      x: sx,
+      y: sy,
+      card,
+      onCmd: (cmd, d) => this.cardCommand(target, cmd, d),
+    });
+    if (target.kind === 'building') scene.ui.menu.sel = target.id;
+    if (target.kind === 'npc') scene.npcViews?.select(target.id);
+    return true;
+  }
+
+  /** The card's buttons: the bigger screens, the people, and "show me where it is". */
+  cardCommand(target, cmd, d) {
+    const ui = this.scene.ui;
+    const sim = this.sim;
+    const id = target.id;
+    if (cmd === 'inspect') return ui.openProperty(id);
+    if (cmd === 'upgrade') return ui.openProperty(id, 'building');
+    if (cmd === 'manage') return ui.openEnterprise(d.biz);
+    if (cmd === 'site') return ui.openSite(d.site || id);
+    if (cmd === 'person') {
+      const npc = this.sim.npcs.byId(d.npc);
+      if (!npc) return;
+      // Out and about: the camera goes to them. Indoors: their details.
+      if (this.scene.npcViews?.spriteOf(npc.id)) return this.scene.camDir.lookAt(npc.x, npc.y);
+      return ui.openInspect(npc.id);
+    }
+    if (cmd === 'locate') return this.scene.camDir.lookAt(target.x, target.y - (target.labelY || 40) / 2);
+    // A worker's (or villager's) card.
+    const npc = d.npc && this.sim.npcs.byId(d.npc);
+    if (!npc) return;
+    if (cmd === 'follow') return this.scene.camDir.follow(npc.id);
+    if (cmd === 'unfollow') return this.scene.camDir.back();
+    if (cmd === 'show_npc') return this.scene.camDir.lookAt(npc.x, npc.y - 20);
+    if (cmd === 'manage_worker') return ui.openWorkers({ focus: npc.id });
+    if (cmd === 'priorities') return ui.openWorkers({ focus: npc.id, priorities: true });
+    if (cmd === 'equipment') return sim.equipment.assignedTo(npc.id) ? ui.openEquipment({ focus: sim.equipment.assignedTo(npc.id).id }) : ui.openEquipment({ lendTo: npc.id });
+    if (cmd === 'contract') return ui.openJournal('tasks');
+    if (cmd === 'talk') return ui.openDialogue(npc.id);
+    if (cmd === 'inspect_npc') return ui.openInspect(npc.id);
   }
 }

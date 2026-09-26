@@ -11,7 +11,27 @@ import { button, status } from './widgets.js';
 import { EQUIPMENT } from '../data/transport.js';
 
 export const ROUND = ['collect', 'load', 'transport', 'unload', 'return'];
-const STATE_KIND = { working: 'good', moving: 'info', seeking: 'info', waiting: 'warn', need_materials: 'warn', unavailable: 'danger', failed: 'danger' };
+/** How each worker state looks: a word (wstate.*), a colour and an icon — never colour alone. */
+export const STATE_LOOK = {
+  working: ['good', '🔨'],
+  moving: ['info', '🚶'],
+  seeking: ['info', '🔎'],
+  waiting: ['warn', '⏳'],
+  need_materials: ['warn', '📦'],
+  resting: ['neutral', '🛋️'],
+  eating: ['neutral', '🍲'],
+  returning_home: ['neutral', '🏠'],
+  sleeping: ['neutral', '💤'],
+  unavailable: ['danger', '🤒'],
+  failed: ['danger', '⚠️'],
+  idle: ['neutral', '•'],
+};
+
+/** A worker's state as a badge: "🔨 Working". */
+export function stateBadge(state) {
+  const [kind, ico] = STATE_LOOK[state] || STATE_LOOK.idle;
+  return status(t(`wstate.${state}`), kind, ico);
+}
 
 /** The job a worker's on, in words (a contract, or their role). */
 export function jobText(sim, npcId) {
@@ -60,7 +80,7 @@ export function workerCardHtml(sim, npc, { buttons = true } = {}) {
       ${row('wcard.task', escapeHtml(taskText(sim, npc)))}
       ${row('wcard.equipment', `${escapeHtml(eqText)} ${btn}`)}
       ${row('wcard.cargo', `<b>${load} / ${cap}</b>${npc.carry ? ` ${escapeHtml(t(`item.${npc.carry.item}.name`))}` : ''}`)}
-      ${row('wcard.status', status(t(`wstate.${st}`), STATE_KIND[st] || 'neutral'))}
+      ${row('wcard.status', stateBadge(st))}
     </div>${round}</div>`;
 }
 

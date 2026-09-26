@@ -19,8 +19,9 @@ import { StationPanel } from './panels/StationPanel.js';
 import { RivalPanel } from './panels/RivalPanel.js';
 import { StoryPanel } from './panels/StoryPanel.js';
 import { MeetingPanel } from './panels/MeetingPanel.js';
+import { ManagementPanel } from './panels/ManagementPanel.js';
 import { t, fmtMoney, onLanguageChange, npcName, itemName } from '../i18n/i18n.js';
-import { tr, escapeHtml, hoodLabel, districtLabel } from './format.js';
+import { tr, escapeHtml, hoodLabel, districtLabel, buildingLabel } from './format.js';
 import { WEATHER_ICONS } from '../systems/WeatherSystem.js';
 import { BALANCE } from '../config/balance.js';
 import { InventoryPanel } from './panels/InventoryPanel.js';
@@ -50,6 +51,7 @@ import { AffairsPanel } from './panels/AffairsPanel.js';
 import { itemTip } from './items.js';
 import { icon, condState } from './widgets.js';
 import { landHere } from './land.js';
+import { followStrip } from './workerCard.js';
 import { applySettings, uiScale, getSetting, setSetting } from './settings.js';
 import { play } from '../audio/AudioEngine.js';
 import { ITEMS } from '../data/items.js';
@@ -63,7 +65,9 @@ const DOCK = [
   ['build', '🔨', 'B', 'ui.key_build'],
   ['workers', '👷', 'K', 'ui.workers'],
   ['affairs', '💼', 'L', 'affairs.title'],
+  ['management', '🧭', 'Tab', 'mgmt.title'],
   null,
+  ['info', '🏷️', 'V', 'ui.info_mode'],
   ['menu', '⚙️', 'Esc', 'ui.menu'],
 ];
 /** Icons for notifications, by what they're about (the first match wins). */
@@ -99,10 +103,24 @@ export class UIManager {
     window.addEventListener('keydown', this.onKey);
     this.unsubs = [
       sim.bus.on('toast', (d) => this.toast(d)),
+      // The big moments get a card of their own (and the line-by-line toasts that come with them are left out).
+      sim.bus.on('contract:completed', (d) => this.notifyContract(d)),
+      sim.bus.on('works:completed', (d) => this.notifyWorks(d)),
+      sim.bus.on('worker:stuck', (d) => this.notifyStuck(d)),
+      sim.bus.on('construction:waiting', (c) => this.notifyMaterials(c)),
       sim.bus.on('player:levelup', (d) => this.showLevelUp(d)),
       onLanguageChange(() => this.onLanguage()),
       sim.bus.on('land:changed', () => (this.landKey = null)),
       sim.bus.on('places:changed', () => (this.landKey = null)),
+      // "Show me" / "Follow them" from a screen: it closes, and the camera goes there.
+      sim.bus.on('ui:look', ({ x, y }) => {
+        this.closePanel();
+        this.scene.camDir?.lookAt(x, y);
+      }),
+      sim.bus.on('ui:follow', ({ npc }) => {
+        this.closePanel();
+        this.scene.camDir?.follow(npc);
+      }),
       ...REFRESH_EVENTS.map((ev) => sim.bus.on(ev, () => this.queueRefresh())),
     ];
     this.updateHud();
@@ -150,6 +168,11 @@ export class UIManager {
     this.statusEl = el('status-overlay hidden');
     this.contextEl = el('context-menu hidden');
     this.buildHintEl = el('build-hint hidden');
+    // Following a worker: who, what they're doing, and Stop.
+    this.followEl = el('follow-strip hidden');
+    this.followEl.addEventListener('click', (e) => {
+      if (e.target.closest('[data-stop-follow]')) this.scene.camDir?.back();
+    });
     this.buildHintEl.addEventListener('click', (e) => {
       if (e.target.closest('[data-cancel-build]')) this.scene.buildMode.cancel();
     });
@@ -208,6 +231,7 @@ export class UIManager {
 
     this.dockEl.addEventListener('click', (e) => {
       const k = e.target.closest('[data-open]');
+      if (k?.dataset.open === 'info') return this.toggleInfo();
       if (k) this.togglePanel(k.dataset.open);
     });
     this.hotbarEl.addEventListener('click', (e) => {
@@ -221,7 +245,23 @@ export class UIManager {
     });
     this.root.addEventListener('mousemove', (e) => this.moveTip(e));
     this.modalEl.addEventListener('click', (e) => this.onModalClick(e));
+    // Search boxes and dropdowns (widgets searchBox/select): the panel hears what's typed or picked.
+    const onInput = (e) => {
+      const el = e.target.closest?.('[data-input]');
+      if (!el || !this.panel?.onInput) return;
+      this.panel.onInput(el.dataset.input, el.value, el);
+      this.renderPanel();
+    };
+    this.modalEl.addEventListener('input', (e) => e.target.tagName === 'INPUT' && onInput(e));
+    this.modalEl.addEventListener('change', (e) => e.target.tagName === 'SELECT' && onInput(e));
     this.contextEl.addEventListener('click', (e) => {
+      const cmd = e.target.closest('[data-cmd]');
+      if (cmd && this.menu?.onCmd) {
+        const fn = this.menu.onCmd;
+        this.closeContextMenu();
+        fn(cmd.dataset.cmd, cmd.dataset);
+        return;
+      }
       const opt = e.target.closest('[data-index]');
       if (opt) this.chooseContext(Number(opt.dataset.index));
     });
@@ -246,7 +286,7 @@ export class UIManager {
       .map(([k, label, open]) => `<span class="hk${open ? ' clickable' : ''}"${open ? ` data-open="${open}"` : ''}><kbd>${k}</kbd>${escapeHtml(t(label))}</span>`)
       .join('');
     this.dockEl.innerHTML = DOCK.map((d) =>
-      d ? `<button class="dock-btn" data-open="${d[0]}" data-tip="${escapeHtml(`<div class='tip-title'>${escapeHtml(t(d[3]))}</div><div class='tip-sub'>${escapeHtml(t('ui.key_n', { key: d[2] }))}</div>`)}">${d[1]}<span class="key">${d[2] === 'Esc' ? '' : d[2]}</span></button>` : '<span class="dock-sep"></span>',
+      d ? `<button class="dock-btn" data-open="${d[0]}" data-tip="${escapeHtml(`<div class='tip-title'>${escapeHtml(t(d[3]))}</div><div class='tip-sub'>${escapeHtml(t('ui.key_n', { key: d[2] }))}</div>`)}">${d[1]}<span class="key">${d[2] === 'Esc' ? '' : d[2] === 'Tab' ? '⇥' : d[2]}</span></button>` : '<span class="dock-sep"></span>',
     ).join('');
     this.hotbarKey = null;
     this.renderHotbar();
@@ -306,6 +346,18 @@ export class UIManager {
     this.placeTimer = setTimeout(() => this.placeEl.classList.add('hidden'), 3200);
   }
 
+  /** The strip while the camera follows a worker (refreshed with the HUD). */
+  updateFollow() {
+    const id = this.scene.camDir?.following();
+    this.followEl.classList.toggle('hidden', !id);
+    if (!id) return;
+    const html = followStrip(this.sim, id);
+    if (html !== this.followHtml) {
+      this.followHtml = html;
+      this.followEl.innerHTML = html;
+    }
+  }
+
   /** The objective card: a heading, the text, and (for the guide) a hint; ▾ folds it down to the heading. */
   setObjective(head, text, more = '') {
     const html = `<div class="obj-head"><span class="obj-title">${head}</span><button class="obj-fold" data-fold="1" aria-label="${escapeHtml(t('ui.fold'))}">▾</button></div><div class="obj-text">${text}</div>${more ? `<div class="obj-more">${more}</div>` : ''}`;
@@ -355,9 +407,11 @@ export class UIManager {
     q.hungerVal.textContent = Math.round(p.hunger);
     // The dock shows which screen is open.
     const open = this.panel?.id;
-    if (this.dockOpen !== open) {
+    const info = !!this.scene.overlay?.info;
+    if (this.dockOpen !== open || this.dockInfo !== info) {
       this.dockOpen = open;
-      for (const b of this.dockEl.querySelectorAll('.dock-btn')) b.classList.toggle('active', b.dataset.open === open);
+      this.dockInfo = info;
+      for (const b of this.dockEl.querySelectorAll('.dock-btn')) b.classList.toggle('active', b.dataset.open === open || (b.dataset.open === 'info' && info));
     }
     this.renderHotbar();
 
@@ -388,6 +442,7 @@ export class UIManager {
     if (q.wextra.textContent !== xtext) q.wextra.textContent = xtext;
     q.wextra.classList.toggle('hidden', !xtext);
     this.updateLandChip();
+    this.updateFollow();
 
     const obj = sim.jobs.objective();
     delete this.objectiveEl.dataset.guide;
@@ -425,7 +480,115 @@ export class UIManager {
   // ------------------------------------------------------------------ toasts
 
   toast({ key, params, type, text }) {
+    if (key && this.muted?.has(key)) return;
     this.toastText(text ?? tr(this.sim, key, params), type, key || '');
+  }
+
+  /** Leave these toasts out for the rest of this moment (a card says it all). */
+  mute(keys) {
+    this.muted = new Set(keys);
+    queueMicrotask(() => (this.muted = null));
+  }
+
+  /**
+   * A notification card: an icon and a title, a few short lines, and buttons to go and see.
+   * kind: good · warn · danger · info. actions: [{ label, ico, run }]. sticky: stays until closed.
+   */
+  notify({ kind = 'info', ico = '', title, lines = [], actions = [], sticky = false, ms = 7000 }) {
+    const el = document.createElement('div');
+    el.className = `toast toast-card toast-${kind}${sticky ? ' sticky' : ''}`;
+    el.innerHTML = `<span class="t-ico">${ico}</span><div class="tc-body"><div class="tc-title">${escapeHtml(title)}</div>${lines.map((l) => `<div class="tc-line">${l}</div>`).join('')}${actions.length ? `<div class="tc-actions">${actions.map((a, i) => `<button class="btn sm" data-n="${i}">${a.ico ? `<span class="b-ico">${a.ico}</span>` : ''}${escapeHtml(a.label)}</button>`).join('')}</div>` : ''}</div>`;
+    el.style.pointerEvents = 'auto';
+    el.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-n]');
+      if (b) actions[Number(b.dataset.n)]?.run();
+      el.remove();
+    });
+    this.toastsEl.appendChild(el);
+    while (this.toastsEl.children.length > 5) this.toastsEl.firstChild.remove();
+    play(kind === 'danger' || kind === 'warn' ? 'warn' : 'good');
+    if (!sticky) {
+      el.fadeTimer = setTimeout(() => {
+        el.classList.add('fade');
+        setTimeout(() => el.remove(), 450);
+      }, ms);
+    }
+    return el;
+  }
+
+  notifyContract(d) {
+    const sim = this.sim;
+    this.mute(['toast.contract_paid', 'toast.contract_done_xp', 'toast.contract_short', 'toast.contract_graded', 'toast.crew_xp']);
+    const who = d.issuer ? npcName(sim.npcs.byId(d.issuer)) : t('bcard.owner_village');
+    const crew = Object.entries(d.workers || {}).map(([id, x]) => `${escapeHtml(npcName(sim.npcs.byId(id)))} <b>+${x.xp}</b>`);
+    this.notify({
+      kind: d.paid < d.due ? 'warn' : 'good',
+      ico: '✅',
+      title: t('note.contract_done'),
+      lines: [
+        `${escapeHtml(who)} · ${escapeHtml(t(`contract.kind.${d.kind}`))} · ${escapeHtml(t(`contract.grade.${d.grade}`))}`,
+        `${escapeHtml(t('note.payment'))} <b class="money-text">+${fmtMoney(d.paid)}</b>${d.paid < d.due ? ` <span class="warn">(${escapeHtml(t('note.of', { money: fmtMoney(d.due) }))})</span>` : ''}`,
+        `${escapeHtml(t('note.your_xp'))} <b class="xp-text">+${d.xp}</b>`,
+        crew.length ? `${escapeHtml(t('note.worker_xp'))} ${crew.join(', ')}` : '',
+      ].filter(Boolean),
+      ms: 9000,
+    });
+  }
+
+  notifyWorks(d) {
+    const sim = this.sim;
+    this.mute(['toast.works_done']);
+    const b = sim.world.buildings[d.id];
+    const level = d.job?.type === 'level';
+    this.notify({
+      kind: 'good',
+      ico: level ? '⬆️' : '🏗️',
+      title: t(level ? 'note.upgraded' : 'note.works_done'),
+      lines: [`<b>${escapeHtml(buildingLabel(sim, d.id))}</b>`, level ? escapeHtml(t('note.level_from_to', { a: d.from, b: d.to })) : escapeHtml(tr(sim, `works.${d.job?.type}`, {}))].filter(Boolean),
+      actions: b ? [{ label: t('bcard.locate'), ico: '🎯', run: () => this.scene.camDir?.lookAt(b.door.tx * 32 + 16, b.door.ty * 32 - 20) }] : [],
+    });
+  }
+
+  /** A worker the watchdog had to put right — once an hour each, at most. */
+  notifyStuck(d) {
+    const sim = this.sim;
+    // (a task that simply went away — the tree felled by someone else — is routine, not stuck)
+    if (d.why === 'invalid') return;
+    this.stuckSeen ??= {};
+    if (sim.time.total - (this.stuckSeen[d.npcId] ?? -1e9) < 60) return;
+    this.stuckSeen[d.npcId] = sim.time.total;
+    const npc = sim.npcs.byId(d.npcId);
+    if (!npc) return;
+    this.notify({
+      kind: 'warn',
+      ico: '⚠️',
+      title: t('note.stuck'),
+      lines: [escapeHtml(t(`note.stuck_${d.why}`, { name: npcName(npc), gender: npc.gender }))],
+      actions: [{ label: t('note.view_worker'), ico: '👁', run: () => this.scene.camDir?.follow(npc.id) }],
+    });
+  }
+
+  /** A site of yours waiting for materials: what it's short of, and where it is. */
+  notifyMaterials(c) {
+    const sim = this.sim;
+    if (!c || !sim.construction.isPlayers(c)) return;
+    this.materialsSeen ??= {};
+    if (sim.time.total - (this.materialsSeen[c.id] ?? -1e9) < 240) return;
+    this.materialsSeen[c.id] = sim.time.total;
+    const missing = Object.entries(sim.construction.missing(c)).map(([item, n]) => `${n} ${itemName(item)}`);
+    if (!missing.length) return;
+    const name = c.kind === 'works' ? buildingLabel(sim, c.target) : t(`buildable.${c.type}.name`);
+    this.notify({
+      kind: 'warn',
+      ico: '📦',
+      title: t('note.materials'),
+      lines: [escapeHtml(t('note.materials_line', { name, list: missing.slice(0, 4).join(', ') }))],
+      actions: [
+        { label: t('note.locate'), ico: '🎯', run: () => this.scene.camDir?.lookAt((c.tx + c.w / 2) * 32, (c.ty + c.h / 2) * 32) },
+        { label: t('bcard.view_missing'), ico: '📋', run: () => this.openSite(c.id) },
+      ],
+      ms: 10000,
+    });
   }
 
   /**
@@ -537,8 +700,11 @@ export class UIManager {
     const h = this.tipEl.offsetHeight;
     const W = window.innerWidth / s;
     const H = window.innerHeight / s;
-    this.tipEl.style.left = `${Math.min(W - w - 8, x + 14)}px`;
-    this.tipEl.style.top = `${y + 18 + h > H ? y - h - 10 : y + 18}px`;
+    // Always on screen: flipped left / above the pointer near the edges.
+    const left = x + 14 + w > W - 8 ? x - w - 10 : x + 14;
+    const top = y + 18 + h > H - 8 ? y - h - 10 : y + 18;
+    this.tipEl.style.left = `${Math.max(8, Math.min(W - w - 8, left))}px`;
+    this.tipEl.style.top = `${Math.max(8, Math.min(H - h - 8, top))}px`;
   }
 
   hideTip() {
@@ -642,23 +808,41 @@ export class UIManager {
 
   // ------------------------------------------------------------------ context menu
 
-  openContextMenu({ title, actions, x, y }) {
-    this.menu = { actions };
+  /**
+   * The menu of things to do at something (1–9, E for the first). With a card ({ head, body, foot },
+   * e.g. ui/buildingCard.js) it's the building card: what it is and what's going on, then the actions,
+   * then buttons for the bigger screens (data-cmd → onCmd).
+   */
+  openContextMenu({ title, actions, x, y, card = null, onCmd = null }) {
+    this.menu = { actions, onCmd };
+    this.contextEl.classList.toggle('bcard', !!card);
     this.contextEl.innerHTML =
-      `<div class="cm-title">${escapeHtml(title)}</div>` +
+      (card ? `${card.head}<div class="bc-body">${card.body}</div>${actions.length ? `<div class="bc-sub bc-do">${escapeHtml(t('bcard.do_here'))}</div>` : ''}` : `<div class="cm-title">${escapeHtml(title)}</div>`) +
       actions
         .map(
           (a, i) =>
             `<div class="cm-opt${a.disabled ? ' disabled' : ''}" data-index="${i}"><kbd>${i + 1}</kbd><span class="cm-label">${escapeHtml(a.label)}</span>${a.disabled ? `<span class="cm-reason">${escapeHtml(a.reason)}</span>` : ''}</div>`,
         )
         .join('') +
-      `<div class="cm-hint">${escapeHtml(t('ui.context_hint'))}</div>`;
+      (card?.foot ? `<div class="bc-foot">${card.foot}</div>` : '') +
+      `<div class="cm-hint">${escapeHtml(t(card ? 'bcard.hint' : 'ui.context_hint'))}</div>`;
     this.contextEl.classList.remove('hidden');
     const w = this.contextEl.offsetWidth;
     const h = this.contextEl.offsetHeight;
     const s = uiScale();
-    const left = Math.max(8, Math.min(window.innerWidth / s - w - 8, x / s - w / 2));
-    const top = Math.max(8, Math.min(window.innerHeight / s - h - 8, y / s - h - 6));
+    const W = window.innerWidth / s;
+    const H = window.innerHeight / s;
+    let left = x / s - w / 2;
+    let top = y / s - h - 6;
+    // A card sits beside the building (not over it): to its right, or its left if there's no room.
+    if (card) {
+      left = x / s + 70 + w < W - 8 ? x / s + 70 : x / s - 70 - w;
+      top = y / s - h / 3;
+    }
+    left = Math.max(8, Math.min(W - w - 8, left));
+    // (a card never covers the clock and your money)
+    const minTop = card ? this.rightCol.querySelector('.hud-row').getBoundingClientRect().bottom / s + 8 : 8;
+    top = Math.max(minTop, Math.min(H - h - 8, top));
     this.contextEl.style.left = `${left}px`;
     this.contextEl.style.top = `${top}px`;
   }
@@ -691,6 +875,7 @@ export class UIManager {
 
   openPanel(panel) {
     this.closeContextMenu();
+    this.endClosing();
     if (this.panel) this.closePanel(true);
     play('open');
     this.panel = panel;
@@ -707,8 +892,27 @@ export class UIManager {
     const p = this.panel;
     this.panel = null;
     p.onClose();
-    this.modalEl.classList.add('hidden');
-    this.modalEl.innerHTML = '';
+    if (quiet) {
+      this.endClosing();
+      this.modalEl.classList.add('hidden');
+      this.modalEl.innerHTML = '';
+      return;
+    }
+    // A short fade (another panel opening meanwhile cuts it short).
+    this.modalEl.classList.add('closing');
+    clearTimeout(this.closeTimer);
+    this.closeTimer = setTimeout(() => this.endClosing(true), 120);
+  }
+
+  /** Finish a closing fade now (and clear the screen if nothing opened since). */
+  endClosing(clear = false) {
+    clearTimeout(this.closeTimer);
+    if (!this.modalEl.classList.contains('closing')) return;
+    this.modalEl.classList.remove('closing');
+    if (clear || !this.panel) {
+      this.modalEl.classList.add('hidden');
+      this.modalEl.innerHTML = '';
+    }
   }
 
   renderPanel() {
@@ -720,9 +924,18 @@ export class UIManager {
       // The same screen, refreshed: only its contents change (no re-opening animation, scroll kept).
       const body = old.querySelector('.panel-body');
       const scroll = body.scrollTop;
+      // Typing in a search box: it keeps its focus and caret through the refresh.
+      const typing = document.activeElement?.dataset?.input && body.contains(document.activeElement) ? { key: document.activeElement.dataset.input, at: document.activeElement.selectionStart } : null;
       old.querySelector('.panel-title').innerHTML = p.title();
       body.innerHTML = p.render();
       body.scrollTop = scroll;
+      if (typing) {
+        const el = body.querySelector(`[data-input="${typing.key}"]`);
+        if (el) {
+          el.focus();
+          if (el.setSelectionRange && typing.at !== null) el.setSelectionRange(typing.at, typing.at);
+        }
+      }
       p.afterRender?.(body);
       return;
     }
@@ -776,6 +989,7 @@ export class UIManager {
       build: () => new BuildPanel(this),
       workers: () => new WorkersPanel(this),
       affairs: () => new AffairsPanel(this),
+      management: () => new ManagementPanel(this),
     };
     if (factories[id]) this.openPanel(factories[id]());
   }
@@ -808,8 +1022,9 @@ export class UIManager {
   openSite(id) {
     this.openPanel(new SitePanel(this, id));
   }
-  openWorkers() {
-    this.openPanel(new WorkersPanel(this));
+  /** Workers: { focus: npcId } opens on that worker; { priorities: true } with their priorities showing. */
+  openWorkers(opts = {}) {
+    this.openPanel(new WorkersPanel(this, opts));
   }
   openExpedition() {
     this.openPanel(new ExpeditionPanel(this));
@@ -902,6 +1117,7 @@ export class UIManager {
       e.preventDefault();
       if (this.scene.buildMode?.active && !this.panel) this.scene.buildMode.cancel();
       else if (this.menu) this.closeContextMenu();
+      else if (!this.panel && this.scene.camDir?.mode !== 'player') this.scene.camDir.back();
       else if (this.panel) this.closePanel();
       else if (this.scene.player?.isBusy()) this.scene.player.cancelAction();
       else if (!this.status) this.togglePanel('menu');
@@ -941,17 +1157,26 @@ export class UIManager {
       this.scene.interaction.interact('F');
       return;
     }
-    const panelKeys = { KeyI: 'inventory', KeyC: 'character', KeyJ: 'journal', KeyM: 'map', KeyK: 'workers', KeyL: 'affairs' };
+    const panelKeys = { KeyI: 'inventory', KeyC: 'character', KeyJ: 'journal', KeyM: 'map', KeyK: 'workers', KeyL: 'affairs', Tab: 'management' };
+    // (Tab would otherwise move the browser's focus)
+    if (code === 'Tab') e.preventDefault();
     if (panelKeys[code]) {
       this.closeContextMenu();
       this.togglePanel(panelKeys[code]);
       return;
     }
     if (code === 'KeyQ' && !this.panel && !this.menu) this.quickEat();
+    // V: info mode — labels over every site, store, job and worker in view.
+    if (code === 'KeyV' && !this.panel && !this.menu) this.toggleInfo();
     if (code === 'KeyB' && !this.menu) {
       if (this.panel?.id === 'build') this.closePanel();
       else if (!this.scene.inside) this.openBuild();
     }
+  }
+
+  toggleInfo() {
+    const on = this.scene.overlay?.toggle();
+    this.dockEl.querySelector('[data-open="info"]')?.classList.toggle('active', !!on);
   }
 
   quickEat() {

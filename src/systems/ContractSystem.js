@@ -1074,6 +1074,8 @@ export class ContractSystem {
     this.log(c, how, paid);
     if (this.S.tracked === c.id) this.S.tracked = null;
     const params = { money: paid, money2: due, n: A.xp, npc: c.issuer !== 'village' && issuer ? c.issuer : undefined };
+    // (for the "job completed" card: who, what, paid, experience — the toasts below say it line by line)
+    sim.bus.emit('contract:completed', { id: c.id, kind: c.kind, issuer: params.npc || null, paid, due, xp: A.xp, workers: A.workers, grade: R.grade });
     sim.toast(paid < due ? 'toast.contract_short' : c.kind === 'order' || !params.npc ? 'toast.contract_done_xp' : 'toast.contract_paid', params, paid < due ? 'warn' : 'good');
     sim.toast('toast.contract_graded', { grade: R.grade, speed: R.speed, dl: R.deadline }, R.grade === 'poor' ? 'warn' : 'info');
     for (const [id, x] of Object.entries(A.workers)) sim.toast('toast.crew_xp', { npc: id, n: x.xp, field: x.field }, 'good');

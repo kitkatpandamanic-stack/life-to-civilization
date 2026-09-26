@@ -91,7 +91,7 @@ export class MenuPanel extends Panel {
         }).join('')}
         <div class="setting-row"><div><b>${escapeHtml(t('ui.fullscreen'))}</b><div class="hint">${escapeHtml(t('ui.fullscreen_hint'))}</div></div>${button(t(fs ? 'ui.fullscreen_off' : 'ui.fullscreen_on'), 'fullscreen', {}, { cls: fs ? 'selected' : '' })}</div>`;
     } else if (this.tab === 'controls') {
-      const rows = ['move', 'interact', 'inspect_key', 'menu_keys', 'more_keys', 'numbers', 'eat', 'esc'];
+      const rows = ['move', 'interact', 'inspect_key', 'menu_keys', 'more_keys', 'mgmt_key', 'info_key', 'click_key', 'numbers', 'eat', 'esc'];
       // Keys as key caps: "W A S D / Arrows" → [W][A][S][D] / [Arrows]
       const caps = (s) => s.split(/\s*[/·]\s*/).map((grp) => grp.split(/\s+/).map((k) => `<kbd>${escapeHtml(k)}</kbd>`).join('')).join(' <span class="muted">/</span> ');
       body = `<div class="controls">${rows.map((r) => `<div class="kv"><span>${caps(t(`controls.${r}.keys`))}</span><b>${escapeHtml(t(`controls.${r}.what`))}</b></div>`).join('')}</div>`;

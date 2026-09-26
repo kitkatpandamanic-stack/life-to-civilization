@@ -9,6 +9,7 @@
  *   dev.press('e')               tap a key
  *   dev.teleport(tx, ty)         move the player to a tile
  *   dev.skip(minutes)            fast-forward the clock
+ *   dev.cards = true             developer details on worker / building / contract cards (ids, state, task, path)
  *
  * F9 opens the debug panel (stats, performance, world controls) — see DebugPanel.js.
  */

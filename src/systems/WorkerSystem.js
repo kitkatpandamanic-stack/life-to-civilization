@@ -1730,7 +1730,8 @@ export class WorkerSystem {
       else if (c.task && !this.valid(npc, c, c.task) && !['carry_site', 'carry_home', 'loading', 'unloading'].includes(t.stage)) stuck = 'invalid';
       if (!stuck) continue;
       c.unstuck = (c.unstuck || 0) + 1;
-      c.lastStuck = { day: sim.time.day, why: stuck };
+      c.lastStuck = { day: sim.time.day, at: now, why: stuck };
+      sim.bus.emit('worker:stuck', { npcId: c.npcId, why: stuck, task: c.task?.kind || null, target: c.task?.target || null });
       this.npcs().paths.delete(npc.id);
       npc.moving = false;
       if (c.task && stuck !== 'invalid') this.block(c, c.task, 60);

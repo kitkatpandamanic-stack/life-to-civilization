@@ -5,8 +5,9 @@
  * first); your name as a contractor, your history, your firm.
  */
 import { t, fmtMoney, npcName, cap } from '../i18n/i18n.js';
-import { tr, escapeHtml, dateString } from './format.js';
-import { button, icon, bar, status } from './widgets.js';
+import { tr, escapeHtml, dateString, buildingLabel } from './format.js';
+import { button, icon, bar, status, progress } from './widgets.js';
+import { STATE_LOOK } from './transport.js';
 import { QUALITY } from '../data/quality.js';
 import { CONTRACT_FIELDS } from '../systems/ContractSystem.js';
 import { COMPANY } from '../data/contracting.js';
@@ -98,6 +99,30 @@ function reqLine(sim, c) {
   return out.length ? `<div class="small">${escapeHtml(out.join(' · '))}</div>` : '';
 }
 
+/** Where the work is: { label, x, y } (the building, or the site going up). */
+export function contractPlace(sim, c) {
+  const C = sim.contracts;
+  const site = c.siteId && sim.construction.byId(c.siteId);
+  if (site) return { label: site.kind === 'works' ? buildingLabel(sim, site.target) : t(`vbuilding.${site.type}`), x: (site.tx + site.w / 2) * 32, y: (site.ty + site.h) * 32 };
+  const id = C.location?.(c) || c.building;
+  const b = id && sim.world.buildings[id];
+  return b ? { label: buildingLabel(sim, id), x: b.door.tx * 32 + 16, y: b.door.ty * 32 } : null;
+}
+
+/** The money side, at a glance: the reward, what the workers (and materials) should cost, what's left. */
+function moneyGrid(sim, c) {
+  const K = sim.contracts;
+  if (!K.estimate) return '';
+  const e = K.estimate(c);
+  if (e.noSource) return `<div class="warn small">⚠️ ${escapeHtml(tr(sim, 'contract.need_goods', { item: c.item }))}</div>`;
+  const cost = Math.round(e.wages + e.materials + e.spent);
+  return `<div class="money-grid">
+    <div><span>${escapeHtml(t('contract.m_reward'))}</span><b class="money-text">${fmtMoney(c.pay)}</b></div>
+    <div><span>${escapeHtml(t('contract.m_cost'))}</span><b>≈ ${fmtMoney(cost)}</b></div>
+    <div><span>${escapeHtml(t('contract.m_profit'))}</span><b class="${e.profit >= 0 ? 'good' : 'neg'}">≈ ${fmtMoney(e.profit)}</b></div>
+  </div>`;
+}
+
 /** What you'd make: pay, what materials and wages should cost, the difference (an estimate). */
 function profitLine(sim, c, hands = null) {
   const K = sim.contracts;
@@ -136,21 +161,31 @@ export function contractCard(sim, c, mode) {
   // Who chose the crew: you (your manager leaves it be) or your manager.
   const M = sim.workers.mgr?.();
   const who = !delegable ? '' : c.manual && M ? ` · 👤 ${escapeHtml(t('contract.crew_by_you'))}` : M && !c.manual ? ` · 🧑‍💼 ${escapeHtml(t('contract.crew_by_manager', { name: npcName(sim.npcs.byId(M.npc)) }))}` : '';
+  // The crew, each with what they're doing right now (click a name: follow them).
+  const crewChips = (c.workers || [])
+    .map((id) => sim.npcs.byId(id))
+    .filter(Boolean)
+    .map((n) => `<button class="crew-chip" data-action="contract_follow" data-npc="${n.id}" data-id="${c.id}" title="${escapeHtml(t('wcard2.follow'))}">${STATE_LOOK[sim.workers.contract(n.id)?.state || 'idle']?.[1] || '•'} ${escapeHtml(npcName(n))}</button>`)
+    .join('');
   const crewLine = delegable
-    ? `<div class="small">👷 ${escapeHtml(t('contract.workers_n', { n: crew.length, of: C.recommended(c) }))}${crew.length ? ` — ${escapeHtml(crew.join(', '))}` : ''}${who}${c.manual && M ? ` ${button(t('contract.let_manager'), 'contract_automate', { id: c.id }, { cls: 'sm ghost' })}` : ''}</div>`
+    ? `<div class="small">👷 ${escapeHtml(t('contract.workers_n', { n: crew.length, of: C.recommended(c) }))}${who}${c.manual && M ? ` ${button(t('contract.let_manager'), 'contract_automate', { id: c.id }, { cls: 'sm ghost' })}` : ''}</div>${crewChips ? `<div class="crew-chips">${crewChips}</div>` : ''}`
     : '';
+  const place = contractPlace(sim, c);
+  const left = c.deadline - sim.time.day;
   const handover = c.kind === 'harvest' && (c.owed || 0) > 0 ? `<div class="warn small">${escapeHtml(tr(sim, 'contract.owed', { qty: c.owed, item: c.item, building: c.building }))}</div>` : '';
   const stuck = C.blocker?.(c);
   const blocked = stuck ? `<div class="warn small">⚠️ ${escapeHtml(tr(sim, stuck.key, stuck.params))}</div>` : c.kind === 'job' && !(c.workers || []).length ? `<div class="warn small">${escapeHtml(t('contract.job_needs_workers'))}</div>` : '';
   const risk = C.atRisk?.(c) ? `<div class="warn small">⏰ ${escapeHtml(t('contract.at_risk'))}</div>` : '';
   let html = `<div class="job-card active">${head}${body}
-    <div style="margin:4px 0">${status(t(`contract.status.${st}`), kind, ico)}</div>
-    ${bar(done * 100, 'xp', progressLabel(sim, c))}
+    <div class="contract-meta">${status(t(`contract.status.${st}`), kind, ico)}<span class="muted small">#${c.id}</span>${place ? `<span class="small">📍 ${escapeHtml(place.label)}</span>` : ''}<span class="small ${left <= 1 ? 'warn' : ''}">⏳ ${escapeHtml(left > 0 ? t('contract.days_left', { n: left }) : t('contract.due_today'))}</span></div>
+    ${progress(done * 100, { label: progressLabel(sim, c), kind: 'gold' })}
     ${crewLine}${handover}${blocked}${risk}
-    ${delegable ? profitLine(sim, c) : ''}
-    <div class="muted small ${late <= 1 ? 'warn' : ''}">${escapeHtml(t('contract.deadline', { date: dateString(c.deadline) }))}</div>
-    <div class="btn-row">${c.kind === 'order' ? button(t('contract.ship', { n: Math.floor(sim.economy.stock(c.supplierBiz, c.item)) }), 'contract_ship', { id: c.id }, { cls: 'primary', disabled: sim.economy.stock(c.supplierBiz, c.item) < 1 }) : ''}${delegable ? button(t('contract.manage_workers'), 'contract_manage', { id: c.id }, { cls: view.manage === c.id ? 'selected sm' : 'sm' }) : ''}${C.objective ? button(t(tracked ? 'contract.tracking' : 'contract.go_to'), 'contract_track', { id: c.id }, { cls: tracked ? 'selected sm' : 'sm' }) : ''}${button(t('contract.details'), 'contract_details', { id: c.id }, { cls: view.details === c.id ? 'selected sm ghost' : 'sm ghost' })}${button(t('contract.abandon'), 'contract_abandon', { id: c.id }, { cls: 'sm ghost' })}</div>`;
+    ${delegable ? moneyGrid(sim, c) : ''}
+    <div class="muted small ${late <= 1 ? 'warn' : ''}">${escapeHtml(t('contract.deadline', { date: dateString(c.deadline) }))} · ${escapeHtml(t('contract.xp_line', { p: C.playerXp(c), w: delegable ? C.workerXp(c) : 0 }))}</div>
+    <div class="btn-row">${c.kind === 'order' ? button(t('contract.ship', { n: Math.floor(sim.economy.stock(c.supplierBiz, c.item)) }), 'contract_ship', { id: c.id }, { cls: 'primary', disabled: sim.economy.stock(c.supplierBiz, c.item) < 1 }) : ''}${delegable ? button(t('contract.manage_workers'), 'contract_manage', { id: c.id }, { cls: view.manage === c.id ? 'selected sm' : 'sm' }) : ''}${C.objective ? button(t(tracked ? 'contract.tracking' : 'contract.go_to'), 'contract_track', { id: c.id }, { cls: tracked ? 'selected sm' : 'sm' }) : ''}${place ? button(t('contract.view_place'), 'contract_locate', { id: c.id }, { cls: 'sm ghost', ico: '🎯' }) : ''}${(c.workers || []).length ? button(t('contract.follow_worker'), 'contract_follow', { id: c.id, npc: c.workers[0] }, { cls: 'sm ghost', ico: '👁' }) : ''}${button(t('contract.details'), 'contract_details', { id: c.id }, { cls: view.details === c.id ? 'selected sm ghost' : 'sm ghost' })}${button(t('contract.abandon'), 'contract_abandon', { id: c.id }, { cls: 'sm ghost' })}</div>`;
   if (view.details === c.id) html += detailsHtml(sim, c);
+  // For developers only (dev.cards = true): the contract as the simulation holds it.
+  if (typeof window !== 'undefined' && window.dev?.cards) html += `<div class="dev-info"><div><span>id</span><code>${c.id} ${escapeHtml(c.kind)} ${escapeHtml(st)}</code></div><div><span>workers</span><code>${escapeHtml((c.workers || []).join(',') || '—')}</code></div><div><span>progress</span><code>${Math.round(done * 1000) / 10}% · deadline day ${c.deadline} (today ${sim.time.day})</code></div></div>`;
   if (view.manage === c.id && delegable) html += crewPicker(sim, c);
   return html + '</div>';
 }
@@ -280,6 +315,16 @@ export function contractAction(sim, action, data) {
     if (r.ok) sim.toast(data.what === 'pay' ? 'toast.haggle_pay_yes' : 'toast.haggle_time_yes', { npc: who, money: r.pay, n: r.days }, 'good');
     else if (r.walked) sim.toast('toast.haggle_walked', { npc: who }, 'danger');
     else if (r.refused) sim.toast('toast.haggle_no', { npc: who }, 'warn');
+    return true;
+  }
+  if (action === 'contract_locate') {
+    const c = sim.contracts.S.active.find((x) => x.id === id);
+    const p = c && contractPlace(sim, c);
+    if (p) sim.bus.emit('ui:look', { x: p.x, y: p.y });
+    return true;
+  }
+  if (action === 'contract_follow') {
+    if (data.npc) sim.bus.emit('ui:follow', { npc: data.npc });
     return true;
   }
   if (action === 'contract_decline') return sim.contracts.decline(id), true;

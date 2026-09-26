@@ -28,6 +28,8 @@ import { DEPTH } from '../game/depth.js';
 import { InteriorView } from '../game/InteriorView.js';
 import { ConstructionViews } from '../game/ConstructionViews.js';
 import { BuildMode } from '../game/BuildMode.js';
+import { CameraDirector } from '../game/CameraDirector.js';
+import { WorldOverlay } from '../game/WorldOverlay.js';
 import { FieldViews } from '../game/FieldViews.js';
 import { AnimalViews } from '../game/AnimalViews.js';
 import { CartViews } from '../game/CartViews.js';
@@ -98,6 +100,8 @@ export class GameScene extends Phaser.Scene {
     this.buildMode = new BuildMode(this);
 
     cam.startFollow(this.player.sprite, true, 0.15, 0.15);
+    this.camDir = new CameraDirector(this); // looking at a building you picked, following a worker
+    this.overlay = new WorldOverlay(this); // labels on the world: sites, your store, your jobs (V: all of them)
     cam.fadeIn(700);
     this.lightTimer = 0;
     this.floatY = 0;
@@ -150,6 +154,8 @@ export class GameScene extends Phaser.Scene {
     this.sfx.update(delta);
     this.fireViews.update();
     this.interaction.update(blocked);
+    this.camDir.update();
+    this.overlay.update(delta, this.inside || this.ui.isPaused() || !!this.ui.status);
     const darkness = this.atmosphere.update();
     this.lightTimer -= delta;
     if (this.lightTimer <= 0) {

@@ -68,6 +68,70 @@ export function jobEffects(sim, id, job, asList = false) {
   return asList ? out : out.join(' · ');
 }
 
+/**
+ * Now against after, row by row, from the building's real effects (StructureSystem.computeFx):
+ * [{ key, now, next }] — only the rows that change or matter for this kind of building.
+ */
+export function compareRows(sim, id, job) {
+  const S = sim.structures;
+  const r = S.rec(id);
+  if (!r || !['level', 'module', 'spec'].includes(job.type)) return [];
+  const after = { ...r, mods: { ...r.mods } };
+  if (job.type === 'level') after.lvl = job.to;
+  if (job.type === 'module') after.mods[job.m] = (after.mods[job.m] || 0) + 1;
+  if (job.type === 'spec') after.spec = job.s;
+  const a = S.computeFx(r);
+  const b = S.computeFx(after);
+  const sheet = S.sheet(id);
+  const rows = [];
+  const row = (key, now, next, always = false) => {
+    if (now === next && !always) return;
+    rows.push({ key, now, next, up: typeof now === 'number' && typeof next === 'number' ? Math.sign(next - now) : 0 });
+  };
+  row('level', r.lvl, after.lvl, true);
+  if (a.cap !== null) row('residents', a.cap, b.cap);
+  if (sheet?.staffCap || b.staff !== a.staff) row('workers', sheet?.staffCap || 0, (sheet?.staffCap || 0) + (b.staff - a.staff));
+  if (sheet?.storage?.cap || b.storage !== a.storage) row('storage', sheet?.storage?.cap || a.storage, (sheet?.storage?.cap || a.storage) + (b.storage - a.storage));
+  row('output', Math.round(a.output * 100), Math.round(b.output * 100));
+  row('seats', a.seats, b.seats);
+  row('floors', a.floors, b.floors);
+  row('comfort', a.comfort, b.comfort);
+  row('quality', S.qualityCapOf(r), S.qualityCapOf(after));
+  // Worth: today's value, scaled by what the work adds to it.
+  const v = sim.property.value(id);
+  if (v && a.value) row('value', v, Math.round((v * b.value) / a.value), true);
+  return rows;
+}
+
+const CMP_FMT = { output: (n) => `${n}%`, quality: (n) => `${n}%`, value: (n) => fmtMoney(n) };
+
+/** The comparison as a table: Feature · Now · After (▲ better, ▼ worse). */
+export function compareTable(sim, id, job) {
+  const rows = compareRows(sim, id, job);
+  if (!rows.length) return '';
+  const f = (k, n) => (CMP_FMT[k] ? CMP_FMT[k](n) : String(n));
+  return `<table class="cmp"><thead><tr><th>${escapeHtml(t('cmp.feature'))}</th><th>${escapeHtml(t('cmp.now'))}</th><th>${escapeHtml(t('cmp.after'))}</th></tr></thead><tbody>${rows
+    .map((r) => `<tr class="${r.up > 0 ? 'up' : r.up < 0 ? 'down' : ''}"><td>${escapeHtml(t(`cmp.${r.key}`))}</td><td>${escapeHtml(f(r.key, r.now))}</td><td>${r.key === 'value' ? '≈ ' : ''}${escapeHtml(f(r.key, r.next))}${r.up > 0 ? ' ▲' : r.up < 0 ? ' ▼' : ''}</td></tr>`)
+    .join('')}</tbody></table>`;
+}
+
+/**
+ * Can it be done now? One plain answer: available · not enough money · missing materials (you can
+ * still start — the site waits for them) · needs a higher level / skill · needs a technology · or why not.
+ */
+export function readiness(sim, id, o, rows = null) {
+  const reqs = rows || jobReqs(sim, id, o);
+  if (!o.check.ok) {
+    const r = o.check.reason;
+    if (r === 'need_tech') return ['danger', '💡', t('ready.tech')];
+    if (r === 'need_blevel' || r === 'need_quality' || r === 'need_skill') return ['danger', '🎓', t('ready.level')];
+    return ['danger', '✗', tr(sim, `reason.${r}`, o.check.params || {})];
+  }
+  if (reqs.some((q) => q.ico === '💰' && !q.ok)) return ['danger', '💰', t('ready.money')];
+  if (reqs.some((q) => q.item && !q.ok)) return ['warn', '📦', t('ready.materials')];
+  return ['good', '✓', t('ready.available')];
+}
+
 /** Converting, joining, pulling down: what it means for the building. */
 function rebuildEffects(sim, id, job) {
   const S = sim.structures;
@@ -165,19 +229,22 @@ function upgradeCard(sim, id, o) {
   const changes = jobEffects(sim, id, o.job, true);
   const why = o.check.ok ? '' : tr(sim, `reason.${o.check.reason}`, o.check.params || {});
   const after = lookAfterJob(sim, id, o.job);
+  const reqs = jobReqs(sim, id, o);
+  const [rk, ri, rw] = readiness(sim, id, o, reqs);
+  const table = compareTable(sim, id, o.job);
   return `<div class="upgrade-card${o.check.ok ? ' ready' : ''}">
-    <div class="uc-head"><div class="uc-title">⬆ ${escapeHtml(jobLabel(sim, id, o.job))}</div>${o.check.ok ? status(t('works_req.ready'), 'good', '✓') : status(t('works_req.not_yet'), 'warn', '✗')}</div>
+    <div class="uc-head"><div class="uc-title">⬆ ${escapeHtml(jobLabel(sim, id, o.job))}</div>${status(rw, rk, ri)}</div>
     <div class="preview-pair">
       <figure>${buildingPreview(sim, id)}<figcaption>${escapeHtml(t('works_req.now', { n: r.lvl }))}</figcaption></figure>
       <span class="preview-arrow">➜</span>
       <figure>${buildingPreview(sim, id, after)}<figcaption>${escapeHtml(t('works_req.after', { n: o.job.to }))}</figcaption></figure>
     </div>
     <div class="uc-cols">
-      <div><div class="stat-label">${escapeHtml(t('works_req.changes'))}</div><div class="uc-changes">${changes.map((c) => `<div>${escapeHtml(c)}</div>`).join('') || `<div>${escapeHtml(t('works_req.better'))}</div>`}</div></div>
-      <div><div class="stat-label">${escapeHtml(t('works_req.needs'))}</div>${reqList(jobReqs(sim, id, o))}</div>
+      <div><div class="stat-label">${escapeHtml(t('works_req.changes'))}</div>${table || `<div class="uc-changes">${changes.map((c) => `<div>${escapeHtml(c)}</div>`).join('') || `<div>${escapeHtml(t('works_req.better'))}</div>`}</div>`}</div>
+      <div><div class="stat-label">${escapeHtml(t('works_req.needs'))}</div>${reqList(reqs)}<div class="hint">⏱ ${escapeHtml(laborText(o.cost.labor))}</div></div>
     </div>
     ${why ? notice('warn', escapeHtml(why)) : ''}
-    <div class="uc-foot"><span class="hint">⏱ ${escapeHtml(laborText(o.cost.labor))}</span>${button(t('structure.start'), 'start_works', { job: JSON.stringify(o.job) }, { cls: o.check.ok ? 'primary' : '', disabled: !o.check.ok })}</div>
+    <div class="uc-foot"><span class="hint">${rk === 'warn' ? escapeHtml(t('ready.materials_hint')) : ''}</span>${button(t('structure.start'), 'start_works', { job: JSON.stringify(o.job) }, { cls: o.check.ok ? 'primary' : '', disabled: !o.check.ok, ico: '⬆' })}</div>
   </div>`;
 }
 

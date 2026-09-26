@@ -8,7 +8,7 @@
 import { Panel } from '../Panel.js';
 import { t, npcName, fmtMoney } from '../../i18n/i18n.js';
 import { tr, escapeHtml, buildingLabel } from '../format.js';
-import { button, condBar, emptyState, filters, stat, statGrid, status, notice } from '../widgets.js';
+import { button, condBar, emptyState, filters, stat, statGrid, status, notice, iconButton } from '../widgets.js';
 import { EQUIPMENT, EQUIP } from '../../data/transport.js';
 import { BUILDABLES } from '../../data/buildables.js';
 import { WORKFORCE } from '../../data/workforce.js';
@@ -31,6 +31,40 @@ export class EquipmentPanel extends Panel {
     this.opts = opts;
     this.filter = 'all';
     this.lendOpen = opts.lend || null; // the piece whose "lend to…" list is open
+    this.assigned = null; // just lent: { eq, npc, before, after } — the confirmation card
+  }
+
+  /** How much a worker could carry with this piece (vs now): what lending it would change. */
+  effect(eq, npcId) {
+    const sim = this.sim;
+    const npc = sim.npcs.byId(npcId);
+    const now = sim.workers.carryCap(npc);
+    const cur = sim.equipment.assignedTo(npcId);
+    // (by hand, a worker carries WORKFORCE.carryLoad-ish; with the piece, its capacity)
+    const withIt = Math.max(now - (cur ? sim.equipment.cap(cur) : 0), sim.equipment.cap(eq));
+    return { now, after: withIt };
+  }
+
+  /** "Equipment assigned": who, what, how much they carry now, what that means — and a way to watch. */
+  assignedHtml() {
+    const sim = this.sim;
+    const a = this.assigned;
+    const eq = sim.equipment.byId(a.eq);
+    const npc = sim.npcs.byId(a.npc);
+    if (!eq || !npc) return '';
+    const d = EQUIPMENT[eq.type];
+    const x = Math.round((a.after / Math.max(1, a.before)) * 10) / 10;
+    return `<div class="assigned-card">
+      <div class="ac-title">✅ ${escapeHtml(t('equip.assigned_title'))}</div>
+      <div class="kv-grid">
+        <div>${escapeHtml(t('wcard.worker'))}</div><div><b>${escapeHtml(npcName(npc))}</b></div>
+        <div>${escapeHtml(t('wcard.equipment'))}</div><div><b>${d.icon} ${escapeHtml(t(`equip.${eq.type}`))} ${escapeHtml(t('equip.lv', { n: eq.level || 1 }))}</b> · ${Math.round(eq.condition)}%</div>
+        <div>${escapeHtml(t('equip.capacity'))}</div><div><b>${a.before} → ${a.after}</b>${x > 1 ? ` <span class="good">(×${x})</span>` : ''}</div>
+        <div>${escapeHtml(t('equip.expected'))}</div><div>${escapeHtml(t(x > 1 ? 'equip.expected_more' : 'equip.expected_same', { x }))}</div>
+      </div>
+      <div class="hint">${escapeHtml(t(sim.equipment.using(npc) ? 'equip.in_hand_now' : 'equip.goes_to_fetch', { name: npcName(npc) }))}</div>
+      <div class="btn-row">${button(t('wcard2.follow'), 'follow_npc', { npc: npc.id }, { cls: 'sm primary', ico: '👁' })}${button(t('equip.done'), 'assigned_done', {}, { cls: 'sm' })}</div>
+    </div>`;
   }
   get id() {
     return 'equipment';
@@ -99,7 +133,7 @@ export class EquipmentPanel extends Panel {
     return `<div class="card${focus}">
       <div class="card-head"><div class="card-icon">${d.icon}</div><div><div class="card-title">${escapeHtml(t(`equip.${eq.type}`))} ${escapeHtml(t('equip.lv', { n: eq.level || 1 }))}</div>
         <div class="card-sub">${status(t(`equip_status.${st}`), kind, ico)} ${eq.recall ? `<span class="small muted">${escapeHtml(t('equip.coming_back'))}</span>` : ''}</div></div>
-        <div class="card-end small muted">${escapeHtml(t(`equip_tier.${d.tier}`))}</div></div>
+        <div class="card-end"><div class="small muted">${escapeHtml(t(`equip_tier.${d.tier}`))}</div><div class="btn-row" style="justify-content:flex-end;margin-top:4px">${eq.at.kind === 'npc' ? iconButton('👁', t('equip.follow_holder'), 'follow_npc', { npc: eq.at.id }) : ''}${eq.at.kind !== 'away' ? iconButton('🎯', t('bcard.locate'), 'show_eq', { id: eq.id }) : ''}</div></div></div>
       <div class="aff-row"><span>${escapeHtml(t('equip.condition'))}</span>${condBar(eq.condition)}</div>
       <div class="kv-grid small">
         <div>${escapeHtml(t('equip.owner'))}</div><div><b>${escapeHtml(t('equip.owner_you'))}</b></div>
@@ -156,6 +190,7 @@ export class EquipmentPanel extends Panel {
     const o = this.opts;
     if (o.shop) return this.shopHtml(o.shop);
     let html = '';
+    if (this.assigned) return this.assignedHtml();
     if (o.depot) html += this.depotHtml(o.depot);
     let list = E.mine();
     if (o.lendTo) {
@@ -167,7 +202,9 @@ export class EquipmentPanel extends Panel {
       if (!list.length) return html + emptyState('🛒', t('equip.none_free'), t('equip.none_hint'));
       return html + list.map((e) => {
         const chk = E.canLend(e.id, o.lendTo);
-        return `<div class="setting-row"><div>${EQUIPMENT[e.type].icon} <b>${escapeHtml(t(`equip.${e.type}`))} ${escapeHtml(t('equip.lv', { n: e.level || 1 }))}</b> <span class="muted small">${Math.round(e.condition)}% · ${escapeHtml(t('equip.cap_n', { n: E.cap(e) }))} · ${escapeHtml(this.whereText(e))}</span></div>
+        const fx = this.effect(e, o.lendTo);
+        return `<div class="setting-row"><div>${EQUIPMENT[e.type].icon} <b>${escapeHtml(t(`equip.${e.type}`))} ${escapeHtml(t('equip.lv', { n: e.level || 1 }))}</b> <span class="muted small">${Math.round(e.condition)}% · ${escapeHtml(this.whereText(e))}</span>
+          <div class="small">${escapeHtml(t('equip.would_carry', { a: fx.now, b: fx.after }))}${fx.after > fx.now ? ` <span class="good">▲</span>` : ''}</div></div>
           ${button(t('equip.lend'), 'lend', { id: e.id, npc: o.lendTo }, { cls: 'sm primary', disabled: !chk.ok, title: chk.ok ? '' : tr(sim, `reason.${chk.reason}`, chk.params || {}) })}</div>`;
       }).join('');
     }
@@ -195,12 +232,30 @@ export class EquipmentPanel extends Panel {
     const E = sim.equipment;
     const say = (r, okKey, params) => sim.toast(r.ok ? okKey : `reason.${r.reason}`, r.ok ? params : r.params || {}, r.ok ? 'good' : 'warn');
     if (action === 'filter') this.filter = data.f;
+    else if (action === 'assigned_done') {
+      this.assigned = null;
+      if (this.opts.lendTo) this.ui.closePanel();
+    } else if (action === 'follow_npc' || action === 'show_eq') {
+      // The camera goes there (the screen closes): the worker pushing it, or where it stands.
+      const scene = this.ui.scene;
+      const eq = data.id && E.byId(data.id);
+      const who = eq?.at.kind === 'npc' ? sim.npcs.byId(eq.at.id) : eq?.at.kind === 'player' ? sim.state.player : null;
+      const pos = who ? { x: who.x, y: who.y } : eq?.at.kind === 'ground' ? { x: eq.at.tx * 32 + 16, y: eq.at.ty * 32 + 16 } : null;
+      this.ui.closePanel();
+      if (action === 'follow_npc') scene.camDir.follow(data.npc);
+      else if (pos) scene.camDir.lookAt(pos.x, pos.y);
+    }
     else if (action === 'lend_open') this.lendOpen = this.lendOpen === data.id ? null : data.id;
     else if (action === 'lend') {
+      const before = sim.workers.carryCap(sim.npcs.byId(data.npc));
       const r = E.lend(data.id, data.npc);
       say(r, 'toast.eq_lent', { eq: E.byId(data.id)?.type, npc: data.npc });
-      if (r.ok) this.lendOpen = null;
-      if (r.ok && this.opts.lendTo) this.ui.closePanel();
+      if (r.ok) {
+        this.lendOpen = null;
+        // What it changed, straight away: how much they carry now.
+        const eq = E.byId(data.id);
+        this.assigned = { eq: data.id, npc: data.npc, before, after: Math.max(sim.workers.carryCap(sim.npcs.byId(data.npc)), E.cap(eq)) };
+      }
     } else if (action === 'retrieve') {
       const eq = E.byId(data.id);
       const npc = eq?.holder?.id;

@@ -45,11 +45,47 @@ export function portrait(key, look, size = 72) {
  * A button. cls: '' (normal) · 'primary' · 'success' · 'danger' · 'ghost' · 'sm' · 'big' · 'selected' · 'locked'.
  * A disabled button can say why (title), and a locked one shows a padlock.
  */
-export function button(label, action, data = {}, { disabled = false, cls = '', title = '', hotkey = null, tip = null } = {}) {
+export function button(label, action, data = {}, { disabled = false, cls = '', title = '', hotkey = null, tip = null, ico = '', key = null } = {}) {
   const attrs = Object.entries(data)
     .map(([k, v]) => `data-${k}="${escapeHtml(v)}"`)
     .join(' ');
-  return `<button class="btn ${cls}${disabled ? ' disabled' : ''}" data-action="${action}" ${attrs} ${disabled ? 'disabled' : ''} ${title ? `title="${escapeHtml(title)}"` : ''} ${tip ? tipAttr(tip) : ''} ${hotkey ? `data-hotkey="${hotkey}"` : ''}>${hotkey ? `<kbd>${hotkey}</kbd>` : ''}${escapeHtml(label)}</button>`;
+  // A keyboard shortcut (key) goes in its tooltip, so it's learnt by hovering.
+  const tipHtml = tip ?? (key ? `<div class='tip-title'>${escapeHtml(label)}</div><div class='tip-sub'>${escapeHtml(t('ui.key_n', { key }))}</div>` : null);
+  return `<button class="btn ${cls}${disabled ? ' disabled' : ''}" data-action="${action}" ${attrs} ${disabled ? 'disabled' : ''} ${title ? `title="${escapeHtml(title)}"` : ''} ${tipHtml ? tipAttr(tipHtml) : ''} ${hotkey ? `data-hotkey="${hotkey}"` : ''}>${hotkey ? `<kbd>${hotkey}</kbd>` : ''}${ico ? `<span class="b-ico">${ico}</span>` : ''}${escapeHtml(label)}</button>`;
+}
+
+/** A square button with just an icon (its name in the tooltip). */
+export function iconButton(ico, label, action, data = {}, opts = {}) {
+  const attrs = Object.entries(data)
+    .map(([k, v]) => `data-${k}="${escapeHtml(v)}"`)
+    .join(' ');
+  const tip = `<div class='tip-title'>${escapeHtml(label)}</div>${opts.key ? `<div class='tip-sub'>${escapeHtml(t('ui.key_n', { key: opts.key }))}</div>` : ''}`;
+  return `<button class="btn icon ${opts.cls || ''}${opts.disabled ? ' disabled' : ''}" data-action="${action}" ${attrs} ${opts.disabled ? 'disabled' : ''} aria-label="${escapeHtml(label)}" ${tipAttr(tip)}>${ico}</button>`;
+}
+
+/**
+ * A progress bar with its words: progress(62, { label: 'Building', kind: 'warn' }).
+ * kind: '' (green) · warn (striped amber: waiting) · danger (striped red: stuck) · gold (XP) · info.
+ */
+export function progress(pct, { label = '', value = null, kind = '' } = {}) {
+  const w = Math.max(0, Math.min(100, pct));
+  return `<div class="progress ${kind}"><div class="progress-head"><span>${escapeHtml(label)}</span><b>${escapeHtml(value ?? `${Math.round(w)}%`)}</b></div><div class="progress-track"><div class="progress-fill" style="width:${w}%"></div></div></div>`;
+}
+
+/** A resource line: icon, name, "have / need" (red when short, green when enough) or just a count. */
+export function resRow(item, label, have, need = null) {
+  const cls = need === null ? '' : have >= need ? ' full' : ' short';
+  return `<div class="res-row${cls}"><span>${icon(item, 20)}</span><span>${escapeHtml(label)}</span><span class="res-n">${need === null ? have : `${have} / ${need}`}</span></div>`;
+}
+
+/** A search box (its text is sent with data-action on input — see UIManager). */
+export function searchBox(value, placeholder, action = 'search') {
+  return `<label class="search"><input class="input" type="search" data-input="${action}" value="${escapeHtml(value || '')}" placeholder="${escapeHtml(placeholder)}"></label>`;
+}
+
+/** A dropdown: options [[value, label], …]. */
+export function select(options, value, action) {
+  return `<select class="select" data-input="${action}">${options.map(([v, l]) => `<option value="${escapeHtml(v)}"${v === value ? ' selected' : ''}>${escapeHtml(l)}</option>`).join('')}</select>`;
 }
 
 export function tabs(list, active) {
