@@ -11,6 +11,70 @@ import { escapeHtml } from '../ui/format.js';
 /** The tool each kind of work takes (the hotbar hints at it). */
 const TOOL_FOR = { chop: 'axe', mine: 'pickaxe', till: 'hoe', water: 'watering_can', fish: 'fishing_rod', hunt: 'bow', build: 'hammer' };
 
+/** The prompt's icon, by what you're facing (buildings: their business's icon, or what they are). */
+const OBJECT_ICONS = { tree: '🌳', rock: '🪨', bush: '🫐', crop: '🌾', log: '🪵', deadwood: '🪵', herb: '🌿', mushroom: '🍄', flower: '🌼' };
+const DECOR_ICONS = { notice_board: '📋', well: '🪣', land_sign: '🪧', expedition: '🧭' };
+const FURNITURE_ICONS = { bed: '🛏️', chest: '🧰', table: '🍽️', workbench: '🪚', stove: '🍳', door: '🚪', forge: '🔥', shelf: '📚', fireplace: '🔥' };
+const BUILDING_ICONS = [
+  [/school|univers|institute/, '🏫'],
+  [/hall|council/, '🏛️'],
+  [/church|chapel|temple/, '⛪'],
+  [/station|rail/, '🚉'],
+  [/barn|stable/, '🐄'],
+  [/warehouse|depot|shed/, '📦'],
+  [/clinic|doctor/, '⚕️'],
+  [/watch/, '🛡️'],
+  [/market/, '🏷️'],
+  [/office/, '🗂️'],
+  [/apartment|flats/, '🏢'],
+  [/shack|hut/, '🛖'],
+  [/farm/, '🌾'],
+  [/works|factory|mill/, '🏭'],
+];
+
+export function targetIcon(scene, target) {
+  const sim = scene.sim;
+  switch (target.kind) {
+    case 'npc': {
+      const npc = sim.npcs.byId(target.id);
+      if (sim.workers?.contract(target.id)) return '👷';
+      return npc && npc.age < 14 ? '🧒' : '👤';
+    }
+    case 'object': {
+      const obj = sim.state.objects[target.id];
+      if (obj?.kind === 'rock' && obj.variant === 'clay') return '🟫';
+      return OBJECT_ICONS[obj?.kind] || '✋';
+    }
+    case 'building': {
+      if (target.id === sim.state.player.homeId) return '🏡';
+      const biz = sim.economy?.businessAtBuilding(target.id);
+      const def = biz && sim.economy.def(biz);
+      if (def?.icon) return def.icon;
+      const type = `${sim.property?.type?.(target.id) || ''} ${sim.world.buildings[target.id]?.type || ''}`;
+      return BUILDING_ICONS.find(([re]) => re.test(type))?.[1] || '🏠';
+    }
+    case 'decor':
+      return DECOR_ICONS[target.type] || '📍';
+    case 'furniture':
+      return FURNITURE_ICONS[target.type] || '🪑';
+    case 'site':
+      return '🏗️';
+    case 'ground':
+      return sim.farming.field(target.tx, target.ty)?.crop ? '🌱' : '🟫';
+    case 'water':
+      return '💧';
+    case 'animal':
+      return target.animal?.kind === 'deer' ? '🦌' : '🐇';
+    case 'equipment':
+    case 'held':
+      return '🛒';
+    case 'discovery':
+      return '✨';
+    default:
+      return '📍';
+  }
+}
+
 const TS = BALANCE.tileSize;
 const FACING = { down: [0, 1], up: [0, -1], left: [-1, 0], right: [1, 0] };
 const LABEL_OFFSET = { tree: 84, rock: 36, bush: 30, crop: 40 };
@@ -149,7 +213,8 @@ export class InteractionSystem {
       const a = actions[0];
       acts = a.disabled ? `<span class="off">${escapeHtml(a.label)}</span><span class="why">${escapeHtml(a.reason)}</span>` : `<span><kbd>E</kbd>${escapeHtml(a.label)}</span>`;
     } else acts = `<span><kbd>E</kbd>${escapeHtml(this.scene.ui.tr('ui.n_actions', { n: actions.length }))} ▾</span>`;
-    const html = `<div class="wp-name">${escapeHtml(name)}</div>${sub ? `<div class="wp-sub">${escapeHtml(sub)}</div>` : ''}<div class="wp-actions">${acts}</div>`;
+    const ico = targetIcon(this.scene, this.target);
+    const html = `<div class="wp-card"><div class="wp-title"><span class="wp-ico">${ico}</span><span class="wp-name">${escapeHtml(name)}</span></div>${sub ? `<div class="wp-sub">${escapeHtml(sub)}</div>` : ''}<div class="wp-actions">${acts}</div></div>`;
     const el = this.scene.ui.promptEl;
     if (html !== this.promptText) {
       this.promptText = html;
@@ -161,7 +226,7 @@ export class InteractionSystem {
     const bob = Math.sin(this.scene.time.now / 200) * 2;
     const topY = this.target.y - this.target.labelY;
     this.marker.setVisible(true).setPosition(this.target.x, topY + bob);
-    const p = this.scene.ui.worldToScreen(this.target.x, topY - 10);
+    const p = this.scene.ui.worldToScreen(this.target.x, topY - 18);
     el.style.left = `${Math.round(p.x)}px`;
     el.style.top = `${Math.round(p.y)}px`;
   }

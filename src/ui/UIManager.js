@@ -50,7 +50,7 @@ import { AffairsPanel } from './panels/AffairsPanel.js';
 import { itemTip } from './items.js';
 import { icon, condState } from './widgets.js';
 import { landHere } from './land.js';
-import { applySettings, uiScale } from './settings.js';
+import { applySettings, uiScale, getSetting, setSetting } from './settings.js';
 import { play } from '../audio/AudioEngine.js';
 import { ITEMS } from '../data/items.js';
 
@@ -117,21 +117,34 @@ export class UIManager {
       parent.appendChild(e);
       return e;
     };
+    // Top left: you (level, needs) and what to do next. Top right: the time and your money.
     this.leftCol = el('hud-col');
-    this.hudLeft = el('hud hud-left', this.leftCol);
+    this.hudLeft = el('hud hud-player', this.leftCol);
     this.objectiveEl = el('hud objective hidden', this.leftCol);
-    // The guide's step (or advice) in the HUD: click it for the Guide (what next, your path).
-    this.objectiveEl.addEventListener('click', () => {
+    // The guide's step (or advice) in the HUD: click it for the Guide (what next, your path) — or fold it away.
+    this.objectiveEl.addEventListener('click', (e) => {
+      if (e.target.closest('[data-fold]')) {
+        e.stopPropagation();
+        setSetting('objectiveFolded', !getSetting('objectiveFolded'));
+        this.objectiveEl.classList.toggle('folded', !!getSetting('objectiveFolded'));
+        return;
+      }
       if (this.objectiveEl.dataset.guide) this.openJournal('guide');
     });
-    this.hudRight = el('hud hud-right');
+    this.objectiveEl.classList.toggle('folded', !!getSetting('objectiveFolded'));
+    this.rightCol = el('hud-col hud-col-right');
+    const topRow = el('hud-row', this.rightCol);
+    this.hudRight = el('hud hud-world', topRow);
+    this.moneyEl = el('hud hud-money', topRow, 'button');
+    this.moneyEl.addEventListener('click', () => this.togglePanel('affairs'));
+    this.landEl = el('land-chip hidden', this.rightCol, 'button');
     this.floatEl = el('float-layer');
     this.promptEl = el('world-prompt hidden');
     this.bottomEl = el('hud-bottom');
     this.hotbarEl = el('hotbar', this.bottomEl);
     this.dockEl = el('dock', this.bottomEl);
     this.hotkeysEl = el('hotkeys');
-    this.toastsEl = el('toasts');
+    this.toastsEl = el('toasts', this.rightCol);
     this.levelUpEl = el('levelup hidden');
     this.placeEl = el('place-banner hidden');
     this.statusEl = el('status-overlay hidden');
@@ -145,29 +158,30 @@ export class UIManager {
     applySettings();
 
     this.hudLeft.innerHTML = `
-      <div class="portrait-ring"><span class="lvl"></span></div>
+      <button class="lvl-ring" data-open="character"><span class="lvl"></span></button>
       <div class="hud-main">
-        <div class="hud-name"><span class="pname"></span> <span class="ptitle"></span></div>
-        <div class="xpbar"><div class="fill"></div><span class="label"></span></div>
-        <div class="money-row"><span class="money"></span><span class="points hidden" data-open="character"></span></div>
+        <div class="hud-name"><span class="pname"></span><span class="ptitle"></span><span class="points hidden" data-open="character"></span></div>
         <div class="needs">
           <div class="need health"><span class="ico">❤️</span><div class="bar"><div class="fill"></div></div><span class="val"></span></div>
           <div class="need energy"><span class="ico">⚡</span><div class="bar"><div class="fill"></div></div><span class="val"></span></div>
-          <div class="need hunger"><span class="ico">🍞</span><div class="bar"><div class="fill"></div></div><span class="val"></span></div>
+          <div class="need hunger"><span class="ico">🍗</span><div class="bar"><div class="fill"></div></div><span class="val"></span></div>
         </div>
       </div>`;
     this.hudRight.innerHTML = `
-      <div class="clock"></div>
-      <div class="date"></div>
-      <div class="weather"></div>
-      <button class="land-chip hidden"></button>`;
+      <span class="w-icon"></span>
+      <div class="w-main">
+        <div class="clock"></div>
+        <div class="date"></div>
+      </div>
+      <div class="w-side"><span class="temp"></span><span class="weather"></span></div>
+      <div class="w-extra hidden"></div>`;
+    this.moneyEl.innerHTML = `<span class="m-ico">💰</span><span class="money"></span>`;
     this.q = {
       lvl: this.hudLeft.querySelector('.lvl'),
+      ring: this.hudLeft.querySelector('.lvl-ring'),
       name: this.hudLeft.querySelector('.pname'),
       title: this.hudLeft.querySelector('.ptitle'),
-      xpFill: this.hudLeft.querySelector('.xpbar .fill'),
-      xpLabel: this.hudLeft.querySelector('.xpbar .label'),
-      money: this.hudLeft.querySelector('.money'),
+      money: this.moneyEl.querySelector('.money'),
       points: this.hudLeft.querySelector('.points'),
       health: this.hudLeft.querySelector('.health .fill'),
       energy: this.hudLeft.querySelector('.energy .fill'),
@@ -177,13 +191,17 @@ export class UIManager {
       hungerRow: this.hudLeft.querySelector('.need.hunger'),
       clock: this.hudRight.querySelector('.clock'),
       date: this.hudRight.querySelector('.date'),
+      wicon: this.hudRight.querySelector('.w-icon'),
+      temp: this.hudRight.querySelector('.temp'),
       weather: this.hudRight.querySelector('.weather'),
-      land: this.hudRight.querySelector('.land-chip'),
+      wextra: this.hudRight.querySelector('.w-extra'),
+      land: this.landEl,
     };
     // Whose land you're standing on — click for the land panel (and to buy it).
     this.q.land.addEventListener('click', () => this.landId && this.openLand(this.landId));
-    this.q.points.addEventListener('click', () => this.togglePanel('character'));
-    this.hudLeft.querySelector('.portrait-ring').addEventListener('click', () => this.togglePanel('character'));
+    this.hudLeft.addEventListener('click', (e) => {
+      if (e.target.closest('[data-open]')) this.togglePanel('character');
+    });
     this.q.healthVal = this.hudLeft.querySelector('.health .val');
     this.q.energyVal = this.hudLeft.querySelector('.energy .val');
     this.q.hungerVal = this.hudLeft.querySelector('.hunger .val');
@@ -288,6 +306,16 @@ export class UIManager {
     this.placeTimer = setTimeout(() => this.placeEl.classList.add('hidden'), 3200);
   }
 
+  /** The objective card: a heading, the text, and (for the guide) a hint; ▾ folds it down to the heading. */
+  setObjective(head, text, more = '') {
+    const html = `<div class="obj-head"><span class="obj-title">${head}</span><button class="obj-fold" data-fold="1" aria-label="${escapeHtml(t('ui.fold'))}">▾</button></div><div class="obj-text">${text}</div>${more ? `<div class="obj-more">${more}</div>` : ''}`;
+    if (this.objectiveHtml !== html) {
+      this.objectiveHtml = html;
+      this.objectiveEl.innerHTML = html;
+    }
+    this.objectiveEl.classList.remove('hidden');
+  }
+
   updateHud() {
     const sim = this.sim;
     const p = sim.state.player;
@@ -296,9 +324,12 @@ export class UIManager {
     const need = sim.progression.xpForNext();
     q.lvl.textContent = p.level;
     q.name.textContent = npcName(p);
-    q.title.textContent = `· ${t(`title.${sim.progression.title()}`)}`;
-    q.xpFill.style.width = `${Math.min(100, (p.xp / need) * 100)}%`;
-    q.xpLabel.textContent = t('ui.xp_progress', { xp: Math.floor(p.xp), need });
+    q.title.textContent = t(`title.${sim.progression.title()}`);
+    // XP fills the ring around your level (hover: how much, and to what).
+    const xpPct = Math.min(100, (p.xp / need) * 100);
+    q.ring.style.setProperty('--xp', `${xpPct}%`);
+    const xpTip = `<div class='tip-title'>${escapeHtml(t('ui.level_n', { level: p.level }))}</div><div class='tip-row'><span>XP</span><b>${Math.floor(p.xp)} / ${need}</b></div><div class='tip-sub'>${escapeHtml(t('ui.character'))} · C</div>`;
+    if (q.ring.dataset.tip !== xpTip) q.ring.dataset.tip = xpTip;
     // Money: the total moves, and the change floats up beside it.
     const money = Math.round(p.money);
     if (this.lastMoney !== undefined && money !== this.lastMoney) {
@@ -309,7 +340,7 @@ export class UIManager {
       if (Math.abs(d) >= 1) this.floatAtElement(q.money, `${d > 0 ? '+' : '−'}${fmtMoney(Math.abs(d))}`, 'money');
     }
     this.lastMoney = money;
-    q.money.textContent = `💰 ${fmtMoney(p.money)}`;
+    q.money.textContent = fmtMoney(p.money);
     const pts = p.attributePoints + p.skillPoints;
     q.points.classList.toggle('hidden', pts <= 0);
     q.points.textContent = t('ui.points_available', { n: pts });
@@ -331,12 +362,11 @@ export class UIManager {
     this.renderHotbar();
 
     q.clock.textContent = time.clockString();
-    q.date.textContent = t('ui.date_long', {
-      day: time.dayOfSeason,
-      season: t(`season.${time.season}`),
-      weekday: t(`weekday.${time.weekday}`),
-      year: time.year,
-    });
+    const date = t('ui.date_hud', { day: time.dayOfSeason, season: t(`season.${time.season}`), weekday: t(`weekday.${time.weekday}`) });
+    if (q.date.textContent !== date) {
+      q.date.textContent = date;
+      this.hudRight.dataset.tip = `<div class='tip-title'>${escapeHtml(t('ui.date_long', { day: time.dayOfSeason, season: t(`season.${time.season}`), weekday: t(`weekday.${time.weekday}`), year: time.year }))}</div>`;
+    }
     // The weather, and what the season's doing: snow lying, the fire at home, the river up, the thaw.
     const ss = sim.seasons?.summary();
     const extra = [];
@@ -344,43 +374,48 @@ export class UIManager {
     if (ss?.flooding) extra.push(t('ui.river_up'));
     else if (ss?.thaw) extra.push(t('ui.thaw'));
     if (ss?.season === 'winter' && ss.woodNights !== Infinity) extra.push(ss.heated ? t('ui.fire_lit', { n: ss.woodNights }) : t('ui.fire_out'));
-    const wtext = `${WEATHER_ICONS[sim.weather.type] || ''} ${t(`weather.${sim.weather.type}`)}${extra.length ? ` · ${extra.join(' · ')}` : ''}`;
-    if (q.weather.textContent !== wtext) q.weather.textContent = wtext;
+    // Night swaps the sun for the moon.
+    const night = time.hour >= 21 || time.hour < 5;
+    const wico = sim.weather.type === 'sunny' && night ? '🌙' : WEATHER_ICONS[sim.weather.type] || '';
+    if (q.wicon.textContent !== wico) q.wicon.textContent = wico;
+    const wname = t(`weather.${sim.weather.type}`);
+    if (q.weather.textContent !== wname) q.weather.textContent = wname;
+    const deg = sim.seasons ? sim.seasons.temperature() : null;
+    const temp = deg === null ? '' : t('ui.temp_c', { n: deg });
+    if (q.temp.textContent !== temp) q.temp.textContent = temp;
+    this.hudRight.classList.toggle('cold', deg !== null && deg <= 0);
+    const xtext = extra.join(' · ');
+    if (q.wextra.textContent !== xtext) q.wextra.textContent = xtext;
+    q.wextra.classList.toggle('hidden', !xtext);
     this.updateLandChip();
 
     const obj = sim.jobs.objective();
     delete this.objectiveEl.dataset.guide;
     if (obj) {
       const job = sim.jobs.active;
-      this.objectiveEl.classList.remove('hidden');
-      this.objectiveEl.innerHTML = `<div class="obj-head">📋 ${escapeHtml(t(`job.${job.jobId}.name`))}</div><div class="obj-text">${escapeHtml(tr(sim, obj.key, obj.params))}</div>`;
+      this.setObjective(`📋 ${escapeHtml(t(`job.${job.jobId}.name`))}`, `${escapeHtml(tr(sim, obj.key, obj.params))}`);
     } else {
       const req = sim.state.jobs.requests.find((r) => r.accepted);
       if (req) {
-        this.objectiveEl.classList.remove('hidden');
         const have = sim.inventory.count(req.item);
-        this.objectiveEl.innerHTML = `<div class="obj-head">🤝 ${escapeHtml(t('ui.favour'))}</div><div class="obj-text">${escapeHtml(tr(sim, 'objective.request', { npc: req.npcId, item: req.item, qty: req.qty, have }))}</div>`;
+        this.setObjective(`🤝 ${escapeHtml(t('ui.favour'))}`, `${escapeHtml(tr(sim, 'objective.request', { npc: req.npcId, item: req.item, qty: req.qty, have }))}`);
       } else if (sim.freight?.objective()) {
         // A delivery you're carrying (or one waiting for you to pick up).
         const fo = sim.freight.objective();
-        this.objectiveEl.classList.remove('hidden');
-        this.objectiveEl.innerHTML = `<div class="obj-head">🛞 ${escapeHtml(t('freight.hud'))}</div><div class="obj-text">${escapeHtml(tr(sim, fo.key, fo.params))}</div>`;
+        this.setObjective(`🛞 ${escapeHtml(t('freight.hud'))}`, `${escapeHtml(tr(sim, fo.key, fo.params))}`);
       } else if (sim.contracts.objective()) {
         // A contract you're following ("Go to job"): what to do next, and where.
         const co = sim.contracts.objective();
-        this.objectiveEl.classList.remove('hidden');
-        this.objectiveEl.innerHTML = `<div class="obj-head">📜 ${escapeHtml(t(`contract.kind.${co.contract.kind}`))}</div><div class="obj-text">${escapeHtml(tr(sim, co.key, co.params))}</div>`;
+        this.setObjective(`📜 ${escapeHtml(t(`contract.kind.${co.contract.kind}`))}`, `${escapeHtml(tr(sim, co.key, co.params))}`);
       } else if (sim.guide?.objective()) {
         // The guide: the next step of "Getting started", something pressing, or your path's next milestone.
         const g = sim.guide.objective();
         const head = g.kind === 'step' ? `${g.step.icon} ${t('guide.hud_step', { n: sim.guide.progress().done, total: sim.guide.progress().total })} · ${t(`guide.step.${g.step.id}.name`)}` : g.kind === 'path' ? `🧭 ${t(`path.${sim.guide.S.path}.name`)}` : `${g.advice.icon} ${t('guide.next_title')}`;
         const extra = g.kind === 'path' ? ` (${g.progress.value}/${g.progress.target})` : '';
-        this.objectiveEl.classList.remove('hidden');
         this.objectiveEl.dataset.guide = '1';
-        this.objectiveEl.innerHTML = `<div class="obj-head">${escapeHtml(head)}</div><div class="obj-text">${escapeHtml(tr(sim, g.key, g.params))}${escapeHtml(extra)}</div><div class="obj-more">${escapeHtml(t('guide.hud_more'))}</div>`;
+        this.setObjective(`${escapeHtml(head)}`, `${escapeHtml(tr(sim, g.key, g.params))}${escapeHtml(extra)}`, `${escapeHtml(t('guide.hud_more'))}`);
       } else if (p.level === 1 && sim.state.stats.jobsCompleted === 0) {
-        this.objectiveEl.classList.remove('hidden');
-        this.objectiveEl.innerHTML = `<div class="obj-head">💡 ${escapeHtml(t('ui.tip'))}</div><div class="obj-text">${escapeHtml(t('objective.first_tip'))}</div>`;
+        this.setObjective(`💡 ${escapeHtml(t('ui.tip'))}`, `${escapeHtml(t('objective.first_tip'))}`);
       } else {
         this.objectiveEl.classList.add('hidden');
       }
@@ -447,7 +482,7 @@ export class UIManager {
         const pct = (s.dur / inv.maxDurability(s)) * 100;
         const st = condState(pct);
         const wanted = want && ITEMS[s.id].tool.kind === want && !s.held;
-        return `<div class="tool-slot${s.held ? ' selected' : ''}${wanted ? ' wanted' : ''}" data-slot="${i}" data-tip="${escapeHtml(itemTip(this.sim, s))}"><span class="key">${i + 1}</span>${icon(s.id, 30)}<span class="dur st-${st}"><i style="width:${Math.max(4, pct)}%"></i></span>${st === 'critical' ? '<span class="warn-mark">⚠️</span>' : ''}</div>`;
+        return `<div class="tool-slot${s.held ? ' selected' : ''}${wanted ? ' wanted' : ''}" data-slot="${i}" data-name="${escapeHtml(itemName(s.id))}" data-tip="${escapeHtml(itemTip(this.sim, s))}"><span class="key">${i + 1}</span>${icon(s.id, 30)}<span class="dur st-${st}"><i style="width:${Math.max(4, pct)}%"></i></span>${st === 'critical' ? '<span class="warn-mark">⚠️</span>' : ''}</div>`;
       })
       .join('');
   }
@@ -530,7 +565,8 @@ export class UIManager {
   floatAtElement(el, text, cls) {
     const r = el.getBoundingClientRect();
     const s = uiScale();
-    this.floatAt((r.left + r.width / 2) / s + 30, r.top / s, escapeHtml(text), cls, true);
+    // Just under it (the money sits at the screen's top edge), drifting up towards it.
+    this.floatAt((r.left + r.width / 2) / s, r.bottom / s + 34, escapeHtml(text), cls, true);
   }
 
   floatAt(x, y, html, cls, isHtml) {

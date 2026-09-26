@@ -14,6 +14,15 @@ import { GOAL_AGAINST } from '../../data/goals.js';
 import { RENTAL } from '../../data/housing.js';
 import { contractAction, crewPicker, openCrew, contractCard } from '../contracts.js';
 
+/** An icon for each thing you can say (options whose words already start with one keep theirs). */
+const OPT_ICONS = {
+  chat: '💬', news: '📰', life: '🏡', plans: '🎯', work: '🔨', job_how: '📋', job_handover: '📦', job_offer: '📋', request: '🤝', fulfill: '🎁',
+  gift_menu: '🎁', offer_house: '🏠', ask_manager: '🗝️', end_manager: '🗝️', ask_lessons: '📖', ask_apprentice: '⚒️', offer_apprentice: '⚒️',
+  offer_sponsor: '🎓', propose: '💍', court: '🌹', how_work: '👷', manage: '👷', go_work_at: '🏪', ask_manage: '🧑‍💼', come_back: '↩️',
+  hire_view: '🤝', hire_offer: '🤝', trade: '🛒', about: 'ℹ️', close: '👋', back: '↩️', job_accept: '✅', job_decline: '✖️', job_details: '🔍',
+  job_myself: '🙋', accept_request: '✅', pay: '💰', time: '⏳',
+};
+
 export class DialoguePanel extends Panel {
   constructor(ui, npcId) {
     super(ui);
@@ -88,7 +97,10 @@ export class DialoguePanel extends Panel {
         </div>
       </div>
       <div class="dlg-line">“${escapeHtml(this.line)}”</div>`;
-    return head + `<div class="dlg-options">${this.renderOptions()}</div>`;
+    const opts = this.renderOptions();
+    // A long list of things to say goes in two columns (goodbye stays last, on its own).
+    const many = this.view === 'main' && (opts.match(/class="dlg-opt/g) || []).length > 7;
+    return head + `<div class="dlg-options${many ? ' two' : ''}">${opts}</div>`;
   }
 
   renderOptions() {
@@ -96,8 +108,12 @@ export class DialoguePanel extends Panel {
     const npc = this.npc;
     const opts = [];
     let n = 1;
-    const opt = (label, action, data = {}, disabled = false, note = '') =>
-      opts.push(`<div class="dlg-opt${disabled ? ' disabled' : ''}" data-action="${action}" data-hotkey="${n}" ${Object.entries(data).map(([k, v]) => `data-${k}="${escapeHtml(v)}"`).join(' ')}><kbd>${n++}</kbd>${escapeHtml(label)}${note ? `<span class="note">${escapeHtml(note)}</span>` : ''}</div>`);
+    // Each option a button: its key, an icon for what it's about, the words, and why not (if it can't be done).
+    const opt = (label, action, data = {}, disabled = false, note = '') => {
+      const ico = /^\p{Extended_Pictographic}/u.test(label) ? '' : OPT_ICONS[action] || '';
+      const cls = action === 'close' ? ' bye' : action === 'back' ? ' back' : '';
+      opts.push(`<div class="dlg-opt${cls}${disabled ? ' disabled' : ''}" data-action="${action}" data-hotkey="${n}" ${Object.entries(data).map(([k, v]) => `data-${k}="${escapeHtml(v)}"`).join(' ')}><kbd>${n++}</kbd>${ico ? `<span class="dlg-ico">${ico}</span>` : ''}<span class="dlg-label">${escapeHtml(label)}</span>${note ? `<span class="note">${escapeHtml(note)}</span>` : ''}</div>`);
+    };
 
     if (this.view === 'main') {
       // A story with them, waiting for you (StorySystem) — first, it's why you came.

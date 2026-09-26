@@ -138,7 +138,7 @@ export class WorkersPanel extends Panel {
     html += `<div class="setting-row"><div><b>🔁 ${escapeHtml(t('orders.title'))}</b><div class="hint">${escapeHtml(t(ordN ? 'workers.orders_hint' : 'workers.orders_none', { n: ordN }))}</div></div>${button(t('workers.orders_open'), 'orders', {}, { cls: 'sm' })}</div>`;
     // Your carting business: deliveries for the shops, caravans to other places (FreightSystem).
     const fr = sim.freight;
-    html += `<div class="setting-row"><div><b>🛞 ${escapeHtml(t('freight.title'))}</b><div class="hint">${escapeHtml(fr.company?.kind === 'firm' ? t('freight.workers_hint', { n: fr.S.jobs.length, c: fr.S.caravans.length }) : t('freight.workers_none'))}</div></div>${button(t('workers.orders_open'), 'freight', {}, { cls: 'sm' })}</div>`;
+    html += `<div class="setting-row"><div><b>🛞 ${escapeHtml(t('freight.title'))}</b><div class="hint">${escapeHtml(fr.company?.kind === 'firm' ? t('freight.workers_hint', { n: fr.S.jobs.length, c: fr.S.caravans.length }) : t('freight.workers_none'))}</div></div>${button(t('freight.open'), 'freight', {}, { cls: 'sm' })}</div>`;
     if (!list.length) {
       html += emptyState('👷', t('ui.no_workers_title'), t(sim.progression.hasUnlock('hire_worker') ? 'ui.no_workers' : 'ui.workers_locked', { level: sim.progression.unlockLevel('hire_worker') }));
     }

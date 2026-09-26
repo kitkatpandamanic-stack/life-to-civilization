@@ -46,6 +46,10 @@ export const SEASONS = {
   floodTint: 0x86a8d6,
   // autumn: stock up
   woodWarnDays: 5, // the last days of autumn: "get your firewood in"
+  // the thermometer (only shown — nothing runs on it): a season's mid-day warmth, the night's chill, the weather's
+  temp: { spring: 13, summer: 24, autumn: 12, winter: -3 },
+  tempSwing: 5, // warmest mid-afternoon, coldest before dawn
+  tempWeather: { sunny: 2, cloudy: 0, fog: -1, rain: -3, storm: -4, snow: -3 },
 };
 
 export class SeasonSystem {
@@ -310,6 +314,20 @@ export class SeasonSystem {
   }
 
   /** For the HUD / journal: this season in a few words. */
+  /** The thermometer, °C: the season (easing into the next over its last days), the hour, the weather, snow lying. No dice. */
+  temperature() {
+    const T = this.sim.time;
+    const order = ['spring', 'summer', 'autumn', 'winter'];
+    const len = BALANCE.time?.daysPerSeason || 14;
+    const here = SEASONS.temp[T.season] ?? 12;
+    const next = SEASONS.temp[order[(order.indexOf(T.season) + 1) % 4]] ?? here;
+    const ease = Math.max(0, (T.dayOfSeason - (len - 4)) / 5);
+    const day = here + (next - here) * ease;
+    const hourly = -Math.cos(((T.hourFloat - 3) / 24) * Math.PI * 2) * SEASONS.tempSwing;
+    const weather = SEASONS.tempWeather[this.sim.weather?.type] ?? 0;
+    return Math.round(day + hourly + weather - this.S.snow * 3);
+  }
+
   summary() {
     return { season: this.sim.time.season, snow: Math.round(this.S.snow * 100), cleared: Math.round(this.S.cleared * 100), heated: this.heated(), woodNights: this.woodNights(), flooding: this.flooding(), thaw: this.thaw(), cold: this.S.cold.length };
   }

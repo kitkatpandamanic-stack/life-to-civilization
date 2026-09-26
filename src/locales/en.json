@@ -2399,7 +2399,10 @@
     "river_up": "🌊 river up",
     "thaw": "thaw mud",
     "fire_lit": "🔥 fire lit ({n} nights of wood)",
-    "fire_out": "🧊 fire out"
+    "fire_out": "🧊 fire out",
+    "date_hud": "{season} · day {day}",
+    "temp_c": "{n}°C",
+    "fold": "Fold / unfold"
   },
   "dialog": {
     "intro": [
