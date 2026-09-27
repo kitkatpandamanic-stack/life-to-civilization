@@ -119,6 +119,8 @@ export class NPCViews {
     if (t?.type === 'firefight' && t.stage === 'fighting') return 'build';
     // Evenings spent raising a house.
     if (t?.type === 'leisure' && t.plan === 'build' && t.stage === 'idle' && !npc.moving) return 'build';
+    // Public work (mending the lanes) and keeping your stall: busy hands.
+    if (t?.type === 'leisure' && t.plan === 'publicwork' && t.stage === 'idle' && !npc.moving) return npc.stallKeeper === this.sim.time.day ? 'load' : 'build';
     if (!t || t.type !== 'work' || npc.moving) return null;
     if (npc.employer === 'player') {
       // Your workers: chopping, mining, building, crafting, farming.

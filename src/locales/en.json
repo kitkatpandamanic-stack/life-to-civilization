@@ -823,7 +823,9 @@
     "start_outing": "Start work here ({hours} h)",
     "market_stall": "Market stall",
     "population": "The valley's people",
-    "forest_report": "The woods"
+    "forest_report": "The woods",
+    "traders": "The traders (market day)",
+    "town_orders": "Orders from other towns ({n})"
   },
   "reason": {
     "nothing_here": "Nothing to do here.",
@@ -1151,7 +1153,14 @@
     "stall_not_rented": "Rent the stall first.",
     "cant_sell_that": "That can't be sold at a stall.",
     "stall_full": "No room for more kinds of goods on the stall.",
-    "not_headman": "Only the headman can change that."
+    "not_headman": "Only the headman can change that.",
+    "market_closed": "The market's not on (market day, from {hour}).",
+    "traders_sold_out": "The traders have sold out of that.",
+    "traders_dont_buy": "The traders don't buy that.",
+    "order_taken": "You've already taken this order on.",
+    "order_not_taken": "Take the order on first.",
+    "keeper_hired": "Someone's already keeping your stall.",
+    "no_stall_keeper": "Nobody's free to keep your stall today."
   },
   "toast": {
     "hungry": "You're getting hungry. Press Q to eat.",
@@ -1467,7 +1476,15 @@
     "job_rank_up": "You're getting good at it: {job} — {jrank}. It pays more now.",
     "job_done_bonus": "Job complete: {job}. Paid {money} (with {bonus} extra), +{xp} XP",
     "planting_part_paid": "Paid for the {n} trees you planted: {money}.",
-    "stall_closed": "The market's closing. Your stall took {money} today."
+    "stall_closed": "The market's closing. Your stall took {money} today.",
+    "name_day": "It's {npc}'s name day! A gift today means twice as much.",
+    "market_day": "Market day! Traders are on the square, and your stall will sell more.",
+    "you_came_wedding": "You came to the wedding feast of {npc}. It means a lot to them.",
+    "you_came_funeral": "You came to say goodbye to {npc}. The family noticed.",
+    "sold_traders": "Sold {qty} × {item} to the traders for {money}.",
+    "town_order_failed": "The order from {settlement} ({item}) ran out of time.",
+    "town_order_done": "Order complete! Paid {money} (with the bonus).",
+    "town_order_part": "Handed over {qty}. Paid {money}."
   },
   "objective": {
     "harvest": "Harvest ripe wheat in the farm fields ({have}/{qty})",
@@ -2065,7 +2082,20 @@
     "policy_health_high": "The headman made the clinic free for everyone.",
     "policy_welcome_low": "The headman stopped welcoming newcomers.",
     "policy_welcome_normal": "The headman's welcome for newcomers is back to normal.",
-    "policy_welcome_high": "The headman offers every newcomer a settling-in grant."
+    "policy_welcome_high": "The headman offers every newcomer a settling-in grant.",
+    "youth_learnt_trade": {
+      "m": "{npc} is grown up — and knows a trade from helping at the family business ({occ}).",
+      "f": "{npc} is grown up — and knows a trade from helping at the family business ({occ})."
+    },
+    "npc_charity": {
+      "m": "{npc} quietly helped {npc2}, who had nothing left.",
+      "f": "{npc} quietly helped {npc2}, who had nothing left."
+    },
+    "wedding_feast": "A wedding feast on the square for {npc} and {npc2} — {n} came to celebrate.",
+    "funeral": "The village said goodbye to {npc}; {n} came.",
+    "town_order": "{settlement} sends an order: {n} × {item}.",
+    "town_order_done": "The order for {settlement} is done: {n} × {item} delivered.",
+    "player_caught_thief": "You caught a thief on the night watch."
   },
   "event": {
     "good_harvest": {
@@ -3624,7 +3654,9 @@
     "carrying_freight": "Carrying a delivery",
     "fetching_freight": "Picking up a delivery ({item})",
     "collecting_produce": "Collecting eggs and milk",
-    "collecting_yard": "Fetching goods from the station"
+    "collecting_yard": "Fetching goods from the station",
+    "picking_apples": "Picking your apples",
+    "planting_trees": "Planting your trees"
   },
   "schedule": {
     "wake": "Wake up",
@@ -9656,7 +9688,19 @@
     "month": "Past month",
     "weeks": "Weeks",
     "next_season": "Coming season",
-    "yours": "You have"
+    "yours": "You have",
+    "title": "Market day",
+    "today_from": "Market day today, {from}:00–{to}:00.",
+    "next_in": "Next market day in {n} days (from {from}:00).",
+    "open_until": "The traders are here until {to}:00.",
+    "buy": "Buy",
+    "sell_one": "Sell 1",
+    "sell_all": "Sell all",
+    "they_sell": "They've brought",
+    "they_buy": "They'll buy from you",
+    "nothing_they_want": "You aren't carrying anything they buy.",
+    "wanted": "They buy: {list}.",
+    "traders_hint": "Once a week traders come to the square: they bring things the shops don't have, and pay more than the shops for crafts and farm goods. The square's busy, so your stall sells more too."
   },
   "mine": {
     "title": "Your mine",
@@ -9840,7 +9884,12 @@
     "apple_trees": "{n} apple trees",
     "your_trees": "Your apple trees",
     "no_orchards": "No orchards yet. Farms plant apple trees in spring and autumn; you can plant apple saplings on your own land.",
-    "hint": "Every tree felled leaves a stump. Foresters and woodcutters with nothing to fell plant saplings; saplings grow into trees in about two seasons (slower in winter). Buy saplings at the store or a tree nursery and plant them yourself — the tree-planting job on the notice board pays for each one."
+    "hint": "Every tree felled leaves a stump. Foresters and woodcutters with nothing to fell plant saplings; saplings grow into trees in about two seasons (slower in winter). Buy saplings at the store or a tree nursery and plant them yourself — the tree-planting job on the notice board pays for each one.",
+    "your_woodlot": "Your trees",
+    "your_grown": "Grown trees on your land",
+    "your_young": "Young trees and saplings",
+    "apples_ready": "Apples waiting to be picked",
+    "woodlot_hint": "Your workers look after them when their Farming work is on: they pick your apples, and where a tree you planted was felled they plant another from the saplings in your storage."
   },
   "stall": {
     "title": "Market stall",
@@ -9866,6 +9915,92 @@
     "empty": "Nothing on the stall yet — put some of your goods out.",
     "nothing_to_sell": "You aren't carrying anything to sell.",
     "sold": "Sold",
-    "hint": "The money comes from the villagers' own purses. A bigger village means more customers."
+    "hint": "The money comes from the villagers' own purses. A bigger village means more customers.",
+    "keeper": "{npc} is keeping your stall",
+    "keeper_paid": "{money} at closing",
+    "hire_keeper": "Pay someone to keep it ({money})",
+    "hire_keeper_tip": "They mind the stall till closing, so you can get on with other things.",
+    "unminded": "Nobody's minding the stall — it only sells while you're near the square, or someone keeps it for you.",
+    "market_day": "Market day: the square's busy — it sells much more today."
+  },
+  "incident": {
+    "thief": {
+      "title": "A thief in the night",
+      "text": "On your rounds you spot someone slipping out of a yard with a sack.",
+      "chase": "Chase them",
+      "alarm": "Raise the alarm",
+      "chase_good": "You caught up with them and got the goods back. The village pays a small reward.",
+      "chase_bad": "They were too quick for you and got away in the dark.",
+      "alarm_done": "Lamps came on up and down the lane; the thief dropped the sack and ran."
+    },
+    "no_fare": {
+      "title": "No fare",
+      "text": "{npc} climbs out on the far bank and admits they can't pay.",
+      "free": "Let it go",
+      "insist": "Insist on the fare",
+      "free_done": "{npc} thanks you warmly. People hear about it.",
+      "insist_done": "{npc} scrapes the coins together, and doesn't look at you."
+    },
+    "hidden_coins": {
+      "title": "Coins up the chimney",
+      "text": "Behind a loose brick in the chimney of {building} there's a little bag of old coins.",
+      "return": "Give it back",
+      "keep": "Keep it",
+      "return_done": "The family couldn't believe it — someone's savings, long forgotten. They won't forget you.",
+      "keep_good": "Nobody noticed. The coins are yours.",
+      "keep_bad": "The family found out. Word gets round fast in a village."
+    },
+    "truffle": {
+      "title": "A truffle!",
+      "text": "Under an old oak you find a truffle — rare and very dear.",
+      "sell": "Sell it to a passing trader",
+      "tavern": "Give it to the tavern",
+      "sell_done": "The trader paid well for it.",
+      "tavern_done": "The innkeeper is delighted — and throws in a few mushrooms for the pot."
+    },
+    "poachers": {
+      "title": "Poachers",
+      "text": "Deep in the woods: snares, and two strangers with a sack.",
+      "confront": "Confront them",
+      "report": "Report them",
+      "confront_good": "They ran off and left their snares. The lumberyard hears of it.",
+      "confront_bad": "It came to blows — you came off worse.",
+      "report_done": "You reported what you saw; the watch will keep an eye out."
+    },
+    "lost_child": {
+      "title": "A lost child",
+      "text": "{npc} is crying by a lamp post — lost, in the dark.",
+      "walk_home": "Walk them home",
+      "point": "Point the way",
+      "walk_home_done": "The parents were frantic. They can't thank you enough.",
+      "point_done": "The child runs off in the right direction… you hope."
+    },
+    "lost_lamb": {
+      "title": "A lamb has strayed",
+      "text": "Counting the flock, you're one lamb short.",
+      "search": "Search for it",
+      "leave": "Leave it",
+      "search_good": "You found it caught in a hedge. The farmer's grateful.",
+      "search_bad": "No sign of it anywhere. The farmer's disappointed.",
+      "leave_done": "The farmer notices it's missing."
+    }
+  },
+  "orders_town": {
+    "title": "Orders from other towns",
+    "none": "No orders yet. Once you know of other towns, they'll send word of what they're short of.",
+    "hint": "Take an order on, then bring the goods to the hall — as much at a time as you like; each load is paid as you hand it over, and finishing in time earns a bonus. Taken on and not finished: they'll remember.",
+    "done": "Done",
+    "failed": "Ran out of time",
+    "taken": "Yours — in progress",
+    "open": "Open",
+    "take": "Take it on",
+    "deliver": "Hand over ({n})",
+    "line": "{town}: {qty} × {item}",
+    "each": "each",
+    "bonus": "bonus",
+    "by": "By {date} ({n} days left)",
+    "bring_to_hall": "Bring the goods to the hall to hand them over.",
+    "board_title": "Orders from other towns ({n})",
+    "open_list": "See the orders"
   }
 }

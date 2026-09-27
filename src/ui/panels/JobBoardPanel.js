@@ -14,6 +14,7 @@ import { t, npcName, fmtMoney } from '../../i18n/i18n.js';
 import { tr, escapeHtml, buildingLabel, dateString, villageName, rumorText } from '../format.js';
 import { button, icon, tabs } from '../widgets.js';
 import { JOBS } from '../../data/jobs.js';
+import { COMMUNITY } from '../../systems/CommunitySystem.js';
 
 export class JobBoardPanel extends Panel {
   constructor(ui, bizId = null, fromNpc = null) {
@@ -202,6 +203,11 @@ export class JobBoardPanel extends Panel {
       html += `<div class="card"><div class="card-head"><div class="card-icon">🛞</div><div><div class="card-title">${escapeHtml(t('freight.board_title'))}</div>
         <div class="card-sub">${escapeHtml(fr.company ? t('freight.board_on', { n: waiting, share: fr.summary().share }) : t('freight.board_off'))}</div></div></div>
         <div class="btn-row">${fr.company ? button(t('freight.board_open'), 'freight_open', {}, { cls: 'sm' }) : button(t('freight.sign_up'), 'freight_signup', {}, { cls: 'sm primary' })}</div></div>`;
+      // Orders from other towns (TownOrderSystem), and market day (CommunitySystem).
+      const orders = sim.townOrders?.open() || [];
+      if (orders.length) html += `<div class="card"><div class="card-head"><div class="card-icon">📜</div><div><div class="card-title">${escapeHtml(t('orders_town.board_title', { n: orders.length }))}</div><div class="card-sub">${escapeHtml(orders.map((o) => t('orders_town.line', { town: t(`settlement_name.${o.town}`), qty: o.qty, item: t(`item.${o.item}.name`) })).join(' · '))}</div></div></div><div class="btn-row">${button(t('orders_town.open_list'), 'town_orders', {}, { cls: 'sm' })}</div></div>`;
+      const md = sim.community?.daysToMarket();
+      if (md !== undefined) html += `<div class="muted small">🧺 ${escapeHtml(md === 0 ? t('market.today_from', { from: COMMUNITY.market.from, to: COMMUNITY.market.to }) : t('market.next_in', { n: md, from: COMMUNITY.market.from }))}</div>`;
       const reqs = sim.state.jobs.requests.filter((r) => !r.accepted);
       if (reqs.length) {
         html += `<h3>${escapeHtml(t('ui.villagers_need'))}</h3>`;
@@ -217,6 +223,7 @@ export class JobBoardPanel extends Panel {
     if (contractAction(this.sim, action, data)) return;
     if (action === 'tab') this.tab = data.tab;
     else if (action === 'freight_open') return this.ui.openFreight({ tab: 'deliveries' });
+    else if (action === 'town_orders') return this.ui.openTownOrders(false);
     else if (action === 'freight_signup') {
       const r = this.sim.freight.signUp();
       if (!r.ok) this.sim.toast(`reason.${r.reason}`, r.params || {}, 'warn');

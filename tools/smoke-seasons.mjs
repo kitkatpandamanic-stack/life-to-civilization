@@ -88,6 +88,7 @@ const toHour = (sim, h) => {
   const cart = sim.equipment.create('handcart', { owner: 'player' });
   const bare = sim.equipment.moveMult(cart, false);
   sim.weather.change('snow');
+  sim.state.weather.untilMinute = sim.time.total + 24 * 60; // (it keeps snowing for the test — not a short shower by the day's dice)
   runOn(sim)(12 * 60);
   const depth = sim.seasons.snow();
   check('Snow falling piles up', depth > 0.3, `depth ${depth.toFixed(2)}`);

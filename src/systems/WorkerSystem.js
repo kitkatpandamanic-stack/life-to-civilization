@@ -33,6 +33,7 @@ import { StandingOrders } from './StandingOrders.js';
 import { FreightTasks } from './FreightSystem.js';
 import { LivestockTasks } from './LivestockSystem.js';
 import { TrainTasks } from './TrainSystem.js';
+import { OrchardTasks } from './ForestrySystem.js';
 import { FOCUS, PRIORITY_WEIGHT, WORK_FIELDS, PROFESSIONS, WORKFORCE as WF } from '../data/workforce.js';
 import { EQUIP } from '../data/transport.js';
 import { RATES } from '../data/contracting.js';
@@ -498,6 +499,8 @@ export class WorkerSystem {
     this.livestockTasks(npc, c, pos, add);
     // Goods that came by rail, waiting in the station's yard (TrainSystem).
     this.trainTasks(npc, c, pos, add);
+    // Your apple trees to pick, your woodlot to replant (ForestrySystem).
+    if (S.jobs.farming !== 'off') this.orchardTasks(npc, c, pos, add);
     const storage = (item) => sim.home.storageCount(item);
     const buyLeft = this.buyBudgetLeft();
     for (const site of cons.playerSites()) {
@@ -983,6 +986,9 @@ export class WorkerSystem {
         return (sim.livestock?.waitingTotal(t.target) || 0) > 0;
       case 'tcollect':
         return (sim.trains?.yardTotal() || 0) > 0;
+      case 'opick':
+      case 'oplant':
+        return this.orchardValid(t);
       case 'take_eq': {
         const eq = sim.equipment?.byId(t.target);
         return !!eq && eq.holder?.kind === 'worker' && eq.holder.id === npc.id && eq.at.kind === 'ground' && sim.equipment.usable(eq) && !eq.recall;
@@ -1196,6 +1202,14 @@ export class WorkerSystem {
         task.stage = 'working';
         task.until = now + Math.round(WF.farmMinutes / prod);
         return;
+      case 'opick':
+      case 'oplant': {
+        const o = sim.state.objects[t.target];
+        face(o.tx, o.ty);
+        task.stage = 'working';
+        task.until = now + Math.max(10, Math.round((t.kind === 'opick' ? 40 : 45) / (prod * skilled)));
+        return;
+      }
       case 'workshop':
         task.stage = 'working';
         task.until = now + WF.workBlockMinutes;
@@ -1627,6 +1641,10 @@ export class WorkerSystem {
       case 'farm':
         this.finishFarm(npc, { field: t.target, farmJob: t.farmJob });
         break;
+      case 'opick':
+      case 'oplant':
+        if (this.orchardFinish(npc, c, t)) return;
+        break;
       case 'workshop': {
         const biz = sim.businesses.get(t.target);
         if (biz) sim.businesses.addLabor(biz, WF.workBlockMinutes * prod * skillMult);
@@ -1805,6 +1823,8 @@ export class WorkerSystem {
     if (k === 'haul') return { key: 'fetching_materials', params: {} };
     if (k === 'buy') return { key: 'buying_materials', params: { item: c.task.item } };
     if (k === 'farm') return { key: 'working_your_fields', params: {} };
+    if (k === 'opick') return { key: 'picking_apples', params: {} };
+    if (k === 'oplant') return { key: 'planting_trees', params: {} };
     if (k === 'workshop') return { key: npc.moving ? 'going_to_workshop' : 'working_workshop', params: {} };
     if (k === 'haul_ws') return { key: 'hauling_wood', params: {} };
     if (k === 'gather_wood') return { key: 'working_chop', params: {} };
@@ -1822,3 +1842,4 @@ Object.assign(WorkerSystem.prototype, StandingOrders);
 Object.assign(WorkerSystem.prototype, FreightTasks);
 Object.assign(WorkerSystem.prototype, LivestockTasks);
 Object.assign(WorkerSystem.prototype, TrainTasks);
+Object.assign(WorkerSystem.prototype, OrchardTasks);

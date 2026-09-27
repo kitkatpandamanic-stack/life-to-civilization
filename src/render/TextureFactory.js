@@ -18,7 +18,7 @@ import { createRailTextures } from './RailArt.js';
 import { finishFor, paintFinish } from './PaintFinish.js';
 import { roofSurface, wallSurface, paintedWindow, paintedDoor, finishBuilding } from './PaintedBuildings.js';
 import { paintFieldCrop } from './PaintedFields.js';
-import { TREE_VARIANTS, paintOak, paintPine, paintApple, paintBush, paintStump, paintRock, paintRubble, paintTuft } from './PaintedNature.js';
+import { TREE_VARIANTS, paintOak, paintPine, paintApple, paintSapling, paintBush, paintStump, paintRock, paintRubble, paintTuft } from './PaintedNature.js';
 
 const TS = 32;
 const FLOOR_H = 30; // an upper storey adds this much wall
@@ -957,6 +957,8 @@ const ICON_DRAW = {
 };
 
 export const ICON_URLS = {};
+/** The same icons as canvases (for sprites in the world: goods on your stall — CommunityViews). */
+export const ICON_CANVAS = {};
 
 function buildItemIcons() {
   // Every item in data/items.js gets an icon (V1 drawers here, V2 drawers in ExtraArt.js).
@@ -970,6 +972,7 @@ function buildItemIcons() {
     else if (FARM_ICONS[id]) FARM_ICONS[id](ctx);
     else circle(ctx, 16, 16, 10, '#999');
     ICON_URLS[id] = c.toDataURL();
+    ICON_CANVAS[id] = c;
   }
 }
 
@@ -993,6 +996,7 @@ export function createAllTextures(scene) {
       addCanvas(scene, `tree_apple_${s}_f_${v}`, paintApple(s, v, true));
     }
     addCanvas(scene, `stump_${s}`, paintStump(s));
+    for (const k of ['oak', 'pine', 'apple']) addCanvas(scene, `sapling_${k}_${s}`, paintSapling(s, k));
     addCanvas(scene, `rubble_${s}`, paintRubble(s));
     for (const v of ['stone', 'iron', 'coal', 'clay']) addCanvas(scene, `rock_${v}_${s}`, paintRock(v, s));
     addCanvas(scene, `bush_full_${s}`, paintBush(true, s));

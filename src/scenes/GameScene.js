@@ -19,6 +19,7 @@ import { SaveSystem } from '../systems/SaveSystem.js';
 import { TerrainView } from '../game/TerrainView.js';
 import { WorldObjectViews } from '../game/WorldObjectViews.js';
 import { LivingWorld } from '../game/LivingWorld.js';
+import { CommunityViews } from '../game/CommunityViews.js';
 import { BuildingViews } from '../game/BuildingViews.js';
 import { PlayerController } from '../game/PlayerController.js';
 import { NPCViews } from '../game/NPCViews.js';
@@ -79,6 +80,7 @@ export class GameScene extends Phaser.Scene {
     this.terrain = new TerrainView(this, sim);
     this.objects = new WorldObjectViews(this, sim);
     this.living = new LivingWorld(this, sim); // water glints, wind, blowing leaves, puddles
+    this.communityViews = new CommunityViews(this, sim); // your stall's goods, market day's traders
     this.buildings = new BuildingViews(this, sim);
     this.player = new PlayerController(this, sim);
     this.physics.add.collider(this.player.sprite, this.solids);
@@ -161,6 +163,7 @@ export class GameScene extends Phaser.Scene {
     this.camDir.update();
     this.terrain.update();
     this.living.update(delta, false);
+    this.communityViews.update(delta);
     this.overlay.update(delta, this.inside || this.ui.isPaused() || !!this.ui.status);
     const darkness = this.atmosphere.update();
     this.lightTimer -= delta;

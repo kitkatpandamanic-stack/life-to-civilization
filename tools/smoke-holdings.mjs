@@ -65,7 +65,14 @@ H.setStaffTarget(opened.id, 2);
 // Everyone may already be working: good wages draw people from other jobs.
 H.setWageLevel(opened.id, 1.5);
 run(9 * 1440);
-check('good wages draw workers to it', sim.npcs.staffOf(opened.id).length >= 1, `${sim.npcs.staffOf(opened.id).length} staff`);
+// Good wages make the job more attractive to everyone (who actually takes it, and when, follows the dice —
+// and whether anyone's free, and has a baker's hands).
+const who = sim.state.npcs.filter((n) => n.age >= 18 && !n.owns);
+const at15 = who.map((n) => sim.npcs.jobAppeal(n, opened.id));
+H.setWageLevel(opened.id, 1);
+const at10 = who.map((n) => sim.npcs.jobAppeal(n, opened.id));
+H.setWageLevel(opened.id, 1.5);
+check('good wages draw workers to it', at15.every((v, i) => v > at10[i]) && (sim.npcs.staffOf(opened.id).length >= 1 || sim.npcs.vacancies().some(([id]) => id === opened.id)), `${sim.npcs.staffOf(opened.id).length} staff`);
 
 // 4. Orders from other businesses.
 let order = null;

@@ -40,6 +40,8 @@ export class WorldObjectViews {
         if (obj.state === 'grown' || obj.state === 'young' || obj.state === 'sapling') {
           // Each tree keeps its own shape (from where it stands).
           const v = Math.floor(hash2(obj.tx, obj.ty, 4242) * TREE_VARIANTS);
+          // A sapling someone planted: tied to its stake (ForestrySystem).
+          if (obj.state === 'sapling' && obj.planted) return [`sapling_${obj.variant}_${s}`, ORIGIN_Y.sapling];
           // (An apple tree with its apples still on: ForestrySystem.)
           if (obj.variant === 'apple' && obj.fruit > 0 && obj.state === 'grown') return [`tree_apple_${s}_f_${v}`, ORIGIN_Y.tree_apple];
           return [v ? `tree_${obj.variant}_${s}_${v}` : `tree_${obj.variant}_${s}`, ORIGIN_Y[`tree_${obj.variant}`]];
@@ -62,7 +64,7 @@ export class WorldObjectViews {
 
   /** Growing trees are drawn smaller; felled-out places (cleared ground) are invisible. */
   scaleFor(obj) {
-    if (obj.kind === 'tree' && obj.state === 'sapling') return 0.32;
+    if (obj.kind === 'tree' && obj.state === 'sapling') return obj.planted ? 1 : 0.32;
     if (obj.kind === 'tree' && obj.state === 'young') return 0.62;
     return 1;
   }

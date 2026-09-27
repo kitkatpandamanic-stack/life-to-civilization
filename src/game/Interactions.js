@@ -195,6 +195,8 @@ export function getActions(scene, target) {
       if (target.type === 'notice_board') add('action.read_board', {}, () => ui.openJobBoard());
       // A stall on the square: rent it for the day and sell your own goods (StallSystem).
       if (target.type === 'market_stall') add('action.market_stall', {}, () => ui.openStall());
+      // Market day: the traders are on the square (CommunitySystem).
+      if ((target.type === 'market_stall' || target.type === 'notice_board') && sim.community?.marketOpen()) add('action.traders', {}, () => ui.openMarket());
       if (target.type === 'notice_board' && sim.news?.latest()) add('action.read_paper', {}, () => ui.openJournal('news'));
       if (target.type === 'notice_board' && sim.town?.S.meeting) add('action.town_meeting', { proposal: sim.town.S.meeting.proposal }, () => ui.openMeeting());
       // A festival on the square: give something towards it (FestivalSystem).
@@ -607,6 +609,8 @@ function buildingActions(scene, id, add) {
   if (id === 'hall' || sim.world.buildings[id]?.type === 'watch_house') add('action.law', {}, () => ui.openLaw());
   // The valley's people (the hall) and its woods (the hall, a lumberyard, a tree nursery).
   if (id === 'hall') add('action.population', {}, () => ui.openPopulation());
+  // Orders from the towns you know: taken on and handed over at the hall (TownOrderSystem).
+  if (id === 'hall' && sim.townOrders?.S.list.length) add('action.town_orders', { n: sim.townOrders.open().length }, () => ui.openTownOrders(true));
   if (id === 'hall' || ['lumberyard', 'tree_nursery'].includes(def?.type)) add('action.forest_report', {}, () => ui.openForest());
   // Every building can be inspected: owner, residents, condition, value, history.
   if (sim.property.rec(id)) add('action.inspect', {}, () => ui.openProperty(id), OK, 'F');

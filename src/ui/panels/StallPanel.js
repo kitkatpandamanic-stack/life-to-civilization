@@ -49,8 +49,19 @@ export class StallPanel extends Panel {
       .reverse()
       .map((x) => `<div class="small">${String(x.hour).padStart(2, '0')}:00 · ${escapeHtml(itemName(x.item))} ×${x.qty} · ${escapeHtml(fmtMoney(x.money))}${x.npc ? ` · ${escapeHtml(npcName(sim.npcs.byId(x.npc)))}` : ''}</div>`)
       .join('');
+    // Someone has to mind it: you nearby, or a keeper you pay for the day.
+    const keeper = St.keeper();
+    const hire = St.canHireKeeper();
+    const minded = St.minded();
+    const keeperRow = keeper
+      ? `<div class="kv"><span>🧑‍🌾 ${escapeHtml(t('stall.keeper', { npc: npcName(keeper) }))}</span><b class="muted small">${escapeHtml(t('stall.keeper_paid', { money: fmtMoney(STALL.keeperWage) }))}</b></div>`
+      : `<div class="btn-row">${button(t('stall.hire_keeper', { money: fmtMoney(STALL.keeperWage) }), 'keeper', {}, { cls: 'sm', ico: '🧑‍🌾', disabled: !hire.ok, title: hire.ok ? t('stall.hire_keeper_tip') : tr(sim, `reason.${hire.reason}`, hire.params || {}) })}</div>`;
+    const market = sim.community?.marketOpen();
     return `
       ${notice(open ? 'info' : 'warn', escapeHtml(state))}
+      ${open && !minded ? notice('warn', escapeHtml(t('stall.unminded'))) : ''}
+      ${market ? notice('info', escapeHtml(t('stall.market_day'))) : ''}
+      ${keeperRow}
       <div class="kv"><span>${escapeHtml(t('stall.earned'))}</span><b>${escapeHtml(fmtMoney(S.earned))}</b></div>
       <h3>${escapeHtml(t('stall.prices'))}</h3>
       <div class="btn-row">${markups}</div>
@@ -70,6 +81,7 @@ export class StallPanel extends Panel {
     else if (action === 'put') r = St.put(data.item, Number(data.n));
     else if (action === 'take') r = St.take(data.item);
     else if (action === 'markup') St.setMarkup(Number(data.m));
+    else if (action === 'keeper') r = St.hireKeeper();
     if (r && !r.ok && r.reason) this.sim.toast(`reason.${r.reason}`, r.params || {}, 'warn');
   }
 }

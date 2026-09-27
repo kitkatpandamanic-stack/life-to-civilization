@@ -16,6 +16,7 @@ export const FOREST = {
   foresterBelow: 0.97,
   foresterWage: 14,
   plantMinutes: 45, // planting a sapling (or tending a young tree)
+  plantUpTo: 1, // the woods back to their old size (with what's growing): no more planting, only tending
   plantRadius: 34, // how far from the yard a forester goes to plant
   tendDays: 3, // tending a sapling or young tree brings it on this many days
   tendEvery: 4, // …at most once in this many days

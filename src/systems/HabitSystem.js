@@ -229,6 +229,10 @@ export class HabitSystem {
     // A festival on the square (FestivalSystem): most people go.
     const fest = sim.festivals?.pull(npc);
     if (fest) return fest;
+    // A wedding feast or a funeral, market day, public work, a youth's afternoon at the family business,
+    // a friend's name day, keeping your stall (CommunitySystem).
+    const together = sim.community?.pull(npc);
+    if (together) return together;
     const h = npc.habits || this.derive(npc);
     const now = sim.time.total;
     const wd = sim.time.weekday;

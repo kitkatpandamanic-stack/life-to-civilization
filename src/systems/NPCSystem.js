@@ -25,7 +25,7 @@ import { T } from '../world/WorldGenerator.js';
 import { traitValue } from '../data/traits.js';
 import { GOALS } from '../data/goals.js';
 import { SKILLED } from '../data/careers.js';
-import { rand } from '../core/rng.js';
+import { rand, hashStr } from '../core/rng.js';
 import { findPath } from '../world/Pathfinder.js';
 
 import { FOREST } from '../data/forestry.js';
@@ -355,10 +355,10 @@ export class NPCSystem {
     if (h < wake + 1 && npc.hunger < 85 && npc.homeId && this.householdPantry(npc) > 0) return { type: 'eat', where: 'home' };
     // School: pupils on weekday mornings, grown-ups at evening classes, and their teachers (SchoolSystem).
     const lesson = this.sim.schools?.schoolFor(npc);
-    if (lesson) return { type: 'school', ...lesson };
+    if (lesson && this.world.buildings[lesson.where]) return { type: 'school', ...lesson };
     // A post (doctor, engineer, researcher — AcademiaSystem): their hours at the clinic, the hall, the institute.
     const post = this.sim.academia?.postFor(npc);
-    if (post) return { type: 'school', ...post };
+    if (post && this.world.buildings[post.where]) return { type: 'school', ...post };
     // 4. Work hours (seasonal jobs have no work in the off-season).
     const inSeason = !occ.seasons || occ.seasons.includes(this.time.season);
     const working = occ.workplace && this.workBusiness(npc) && inSeason && !habits.isRestDay(npc, occ) && h >= occ.start && h < occ.end;
@@ -367,7 +367,7 @@ export class NPCSystem {
       return { type: 'work' };
     }
     // 5. No job? Go and look for one (mornings).
-    const labouring = npc.dayLabour?.day === this.time.day;
+    const labouring = npc.dayLabour?.day === this.time.day || !!this.sim.community?.busyToday(npc);
     if (occ.seeksJob && npc.age >= 16 && h >= 8 && h < 13 && npc.searchedDay !== this.time.day && !labouring) return { type: 'job_search' };
     // Coming to look at a house you're letting (LettingSystem): in the evening, after work.
     if (npc.viewing && npc.viewing.day === this.time.day && h >= 16 && h < 20) return { type: 'viewing', where: npc.viewing.building };
@@ -388,7 +388,7 @@ export class NPCSystem {
       if (shop) return shop;
     }
     // A festival on the square (FestivalSystem): those going go, rain or not, and stay till it's over.
-    const fest = this.sim.festivals?.active() && habits.currentPlan(npc).kind === 'festival';
+    const fest = (this.sim.festivals?.active() && habits.currentPlan(npc).kind === 'festival') || (habits.currentPlan(npc) && !!this.sim.community?.holds(npc));
     if (this.sim.weather.isBad() && !fest) return { type: 'home' };
     if (npc.energy < 30) return { type: 'rest' };
     const homeBy = sleep - (npc.habits?.chronotype === 'late' || npc.traits.includes('friendly') ? 1 : 2);
@@ -574,6 +574,12 @@ export class NPCSystem {
       return;
     }
     const b = this.world.buildings[buildingId];
+    if (!b) {
+      // The building's gone (pulled down, joined to another): nothing to go into — think again.
+      if (npc.homeId === buildingId) npc.homeId = null;
+      task.done = true;
+      return;
+    }
     this.walkTo(npc, b.door.tx, b.door.ty);
   }
 
@@ -1063,6 +1069,7 @@ export class NPCSystem {
     const job = bld && F ? F.nextTask(npc, bld.door) : null;
     npc.task.plant = job;
     npc.task.planting = !!job;
+    if (!job && npc.carry?.planting) npc.carry = null;
     if (!job) {
       npc.task.stage = 'idle_go';
       const spot = bld?.workSpots?.[0] || bld?.door;
@@ -1070,6 +1077,8 @@ export class NPCSystem {
       return false;
     }
     npc.task.stage = 'to_target';
+    // Off to plant: a sapling in their arms (you can see it).
+    if (job.kind === 'plant' && !npc.carry) npc.carry = { item: 'sapling', qty: 1, planting: true };
     let stand = null;
     for (const [dx, dy] of [[0, 1], [-1, 0], [1, 0], [0, -1]]) {
       if (!this.world.isBlocked(job.tx + dx, job.ty + dy)) {
@@ -1088,6 +1097,7 @@ export class NPCSystem {
     const done = this.sim.forestry?.doTask(npc, job);
     task.plant = null;
     task.planting = false;
+    if (npc.carry?.planting) npc.carry = null;
     const S = this.sim.state.settlement;
     if (done && job.kind === 'plant' && npc.occupation !== 'forester' && !S.replantingStarted) {
       S.replantingStarted = true;
@@ -1124,6 +1134,7 @@ export class NPCSystem {
 
   clearReservation(npc) {
     if (npc.task?.plant) this.sim.forestry?.release(npc.task.plant);
+    if (npc.carry?.planting) npc.carry = null; // (the sapling goes back to the yard)
     const id = npc.task?.targetId;
     if (!id) return;
     const obj = this.sim.resources.get(id);
@@ -1242,6 +1253,23 @@ export class NPCSystem {
       }
       case 'market':
         return this.walkTo(npc, rand.int(P.x1 + 1, P.x2 - 1), P.y2 - 2);
+      case 'gathering':
+      case 'publicwork': {
+        // A feast, a funeral, market day (standing about near the spot) — or public work, at the spot itself.
+        const at = plan.at || { tx: Math.round((P.x1 + P.x2) / 2), ty: Math.round((P.y1 + P.y2) / 2) };
+        const hh = hashStr(`${npc.id}:${this.time.day}:${plan.kind}`, this.sim.state.seed);
+        const dx = plan.kind === 'publicwork' ? 0 : Math.floor(hh * 7) - 3;
+        const dy = plan.kind === 'publicwork' ? 0 : Math.floor(((hh * 13) % 1) * 5) - 2;
+        const s = this.world.nearestWalkable(at.tx + dx, at.ty + dy, 3) || at;
+        return this.walkTo(npc, s.tx, s.ty);
+      }
+      case 'help': {
+        // A youth off to lend a hand at the family business (in they go).
+        const d = door(plan.building);
+        if (!d) return plaza();
+        task.enter = plan.building;
+        return this.walkTo(npc, d.tx, d.ty);
+      }
       case 'festival': {
         // The whole square, crowded (they'll stand and talk with whoever's near).
         const s = this.world.nearestWalkable(rand.int(P.x1 + 1, P.x2 - 1), rand.int(P.y1 + 1, P.y2 - 1), 3);
@@ -1283,6 +1311,7 @@ export class NPCSystem {
     const now = this.time.total;
     const plan = npc.plan;
     task.stage = 'idle';
+    this.sim.community?.arrived(npc); // (at the gathering, the public work, the family business)
     // Stay until the plan runs out (wanderers move on sooner).
     const wander = task.plan === 'plaza' || task.plan === 'market' || task.hobby === 'gossip' || task.hobby === 'playing';
     if (task.site) {
@@ -1522,6 +1551,7 @@ export class NPCSystem {
           npc.occupation = 'unemployed';
           mem.remember(npc, 'grew_up');
           this.sim.education?.grewUp(npc);
+          this.sim.community?.cameOfAge(npc); // (the trade they helped at as a youth)
           this.sim.chronicle('chronicle.npc_grew_up', { npc: npc.id, gender: npc.gender });
         }
       }
@@ -1599,7 +1629,13 @@ export class NPCSystem {
     if (npc.task?.type === 'viewing') return '🔑';
     if (npc.task?.type === 'leisure' && npc.task.plan === 'build' && npc.task.stage === 'idle') return '🔨';
     if (npc.unpaidDays > 0) return '💸';
-    if (npc.carry) return npc.carry.item === 'wood' ? '🪵' : npc.carry.item === 'fish' ? '🐟' : '🪨';
+    if (npc.carry) return npc.carry.item === 'wood' ? '🪵' : npc.carry.item === 'fish' ? '🐟' : npc.carry.item === 'sapling' ? '🌱' : npc.carry.item === 'apple' ? '🍎' : '🪨';
+    if (npc.task?.planting && npc.task.stage === 'doing') return npc.task.plant?.kind === 'tend' ? '💧' : '🌱';
+    const pl = npc.task?.type === 'leisure' && npc.task.stage === 'idle' ? npc.plan?.why : null;
+    if (pl) {
+      const ico = { wedding: '💐', funeral: '🕯️', market: '🧺', public_work: '🧹', stall: '🧺', help: '🧒', name_day: '🎂' }[pl];
+      if (ico) return ico;
+    }
     if (npc.task?.type === 'work' && npc.task.stage === 'doing' && this.activityOf(npc) === 'fish') return '🎣';
     const t = npc.task;
     if (t?.type === 'leisure' && t.stage === 'idle') {

@@ -36,6 +36,7 @@ import { rand, hashStr } from '../core/rng.js';
 import { AREAS } from '../data/villageLayout.js';
 import { T } from '../world/WorldGenerator.js';
 import { Mod, skill, attr } from './Modifiers.js';
+import { JobIncidents } from './JobIncidents.js';
 
 /** What you gather for each kind of delivery (for the objective arrow). */
 const RESOURCE_OF = { wood: 'tree', stone: 'rock', berries: 'bush' };
@@ -620,6 +621,7 @@ export class JobSystem {
       if (!d.roundsKind) this.sim.inventory.remove('package', 1);
       if (d.roundsKind === 'chimneys') this.sim.needs.spendEnergy(4);
       job.targets = job.targets.filter((h) => h !== at);
+      job.lastHouse = at;
       const resident = this.sim.npcs.residentsOf(at)[0];
       if (resident) this.sim.social.addRel(resident, 1);
       if (job.targets.length) {
@@ -753,6 +755,7 @@ export class JobSystem {
     this.sim.bus.emit('job:completed', job);
     this.sim.bus.emit('jobs:changed');
     this.sim.bus.emit('player:changed');
+    this.maybeIncident(job); // (now and then, something happens — JobIncidents)
     this.tryQueued();
   }
 
@@ -1022,3 +1025,6 @@ export class JobSystem {
     return true;
   }
 }
+
+// Now and then a job ends with something happening, and a choice (the night watch spots a thief…).
+Object.assign(JobSystem.prototype, JobIncidents);

@@ -157,6 +157,10 @@ check('Rent the market stall for the day (the rent goes to the village)', St.ope
 sim.inventory.add('apple', 12, { force: true });
 check('Set out your apples', St.put('apple', 12).ok && St.S.goods.apple === 12 && sim.inventory.count('apple') === 0);
 St.setMarkup(0.8);
+// (someone has to mind it: you, standing by it)
+const at = sim.world.tileCenter(STALL.spot.tx, STALL.spot.ty);
+p.x = at.x;
+p.y = at.y;
 const r2 = rand.getState();
 const m5 = p.money;
 for (let h = STALL.open; h <= STALL.close; h++) St.onHour(h);

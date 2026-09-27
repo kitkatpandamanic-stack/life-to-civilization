@@ -550,7 +550,8 @@ export class EconomySystem {
     if (!def.recipes) return;
     const b = this.biz(id);
     const staff = this.sim.state.npcs.filter((n) => n.employer === id && n.workedToday);
-    const staffPower = staff.reduce((s, n) => s + this.sim.npcs.productivity(n), 0);
+    // (and the youths lending a hand after lessons — CommunitySystem)
+    const staffPower = staff.reduce((s, n) => s + this.sim.npcs.productivity(n), 0) + (this.sim.community?.helpPower(id) || 0);
     const owner = this.owner(id);
     // A business without its owner limps along (yours runs well when you or a manager mind it).
     const ownerHere = b.owner === 'player' ? this.sim.holdings.presence(id) : owner && owner.owns === id && owner.age >= 16 ? 1 : 0.6;

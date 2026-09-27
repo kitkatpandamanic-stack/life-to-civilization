@@ -127,6 +127,8 @@ import { NewsSystem } from '../systems/NewsSystem.js';
 import { ForestrySystem } from '../systems/ForestrySystem.js';
 import { PopulationSystem } from '../systems/PopulationSystem.js';
 import { StallSystem } from '../systems/StallSystem.js';
+import { CommunitySystem } from '../systems/CommunitySystem.js';
+import { TownOrderSystem } from '../systems/TownOrderSystem.js';
 import { CivicSystem } from '../systems/CivicSystem.js';
 import { LedgerSystem } from '../systems/LedgerSystem.js';
 import { LettingSystem } from '../systems/LettingSystem.js';
@@ -235,6 +237,8 @@ export class Simulation {
     this.forestry = new ForestrySystem(this); // forest health, foresters, planting, the felling limit, orchards
     this.population = new PopulationSystem(this); // births, deaths, the young going off (and coming back), labour, forecasts
     this.stall = new StallSystem(this); // your market stall on the square
+    this.community = new CommunitySystem(this); // weddings, funerals, name days, market day, public work, youths helping out
+    this.townOrders = new TownOrderSystem(this); // orders from the towns you know
     this.civic = new CivicSystem(this); // it weighs up everyone and everything
     this.letting = new LettingSystem(this);
     this.housing = new HousingSystem(this); // how villagers choose where to live

@@ -122,7 +122,9 @@ export class SocialSystem {
     this.sim.inventory.remove(itemId, 1);
     const liked = this.likesItem(npc, itemId);
     const value = S.giftBase + (ITEMS[itemId]?.basePrice || 0) * S.giftValueFactor;
-    const gain = this.relGain(npc, value * (liked ? S.likedGiftMult : 1));
+    // On their name day a gift means twice as much (CommunitySystem).
+    const nameDay = this.sim.community?.isNameDay(npc) ? 2 : 1;
+    const gain = this.relGain(npc, value * (liked ? S.likedGiftMult : 1) * nameDay);
     npc.lastGiftDay = this.sim.time.day;
     this.addRel(npc, gain);
     this.sim.memory.remember(npc, liked ? 'player_loved_gift' : 'player_gift', { who: 'player', params: { item: itemId } });

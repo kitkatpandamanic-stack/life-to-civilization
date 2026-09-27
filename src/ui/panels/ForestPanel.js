@@ -27,6 +27,9 @@ export class ForestPanel extends Panel {
     const chart = hist.length >= 2 ? lineChart(hist, { h: 120, fmt: (v) => `${v}%`, label: t('forest.health') }) : '';
     const orchards = sim.economy.ofType('farm').map((id) => ({ id, n: F.orchardOf(id).length })).filter((o) => o.n > 0);
     const mine = Object.values(sim.state.objects).filter((o) => F.isApple(o) && o.owner === 'player').length;
+    // Your own woodlot: the trees on your land (and those you planted), apples waiting to be picked.
+    const yours = Object.values(sim.state.objects).filter((o) => o.kind === 'tree' && (o.owner === 'player' || sim.land.ownsTile(o.tx, o.ty)) && ['grown', 'young', 'sapling'].includes(o.state));
+    const ripe = yours.filter((o) => F.isApple(o) && o.fruit > 0).reduce((n, o) => n + o.fruit, 0);
     return `
       ${progress(Math.min(100, s.health * 100), { label: t(`forest.status_${s.status}`), value: `${Math.round(s.health * 100)}%`, kind })}
       ${s.health < s.limit ? notice('warn', escapeHtml(t('forest.limit_on', { n: Math.round(s.limit * 100) }))) : ''}
@@ -44,6 +47,11 @@ export class ForestPanel extends Panel {
       ${s.fundPaid ? kv(t('forest.fund_paid'), fmtMoney(s.fundPaid)) : ''}
       <h3>${escapeHtml(t('forest.orchards'))}</h3>
       ${orchards.length || mine ? `${orchards.map((o) => kv(t('forest.orchard_of', { building: buildingLabel(sim, sim.economy.biz(o.id)?.building || '') }), t('forest.apple_trees', { n: o.n }))).join('')}${mine ? kv(t('forest.your_trees'), t('forest.apple_trees', { n: mine })) : ''}` : `<div class="muted small">${escapeHtml(t('forest.no_orchards'))}</div>`}
+      <h3>${escapeHtml(t('forest.your_woodlot'))}</h3>
+      ${kv(t('forest.your_grown'), yours.filter((o) => o.state === 'grown' && !F.isApple(o)).length)}
+      ${kv(t('forest.your_young'), yours.filter((o) => o.state !== 'grown').length)}
+      ${ripe ? kv(t('forest.apples_ready'), ripe) : ''}
+      <div class="muted small">${escapeHtml(t('forest.woodlot_hint'))}</div>
       <div class="hint">${escapeHtml(t('forest.hint'))}</div>`;
   }
 }

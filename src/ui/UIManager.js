@@ -27,6 +27,11 @@ import { LawPanel } from './panels/LawPanel.js';
 import { PopulationPanel } from './panels/PopulationPanel.js';
 import { ForestPanel } from './panels/ForestPanel.js';
 import { StallPanel } from './panels/StallPanel.js';
+import { MarketPanel } from './panels/MarketPanel.js';
+import { TownOrdersPanel } from './panels/TownOrdersPanel.js';
+import { INCIDENTS } from '../systems/JobIncidents.js';
+
+const INCIDENT_ICONS = { thief: '🦹', no_fare: '⛵', hidden_coins: '🪙', truffle: '🍄', poachers: '🏹', lost_child: '🧒', lost_lamb: '🐑' };
 import { t, fmtMoney, onLanguageChange, npcName, itemName } from '../i18n/i18n.js';
 import { tr, escapeHtml, hoodLabel, districtLabel, buildingLabel } from './format.js';
 import { WEATHER_ICONS } from '../systems/WeatherSystem.js';
@@ -90,7 +95,7 @@ const TOAST_ICONS = [
   [/save|load/, '💾'],
 ];
 
-const REFRESH_EVENTS = ['inventory:changed', 'storage:changed', 'construction:changed', 'land:changed', 'workers:changed', 'business:changed', 'player:changed', 'jobs:changed', 'economy:changed', 'social:changed', 'player:levelup', 'player:skillup', 'chronicle', 'building:changed', 'property:changed', 'stall:changed', 'civic:changed'];
+const REFRESH_EVENTS = ['inventory:changed', 'storage:changed', 'construction:changed', 'land:changed', 'workers:changed', 'business:changed', 'player:changed', 'jobs:changed', 'economy:changed', 'social:changed', 'player:levelup', 'player:skillup', 'chronicle', 'building:changed', 'property:changed', 'stall:changed', 'civic:changed', 'orders:changed'];
 
 export class UIManager {
   constructor(scene, sim) {
@@ -116,6 +121,7 @@ export class UIManager {
       sim.bus.on('worker:stuck', (d) => this.notifyStuck(d)),
       sim.bus.on('construction:waiting', (c) => this.notifyMaterials(c)),
       sim.bus.on('dynasty:offer', (o) => this.notifyOffer(o)),
+      sim.bus.on('job:incident', (inc) => this.notifyIncident(inc)),
       sim.bus.on('player:levelup', (d) => this.showLevelUp(d)),
       onLanguageChange(() => this.onLanguage()),
       sim.bus.on('land:changed', () => (this.landKey = null)),
@@ -597,8 +603,35 @@ export class UIManager {
   openStall() {
     this.openPanel(new StallPanel(this));
   }
+  openMarket() {
+    this.openPanel(new MarketPanel(this));
+  }
+  openTownOrders(atHall = false) {
+    this.openPanel(new TownOrdersPanel(this, atHall));
+  }
 
   /** A family proposes a match for one of your children. */
+  /** Something happened on the job (JobIncidents): what do you do? */
+  notifyIncident(inc) {
+    const sim = this.sim;
+    const def = INCIDENTS[inc.kind];
+    const params = { npc: inc.npc, building: inc.building };
+    const choose = (choice) => {
+      const r = sim.jobs.resolveIncident(choice);
+      if (!r.ok) return;
+      const k = r.won === null ? `incident.${inc.kind}.${choice}_done` : `incident.${inc.kind}.${choice}_${r.won ? 'good' : 'bad'}`;
+      this.notify({ kind: r.won === false ? 'warn' : 'good', ico: INCIDENT_ICONS[inc.kind] || '❗', title: t(`incident.${inc.kind}.title`), lines: [escapeHtml(tr(sim, k, params))] });
+    };
+    this.notify({
+      kind: 'info',
+      ico: INCIDENT_ICONS[inc.kind] || '❗',
+      title: t(`incident.${inc.kind}.title`),
+      lines: [escapeHtml(tr(sim, `incident.${inc.kind}.text`, params))],
+      actions: Object.keys(def.choices).map((c) => ({ label: tr(sim, `incident.${inc.kind}.${c}`, params), run: () => choose(c) })),
+      sticky: true,
+    });
+  }
+
   notifyOffer(o) {
     const sim = this.sim;
     const head = sim.npcs.byId(o.head);

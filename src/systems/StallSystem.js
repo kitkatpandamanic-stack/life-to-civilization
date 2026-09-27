@@ -7,13 +7,18 @@
  * (more of them in a bigger village, fewer in the rain; food sells best). At closing time what's left comes
  * back to you. The money comes out of the buyers' own purses.
  *
+ * Someone has to mind it: you (anywhere near the square), or a villager you pay to keep it for the day —
+ * they stand at the stall till closing (CommunitySystem pulls them there). On market day (CommunitySystem)
+ * the square is busy and it sells more.
+ *
  * No dice: who stops and what they buy follow the day, the hour and the goods (hashStr).
  *
- *   state.stall = { day, goods: { item: qty }, markup, sold: [{ item, qty, money, hour, npc }], earned, days, total }
+ *   state.stall = { day, goods: { item: qty }, markup, sold: [{ item, qty, money, hour, npc }], earned, days, total, keeper }
  */
 import { ITEMS } from '../data/items.js';
 import { FOOD } from './EconomySystem.js';
 import { hashStr } from '../core/rng.js';
+import { COMMUNITY } from './CommunitySystem.js';
 
 export const STALL = {
   rent: 5,
@@ -25,6 +30,9 @@ export const STALL = {
   foodBoost: 1.4,
   rain: 0.6,
   maxKinds: 8,
+  keeperWage: 8, // a day's pay for someone to mind the stall
+  reach: 10, // tiles from the stall that count as you minding it
+  spot: { tx: 42, ty: 44 }, // in front of your stall (the one on the west of the square)
 };
 
 export class StallSystem {
@@ -67,10 +75,67 @@ export class StallSystem {
     this.S.sold = [];
     this.S.earned = 0;
     this.S.days = (this.S.days || 0) + 1;
+    this.S.keeper = null;
     if (this.S.days === 1) sim.chronicle('chronicle.player_stall', {});
     sim.bus.emit('player:changed');
     sim.bus.emit('stall:changed');
     return { ok: true };
+  }
+
+  // ------------------------------------------------------------------ minding the stall
+
+  /** You're near it, or someone's keeping it for you. */
+  minded() {
+    const p = this.sim.state.player;
+    const t = this.sim.world.toTile(p.x, p.y);
+    if (Math.abs(t.tx - STALL.spot.tx) + Math.abs(t.ty - STALL.spot.ty) <= STALL.reach && !this.sim.state.player.inside) return true;
+    const k = this.keeper();
+    return !!k && k.stallKeeper === this.sim.time.day;
+  }
+
+  keeper() {
+    return this.S.keeper ? this.sim.npcs.byId(this.S.keeper) : null;
+  }
+
+  /** Who could keep it today: villagers with nothing else to do (the youngest can too, from 14). */
+  keeperChoices() {
+    const sim = this.sim;
+    const day = sim.time.day;
+    return sim.state.npcs
+      .filter((n) => n.age >= 14 && n.age < 65 && !n.leaving && !n.away && (n.occupation === 'unemployed' || n.occupation === 'child' || n.occupation === 'elder') && n.publicWork?.day !== day && n.dayLabour?.day !== day)
+      .sort((a, b) => (b.rel || 0) - (a.rel || 0) || (a.id < b.id ? -1 : 1));
+  }
+
+  canHireKeeper() {
+    if (!this.rentedToday()) return { ok: false, reason: 'stall_not_rented' };
+    if (this.keeper()) return { ok: false, reason: 'keeper_hired' };
+    if (this.sim.time.hour >= STALL.close - 1) return { ok: false, reason: 'too_late', params: { hour: STALL.close - 1 } };
+    if (this.sim.state.player.money < STALL.keeperWage) return { ok: false, reason: 'no_money' };
+    if (!this.keeperChoices().length) return { ok: false, reason: 'no_stall_keeper' };
+    return { ok: true };
+  }
+
+  /** Pay someone (paid at closing) to keep the stall for you today. */
+  hireKeeper(npcId = null) {
+    const chk = this.canHireKeeper();
+    if (!chk.ok) return chk;
+    const n = (npcId && this.keeperChoices().find((x) => x.id === npcId)) || this.keeperChoices()[0];
+    n.stallKeeper = this.sim.time.day;
+    n.plan = null;
+    if (n.task?.type === 'leisure' || n.task?.type === 'job_search') n.task = null;
+    this.S.keeper = n.id;
+    this.sim.social.meet?.(n);
+    this.sim.bus.emit('stall:changed');
+    return { ok: true, npc: n.id };
+  }
+
+  /** The keeper's day (CommunitySystem.pull): at the stall from opening till closing. */
+  keeperPlan(npc) {
+    const T = this.sim.time;
+    if (npc.stallKeeper !== T.day || this.S.keeper !== npc.id) return null;
+    const h = T.hourFloat;
+    if (h < STALL.open - 0.5 || h >= STALL.close) return null;
+    return { kind: 'publicwork', until: (T.day * 24 + STALL.close) * 60, at: STALL.spot, why: 'stall' };
   }
 
   /** Can this be sold at a stall? (Not tools, not what you're carrying for someone.) */
@@ -127,13 +192,14 @@ export class StallSystem {
     const appeal = Math.max(0.08, 2.1 - this.S.markup * 1.15); // 0.8 → 1.18, 1 → 0.95, 1.2 → 0.72, 1.5 → 0.38
     const rain = ['rain', 'storm'].includes(this.sim.state.weather?.type) ? STALL.rain : 1;
     const food = FOOD.includes(item) || ITEMS[item]?.food ? STALL.foodBoost : 1;
-    return STALL.perHour * (pop / STALL.popRef) * appeal * rain * food;
+    const market = this.sim.community?.marketOpen() ? COMMUNITY.market.stallMult : 1; // market day: the square's busy
+    return STALL.perHour * (pop / STALL.popRef) * appeal * rain * food * market;
   }
 
   onHour(h) {
     const S = this.S;
     if (S.day !== this.sim.time.day) return;
-    if (h >= STALL.open && h < STALL.close) this.sellHour(h);
+    if (h >= STALL.open && h < STALL.close && this.minded()) this.sellHour(h);
     if (h === STALL.close) this.close();
   }
 
@@ -164,6 +230,7 @@ export class StallSystem {
         if (!S.goods[item]) delete S.goods[item];
         S.earned += price;
         S.total = (S.total || 0) + price;
+        sim.bus.emit('stall:sold', { item, money: price, npc: npc.id });
         const last = S.sold[S.sold.length - 1];
         if (last && last.item === item && last.hour === h) {
           last.qty++;
@@ -180,6 +247,16 @@ export class StallSystem {
   close() {
     const S = this.S;
     for (const item of Object.keys(S.goods)) this.take(item);
+    // The keeper is paid for the day.
+    const k = this.keeper();
+    if (k) {
+      const pay = Math.min(STALL.keeperWage, Math.max(0, this.sim.state.player.money));
+      this.sim.state.player.money -= pay;
+      k.money += pay;
+      this.sim.social.addRel(k, 2);
+      delete k.stallKeeper;
+      S.keeper = null;
+    }
     this.sim.toast('toast.stall_closed', { money: S.earned }, S.earned > 0 ? 'good' : 'info');
     this.sim.progression.addSkillXp('trading', Math.min(20, Math.round(S.earned / 5)));
     this.sim.bus.emit('stall:changed');

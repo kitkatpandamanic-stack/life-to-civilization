@@ -279,7 +279,9 @@ export class ForestrySystem {
       return !!c && c !== npc.id;
     };
     const nursery = this.nurseryOf(npc);
-    const spot = !nursery || (this.sim.economy.biz(nursery)?.stock.sapling || 0) >= 1 ? this.spotsNear(base.tx, base.ty, FOREST.plantRadius, 1, claimedByOther)[0] : null;
+    // The woods are back to their old size: no more planting (tending, yes).
+    const full = this.health() >= FOREST.plantUpTo;
+    const spot = !full && (!nursery || (this.sim.economy.biz(nursery)?.stock.sapling || 0) >= 1) ? this.spotsNear(base.tx, base.ty, FOREST.plantRadius, 1, claimedByOther)[0] : null;
     if (spot) {
       this.claims.set(key(spot.tx, spot.ty), npc.id);
       return { kind: 'plant', tx: spot.tx, ty: spot.ty };
@@ -496,11 +498,10 @@ export class ForestrySystem {
       if (!b || b.closed || b.owner === 'player') continue;
       const staff = sim.npcs.staffOf(id);
       if (staff.some((n) => n.occupation === 'forester')) continue;
+      // Someone out of work is taken on for it (the woodcutters keep felling); only when the woods are
+      // really thin and nobody's free does one of the woodcutters turn to planting.
       let who = null;
-      if (staff.length >= 2) {
-        // The one who has planted most already (or the youngest hand) takes it on.
-        who = staff.slice().sort((a, c) => (a.level || 1) - (c.level || 1) || (a.id < c.id ? -1 : 1))[0];
-      } else if (b.money >= FOREST.foresterWage * 6) {
+      if (b.money >= FOREST.foresterWage * 6) {
         who = sim.state.npcs.filter((n) => n.occupation === 'unemployed' && n.age >= 18 && n.age < 60 && !n.leaving && !n.away).sort((a, c) => (a.id < c.id ? -1 : 1))[0] || null;
         if (who) {
           b.maxWorkers = Math.max(b.maxWorkers ?? 0, staff.length + 1);
@@ -508,6 +509,9 @@ export class ForestrySystem {
           who.hiredDay = sim.time.day;
           who.unpaidDays = 0;
         }
+      }
+      if (!who && staff.length >= 2 && this.health() < this.limit()) {
+        who = staff.slice().sort((a, c) => (a.level || 1) - (c.level || 1) || (a.id < c.id ? -1 : 1))[0];
       }
       if (!who) continue;
       if (who.occupation !== 'unemployed') who.prevOccupation = who.occupation;
@@ -598,3 +602,51 @@ export class ForestrySystem {
     return { ...c, health: h, status: this.status(h), limit: this.limit(), policy: this.policy(), planted: this.S.planted, byPlayer: this.S.byPlayer, imported: this.S.imported, fundPaid: this.S.fundPaid, foresters: this.sim.state.npcs.filter((n) => n.occupation === 'forester').length, history: this.S.history };
   }
 }
+
+/**
+ * Your woodlot and orchard, tended by your workers (mixed into WorkerSystem, like LivestockTasks):
+ *   opick  — pick the apples on your apple trees and carry them to your storage (autumn)
+ *   oplant — where a tree you planted was felled, plant another from the saplings in your storage
+ * Both are farming work (the Farming priority).
+ */
+export const OrchardTasks = {
+  orchardTasks(npc, c, pos, add) {
+    const F = this.sim.forestry;
+    if (!F) return;
+    for (const o of Object.values(this.sim.state.objects)) {
+      if (o.kind !== 'tree' || o.owner !== 'player') continue;
+      if (F.isApple(o) && o.state === 'grown' && o.fruit > 0) add({ key: `opick:${o.id}`, kind: 'opick', cat: 'farming', target: o.id, tx: o.tx, ty: o.ty + 1, urgent: 15, cap: 1 });
+      else if (o.planted && (o.state === 'stump' || o.state === 'cleared')) {
+        const item = o.variant === 'apple' ? 'apple_sapling' : 'sapling';
+        if (this.sim.home.storageCount(item) > 0 && F.canPlantAt(o.tx, o.ty, { player: true, apple: true })) add({ key: `oplant:${o.id}`, kind: 'oplant', cat: 'farming', target: o.id, item, tx: o.tx, ty: o.ty + 1, cap: 1 });
+      }
+    }
+  },
+
+  orchardValid(t) {
+    const o = this.sim.state.objects[t.target];
+    if (!o) return false;
+    if (t.kind === 'opick') return o.state === 'grown' && o.fruit > 0;
+    return (o.state === 'stump' || o.state === 'cleared') && this.sim.home.storageCount(t.item) > 0;
+  },
+
+  /** Picked, or planted. Returns true if the worker is now carrying something home. */
+  orchardFinish(npc, c, t) {
+    const sim = this.sim;
+    const o = sim.state.objects[t.target];
+    if (t.kind === 'opick') {
+      const qty = Math.min(o.fruit, this.carryCap(npc));
+      o.fruit -= qty;
+      sim.resources.changed(o);
+      this.completed(npc, c);
+      npc.carry = { item: 'apple', qty, items: { apple: qty }, to: null };
+      this.deliverCarry(npc, c);
+      return true;
+    }
+    if (sim.home.storageCount(t.item) > 0) {
+      sim.home.take(t.item, 1);
+      sim.forestry.plant(o.tx, o.ty, { variant: t.item === 'apple_sapling' ? 'apple' : o.variant === 'apple' ? null : o.variant, by: npc.id, owner: 'player' });
+    }
+    return false;
+  },
+};

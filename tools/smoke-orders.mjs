@@ -137,9 +137,12 @@ const carried = (sim, item) => sim.workers.list().reduce((s, c) => {
   if (sim.home.storageCount('wood') < 40) workDay(sim, null, () => sim.home.storageCount('wood') >= 40);
   check('Keep 40 wood in store (bought): your worker buys it and brings it', sim.home.storageCount('wood') >= 40 && sim.home.storageCount('wood') <= 40 + 20 && sim.state.player.money < money0, `${sim.home.storageCount('wood')} wood, spent ${money0 - sim.state.player.money}`);
   check('…only the worker you named works on it', !bWorked);
-  // Use some: they top it up again.
+  // Use some: they top it up again. (A bigger day's buying budget: the check is the topping up, not
+  // whether today's wood prices fit the default budget twice over.)
+  W.state.budget = 1000;
   sim.home.take('wood', 25);
   workDay(sim, null, () => sim.home.storageCount('wood') >= 40);
+  if (sim.home.storageCount('wood') < 40) workDay(sim, null, () => sim.home.storageCount('wood') >= 40); // (the shops ran low: the next day)
   check('…use some and they top it up again', sim.home.storageCount('wood') >= 40, `${sim.home.storageCount('wood')}`);
   // Gathered.
   const r2 = W.addOrder({ kind: 'keep', item: 'stone', from: 'gather', to: 'store', qty: 20 });

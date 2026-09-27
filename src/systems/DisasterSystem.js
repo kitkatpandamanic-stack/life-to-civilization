@@ -157,7 +157,7 @@ export class DisasterSystem {
         P.moveIn([n], host.homeId, 'moved');
         sim.memory.remember(host, 'took_in', { who: n.id, params: { npc: n.id } });
         sim.social.adjust(n, host, { f: 10, t: 10 });
-      } else P.moveIn([n], 'hall', 'moved');
+      } else if (P.occupants('hall') < P.capacity('hall')) P.moveIn([n], 'hall', 'moved');
     }
   }
 

@@ -5,6 +5,7 @@
 export const HEADLINES = {
   // (the woods, the people, work — ForestrySystem, PopulationSystem, JobSystem, StallSystem)
   forest_regrown: 3, forester_taken_on: 2, forester_planting: 1, orchard_planted: 1, timber_imported: 2, player_planted: 2,
+  wedding_feast: 2, funeral: 2, town_order: 2, town_order_done: 3, npc_charity: 1, youth_learnt_trade: 1, player_caught_thief: 2,
   youth_to_town: 2, youth_returned: 2, youth_stayed_away: 1, player_job_master: 2, player_stall: 1,
   // (mines, crime, loans — MineSystem, CrimeSystem, FinanceSystem)
   mine_deeper: 2, mine_cave_in: 3, theft: 2, theft_player: 2, thief_caught: 2, thief_banished: 3, player_constable: 2, player_bankrupt: 3, player_seized: 2,

@@ -683,7 +683,9 @@ export class PropertySystem {
         r.arrears++;
         if (L) L.missed++;
         const limit = landlord === 'village' ? H.villageEvictWeeks : H.landlordEvictWeeks;
-        if (r.arrears >= limit) this.evict(id, payers, landlord);
+        // (The village doesn't turn out a family with children while poor relief lasts — CommunitySystem.)
+        if (r.arrears >= limit && this.sim.community?.spareFamily(id, landlord)) r.arrears = 0;
+        else if (r.arrears >= limit) this.evict(id, payers, landlord);
       } else r.arrears = 0;
     }
     // What this week's rent brought you (the property manager takes a share of it).
@@ -722,7 +724,9 @@ export class PropertySystem {
         n.money += H.supportAmount;
       } else {
         // Poor relief from the village fund — as generous as the headman decides (CivicSystem).
+        // (Not for someone who earned yesterday at the village's public work — CommunitySystem.)
         const relief = Math.round(H.reliefAmount * (this.sim.civic?.mult('relief') ?? 1));
+        if (this.sim.community?.workInstead(n)) continue;
         if (village.treasury >= relief && n.age >= 18) {
           village.treasury -= relief;
           n.money += relief;
@@ -812,7 +816,8 @@ export class PropertySystem {
   /** Someone without a home finds a roof: family first, then anything they can afford, a spare room, the hall. */
   findRoof(n) {
     if (n.age < 16) {
-      const kin = this.sim.family.relatives(n).find((r) => r.homeId);
+      // (with family — though the village hall only if it has a bed free)
+      const kin = this.sim.family.relatives(n).find((r) => r.homeId && (r.homeId !== 'hall' || this.occupants('hall') < this.capacity('hall')));
       if (kin) this.moveIn([n], kin.homeId, 'moved');
       // The village hall takes them in if there's a bed — otherwise they stay with their parents, wherever they sleep.
       else if (this.occupants('hall') < this.capacity('hall')) this.moveIn([n], 'hall', 'moved');

@@ -282,7 +282,9 @@ export class PopulationSystem {
     const policy = this.policy('welcome') === 'high' ? 0.7 : 1; // a valley that welcomes people holds on to its own too
     for (const n of sim.state.npcs.slice()) {
       if (gone >= Y.perSeason || !this.mightGo(n)) continue;
-      const chance = Y.chance * (n.occupation === 'unemployed' ? 2 : 1) * policy * (n.traits?.includes('ambitious') || n.traits?.includes('adventurous') ? 1.5 : 1);
+      // (Knowing a trade from helping at the family business as a youth keeps them here more often.)
+      const rooted = (n.youthTrade?.days || 0) >= 15 ? 0.4 : 1;
+      const chance = Y.chance * (n.occupation === 'unemployed' ? 2 : 1) * policy * rooted * (n.traits?.includes('ambitious') || n.traits?.includes('adventurous') ? 1.5 : 1);
       if (hashStr(`youth:${n.id}:${key}`, sim.state.seed) >= chance) continue;
       this.goAbroad(n);
       gone++;

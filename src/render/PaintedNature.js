@@ -17,6 +17,7 @@ export const SIZES = {
   tree_oak: { w: 96, h: 112, feet: 104 },
   tree_pine: { w: 64, h: 108, feet: 101 },
   tree_apple: { w: 72, h: 84, feet: 78 },
+  sapling: { w: 28, h: 44, feet: 40 },
   stump: { w: 36, h: 30, feet: 24 },
   rock: { w: 40, h: 34, feet: 28 },
   rubble: { w: 34, h: 22, feet: 16 },
@@ -250,6 +251,71 @@ export function paintApple(season, variant = 0, fruit = false) {
   const clumps = shapes.map(([x, y, r]) => [cx + x + (rnd() - 0.5) * 2, 56 + y + (rnd() - 0.5) * 2, r + (rnd() - 0.5) * 2]);
   const C = season === 'autumn' ? AUTUMN_MIX[0] : CROWN[season];
   paintLeaves(ctx, clumps, season === 'autumn' ? { ...CROWN.summer, hi: C.hi } : C, rnd, { blossom: season === 'spring' ? '#fbe3ec' : null, fruit: fruit || season === 'summer' ? (season === 'summer' ? '#9cc24a' : '#d23a2c') : null });
+  return c;
+}
+
+/** A planted sapling (ForestrySystem): a thin stem tied to a wooden stake, a few leaves (none in winter), a ring of dug earth. */
+export function paintSapling(season, kind = 'oak') {
+  const S = SIZES.sapling;
+  const c = canvas(S.w, S.h);
+  const ctx = c.getContext('2d');
+  const cx = S.w / 2;
+  // dug earth
+  ctx.fillStyle = 'rgba(92,62,34,0.85)';
+  ctx.beginPath();
+  ctx.ellipse(cx, S.feet - 1, 9, 3.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // the stake
+  ctx.fillStyle = '#8a6a44';
+  ctx.fillRect(cx + 4, 10, 3, S.feet - 10);
+  ctx.fillStyle = '#b08a5a';
+  ctx.fillRect(cx + 4, 10, 1, S.feet - 10);
+  // the stem
+  ctx.strokeStyle = '#5b3f25';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx, S.feet - 1);
+  ctx.quadraticCurveTo(cx - 1, 26, cx, 12);
+  ctx.stroke();
+  // tied to the stake
+  ctx.strokeStyle = '#d8c090';
+  ctx.lineWidth = 1.2;
+  for (const y of [18, 28]) {
+    ctx.beginPath();
+    ctx.moveTo(cx - 1, y);
+    ctx.lineTo(cx + 6, y + 1);
+    ctx.stroke();
+  }
+  if (season === 'winter') return c;
+  const leaf = kind === 'pine' ? ['#1f4a2c', '#4a9258'] : season === 'autumn' ? ['#b8561f', '#e08a33'] : ['#3c7a2e', '#7fb552'];
+  if (kind === 'pine') {
+    for (const [y, w] of [[10, 5], [15, 7], [21, 8]]) {
+      ctx.fillStyle = leaf[0];
+      ctx.beginPath();
+      ctx.moveTo(cx, y - 5);
+      ctx.lineTo(cx - w, y + 3);
+      ctx.lineTo(cx + w, y + 3);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = leaf[1];
+      ctx.fillRect(cx - w + 2, y + 1, 2, 1);
+    }
+  } else {
+    for (const [x, y, r] of [[-4, 14, 4], [4, 12, 4], [0, 9, 4.5], [-3, 20, 3.5], [3, 19, 3.5]]) {
+      ctx.fillStyle = leaf[0];
+      ctx.beginPath();
+      ctx.arc(cx + x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = leaf[1];
+      ctx.beginPath();
+      ctx.arc(cx + x - 1, y - 1, r * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (kind === 'apple' && season === 'spring') for (const [x, y] of [[-3, 11], [3, 15], [0, 7]]) {
+      ctx.fillStyle = '#fbe3ec';
+      ctx.fillRect(cx + x, y, 2, 2);
+    }
+  }
   return c;
 }
 
