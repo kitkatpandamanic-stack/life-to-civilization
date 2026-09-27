@@ -73,9 +73,22 @@ export class TerrainView {
     scene.events.once('shutdown', off);
   }
 
-  applySeason(season) {
+  /**
+   * The ground's season: as the calendar's — except that winter's snow only lies once it has snowed (or from
+   * the third day of winter); until then it's late autumn underfoot.
+   */
+  groundSeason(season) {
+    const sim = this.sim;
+    if (season === 'winter' && sim.weather?.type !== 'snow' && sim.time.dayOfSeason < 3) return 'autumn';
+    return season;
+  }
+
+  applySeason(calendar) {
+    const season = this.groundSeason(calendar);
     if (season === this.season) return;
+    const wasWinter = this.season === 'winter';
     this.season = season;
+    if (wasWinter !== (season === 'winter')) this.scene.buildings?.applyAllSnow?.(); // snow on the roofs too
     const tex = this.scene.textures.get('tiles');
     paintTileset(tex.getSourceImage(), season);
     tex.refresh();
@@ -160,6 +173,8 @@ export class TerrainView {
   }
 
   update() {
+    // the first snow of winter settles
+    if (this.season !== 'winter' && this.sim.time.season === 'winter' && this.groundSeason('winter') === 'winter') this.applySeason('winter');
     this.checkChanges();
     this.paintVisible();
   }

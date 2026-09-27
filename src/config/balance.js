@@ -134,6 +134,11 @@ export const BALANCE = {
     ownerDrawShare: 0.1, // …and then 10% of the excess per day
     exportPerDay: 24, // units of surplus traders take from each producer per day (the more they buy, the less they pay)
     exportPriceFactor: 0.6, // at 60% of the base price
+    // The wider world grows too: each year (and each thing the valley learns to do) the towns beyond want more
+    // of its goods and pay a little more for them — up to this much more in all.
+    worldGrowthPerYear: 0.08,
+    worldGrowthPerTech: 0.015,
+    worldGrowthMax: 0.6,
     depotBuyFactor: 0.66, // a warehouse pays producers this share of the base price…
     depotExportFactor: 0.78, // …and gets a better price than they would from traders, dealing in bulk
     toolWearPerWorkerDay: 0.12, // producers buy a new tool from the smithy as crews wear them out

@@ -15,6 +15,7 @@ import { createTransportTextures } from './TransportArt.js';
 import { createSiteTextures } from './SiteArt.js';
 import { FARM_ICONS, createFarmTextures } from './FarmArt.js';
 import { createRailTextures } from './RailArt.js';
+import { finishFor, paintFinish } from './PaintFinish.js';
 import { roofSurface, wallSurface, paintedWindow, paintedDoor, finishBuilding } from './PaintedBuildings.js';
 import { paintFieldCrop } from './PaintedFields.js';
 import { TREE_VARIANTS, paintOak, paintPine, paintBush, paintStump, paintRock, paintRubble, paintTuft } from './PaintedNature.js';
@@ -73,6 +74,9 @@ function ellipse(ctx, x, y, rx, ry, color) {
 }
 
 function addCanvas(scene, key, canvas) {
+  // Older flat art gets the painted finish (PaintFinish.finishFor decides by key).
+  const finish = finishFor(key);
+  if (finish) paintFinish(canvas, finish);
   if (scene.textures.exists(key)) scene.textures.remove(key);
   return scene.textures.addCanvas(key, canvas);
 }

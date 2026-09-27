@@ -9,6 +9,7 @@
 import { BALANCE } from '../config/balance.js';
 import { HOME_TIERS } from '../data/homes.js';
 import { drawRoom, FURNITURE_SIZE } from '../render/ExtraArt.js';
+import { paintFinish } from '../render/PaintFinish.js';
 
 const TS = BALANCE.tileSize;
 const INTERACTIVE = new Set(['bed', 'chest', 'table', 'workbench', 'stove', 'shelf', 'fireplace']);
@@ -40,7 +41,7 @@ export class InteriorView {
     const [w, h] = def.room;
     const room = drawRoom(w, h, TS);
     const key = `room_${tierId}`;
-    if (!scene.textures.exists(key)) scene.textures.addCanvas(key, room.canvas);
+    if (!scene.textures.exists(key)) scene.textures.addCanvas(key, paintFinish(room.canvas, { mute: 0.15, light: 0.8, grain: 1 }));
     const { x: ox, y: oy } = this.origin;
     this.sprites.push(scene.add.image(ox, oy, key).setOrigin(0).setDepth(oy - 100));
 

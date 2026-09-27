@@ -628,10 +628,21 @@ export class EconomySystem {
     }
   }
 
+  /**
+   * How much the wider world wants the valley's goods: 1 at the start, rising year by year and with what the
+   * valley has learned (TechSystem) — traders take more of the surplus and pay a little more for it. No dice.
+   */
+  worldDemand() {
+    const years = Math.max(0, this.sim.time.year - 1) + (this.sim.time.day % 56) / 56;
+    const techs = Object.keys(this.sim.state.tech?.known || {}).length;
+    return 1 + Math.min(E.worldGrowthMax, years * E.worldGrowthPerYear + techs * E.worldGrowthPerTech);
+  }
+
   /** Producers (and warehouses, at a better price) sell stock above target to outside traders. */
   exportSurplus() {
     const S = this.sim.state;
     S.exportsWeek ??= 0;
+    const world = this.worldDemand();
     for (const id of this.active()) {
       const def = this.def(id);
       if (def.kind !== 'producer' && def.kind !== 'depot') continue;
@@ -639,13 +650,13 @@ export class EconomySystem {
       const depot = def.kind === 'depot';
       for (const item of Object.keys(def.targets)) {
         const keep = Math.round(def.targets[item] * (depot ? 1 : 0.5));
-        const surplus = Math.min(E.exportPerDay * (depot ? 2 : 1), (b.stock[item] || 0) - keep);
+        const surplus = Math.min(Math.round(E.exportPerDay * (depot ? 2 : 1) * world), (b.stock[item] || 0) - keep);
         if (surplus <= 0) continue;
         b.stock[item] -= surplus;
         // Traders pay less the more you dump on them in one day.
         const glut = Math.max(0.45, 1 - surplus * 0.015);
         // Known settlements short of it pay more (see SettlementSystem) — and the goods go there.
-        const earned = Math.round(surplus * ITEMS[item].basePrice * (depot ? E.depotExportFactor : E.exportPriceFactor) * glut * this.sim.events.modifier('export_price') * this.sim.events.itemPrice(item) * (this.sim.exploration?.tradeFactor() ?? 1) * (this.sim.settlements?.exportFactor(item) ?? 1) * (this.sim.tech?.mod('export_price') ?? 1));
+        const earned = Math.round(surplus * ITEMS[item].basePrice * (depot ? E.depotExportFactor : E.exportPriceFactor) * glut * this.sim.events.modifier('export_price') * this.sim.events.itemPrice(item) * (this.sim.exploration?.tradeFactor() ?? 1) * (this.sim.settlements?.exportFactor(item) ?? 1) * (this.sim.tech?.mod('export_price') ?? 1) * (1 + (world - 1) * 0.5));
         this.sim.settlements?.absorbExport(item, surplus);
         b.money += earned;
         this.ledger(id, 'rev', earned);

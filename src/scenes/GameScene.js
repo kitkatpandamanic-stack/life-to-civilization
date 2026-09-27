@@ -18,6 +18,7 @@ import { BALANCE } from '../config/balance.js';
 import { SaveSystem } from '../systems/SaveSystem.js';
 import { TerrainView } from '../game/TerrainView.js';
 import { WorldObjectViews } from '../game/WorldObjectViews.js';
+import { LivingWorld } from '../game/LivingWorld.js';
 import { BuildingViews } from '../game/BuildingViews.js';
 import { PlayerController } from '../game/PlayerController.js';
 import { NPCViews } from '../game/NPCViews.js';
@@ -76,6 +77,7 @@ export class GameScene extends Phaser.Scene {
     this.solids.add(edge);
     this.terrain = new TerrainView(this, sim);
     this.objects = new WorldObjectViews(this, sim);
+    this.living = new LivingWorld(this, sim); // water glints, wind, blowing leaves, puddles
     this.buildings = new BuildingViews(this, sim);
     this.player = new PlayerController(this, sim);
     this.physics.add.collider(this.player.sprite, this.solids);
@@ -157,6 +159,7 @@ export class GameScene extends Phaser.Scene {
     this.interaction.update(blocked);
     this.camDir.update();
     this.terrain.update();
+    this.living.update(delta, false);
     this.overlay.update(delta, this.inside || this.ui.isPaused() || !!this.ui.status);
     const darkness = this.atmosphere.update();
     this.lightTimer -= delta;

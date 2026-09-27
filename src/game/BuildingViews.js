@@ -179,8 +179,13 @@ export class BuildingViews {
    * Snow on the roof in winter: an overlay made from the building's own picture — white along the top edge
    * of every roof (and chimney cap), thinning downwards, with a ragged lower edge.
    */
+  applyAllSnow() {
+    for (const entry of this.byId.values()) this.applySnow(entry);
+  }
+
   applySnow(entry) {
-    const winter = this.sim.time.season === 'winter';
+    // (it lies once it lies on the ground — TerrainView.groundSeason)
+    const winter = (this.scene.terrain?.season ?? this.sim.time.season) === 'winter';
     if (!winter || !entry.key) {
       entry.snow?.destroy();
       entry.snow = null;

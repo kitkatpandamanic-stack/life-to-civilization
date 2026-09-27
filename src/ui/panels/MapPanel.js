@@ -27,8 +27,14 @@ const OWNER_COLORS = { player: '#ffcf5a', village: '#60a0f0', npc: '#9ad07a', no
 import { T } from '../../world/WorldGenerator.js';
 import { BUILDABLES } from '../../data/buildables.js';
 import { BALANCE } from '../../config/balance.js';
+import { BUILDING_TYPES } from '../../data/buildings.js';
 
 const SCALE = 5; // map pixels per tile
+const shadeHex = (hex, amt) => {
+  const n = parseInt(hex.slice(1), 16);
+  const ch = (v) => Math.max(0, Math.min(255, v + amt));
+  return `#${((ch((n >> 16) & 255) << 16) | (ch((n >> 8) & 255) << 8) | ch(n & 255)).toString(16).padStart(6, '0')}`;
+};
 const TILE_COLORS = {
   [T.GRASS]: '#79b35a', [T.GRASS2]: '#72ab53', [T.GRASS3]: '#80ba60', [T.FLOWERS]: '#86bf66', [T.FOREST]: '#3f7a35',
   [T.DIRT]: '#b08d5f', [T.ROAD]: '#c8a878', [T.SAND]: '#e0cc92', [T.WATER]: '#4a8fd0', [T.DEEP]: '#3274b5',
@@ -96,8 +102,11 @@ export class MapPanel extends Panel {
 
   baseMap() {
     const sim = this.sim;
-    // The village changes (new houses, new roads) — redraw when it does.
-    const key = `${sim.state.seed}:${sim.world.buildingList.length}:${sim.state.land.roads.length}`;
+    // The painted ground (TerrainView's pieces), shrunk — a miniature of the valley as it looks.
+    const terrain = this.ui.scene?.terrain;
+    const painted = terrain && !terrain.classic ? terrain.chunks.filter((ch) => ch.canvas && ch.painted).length : 0;
+    // The village changes (new houses, new roads) — redraw when it does (and as more of the ground is painted).
+    const key = `${sim.state.seed}:${sim.world.buildingList.length}:${sim.state.land.roads.length}:${terrain?.season}:${painted}`;
     if (baseCache && baseCache.key === key) return baseCache.canvas;
     const w = sim.world;
     const c = document.createElement('canvas');
@@ -110,11 +119,35 @@ export class MapPanel extends Panel {
         ctx.fillRect(x * SCALE, y * SCALE, SCALE, SCALE);
       }
     }
+    if (painted) {
+      const TS = BALANCE.tileSize;
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      for (const ch of terrain.chunks) {
+        if (!ch.canvas || !ch.painted) continue;
+        const x0 = ch.cx * 16 * SCALE;
+        const y0 = ch.cy * 16 * SCALE;
+        ctx.drawImage(ch.canvas, x0, y0, (ch.canvas.width / TS) * SCALE, (ch.canvas.height / TS) * SCALE);
+      }
+    }
+    // Buildings: little roofs with a shadow to the lower right (the sun is up to the left, as in the valley).
     for (const b of w.buildingList) {
-      ctx.fillStyle = b.id === 'shack' ? '#e0a040' : '#8a4a3a';
-      ctx.fillRect(b.tx * SCALE, b.ty * SCALE, b.w * SCALE, b.h * SCALE);
-      ctx.strokeStyle = '#2a1a10';
-      ctx.strokeRect(b.tx * SCALE + 0.5, b.ty * SCALE + 0.5, b.w * SCALE - 1, b.h * SCALE - 1);
+      const x = b.tx * SCALE;
+      const y = b.ty * SCALE;
+      const bw = b.w * SCALE;
+      const bh = b.h * SCALE;
+      ctx.fillStyle = 'rgba(25,18,10,0.35)';
+      ctx.fillRect(x + 2, y + 2, bw, bh);
+      const roof = b.id === 'shack' ? '#e0a040' : BUILDING_TYPES[b.type]?.roofColor || '#8a4a3a';
+      const g = ctx.createLinearGradient(x, y, x + bw, y + bh);
+      g.addColorStop(0, shadeHex(roof, 30));
+      g.addColorStop(1, shadeHex(roof, -30));
+      ctx.fillStyle = g;
+      ctx.fillRect(x, y, bw, bh);
+      ctx.fillStyle = 'rgba(255,240,200,0.35)';
+      ctx.fillRect(x, y + Math.floor(bh / 2) - 0.5, bw, 1); // the ridge
+      ctx.strokeStyle = 'rgba(42,26,16,0.8)';
+      ctx.strokeRect(x + 0.5, y + 0.5, bw - 1, bh - 1);
     }
     baseCache = { key, canvas: c };
     return c;
@@ -550,10 +583,23 @@ export class MapPanel extends Panel {
         ctx.globalAlpha = 1;
       }
     }
-    // Harvested trees show up as gaps in the forest.
-    ctx.fillStyle = 'rgba(30,70,30,0.9)';
+    // Trees as little round crowns (felled ones leave gaps in the forest).
+    const crown = { spring: ['#6fa84a', '#2f5a24'], summer: ['#5f9a3e', '#244a1e'], autumn: ['#d9862f', '#7a3313'], winter: ['#e6eef3', '#8a9aa6'] }[sim.time.season] || ['#5f9a3e', '#244a1e'];
     for (const o of Object.values(sim.state.objects)) {
-      if (o.kind === 'tree' && o.state === 'grown') ctx.fillRect(o.tx * SCALE + 1, o.ty * SCALE + 1, SCALE - 2, SCALE - 2);
+      if (o.kind !== 'tree' || o.state !== 'grown') continue;
+      const tx = o.tx * SCALE + SCALE / 2;
+      const ty = o.ty * SCALE + SCALE / 2;
+      ctx.fillStyle = 'rgba(20,30,10,0.35)';
+      ctx.beginPath();
+      ctx.arc(tx + 1, ty + 1, SCALE * 0.55, 0, Math.PI * 2);
+      ctx.fill();
+      const tg = ctx.createRadialGradient(tx - 1, ty - 1, 0.5, tx, ty, SCALE * 0.6);
+      tg.addColorStop(0, crown[0]);
+      tg.addColorStop(1, crown[1]);
+      ctx.fillStyle = tg;
+      ctx.beginPath();
+      ctx.arc(tx, ty, SCALE * 0.55, 0, Math.PI * 2);
+      ctx.fill();
     }
     this.markers = [];
     if (this.layer !== 'normal' && this.layer !== 'land_use') {
@@ -564,7 +610,8 @@ export class MapPanel extends Panel {
     // Fog of war: the parts of the valley you haven't walked yet.
     const X = sim.exploration;
     const C = FOG.chunk;
-    ctx.fillStyle = 'rgba(14,16,24,0.82)';
+    // (like an old map: blank parchment where you haven't been)
+    ctx.fillStyle = 'rgba(214,194,150,0.94)';
     for (let cy = 0; cy * C < sim.world.H; cy++) {
       for (let cx = 0; cx * C < sim.world.W; cx++) {
         if (!X.isSeen(cx * C, cy * C)) ctx.fillRect(cx * C * SCALE, cy * C * SCALE, C * SCALE, C * SCALE);
