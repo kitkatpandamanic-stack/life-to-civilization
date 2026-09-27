@@ -115,3 +115,20 @@ kbd { font-family: var(--font-display); background: var(--parchment-bg); color: 
 .paper-price { white-space: nowrap; }
 .paper-ad { font-style: italic; font-size: var(--fs-small); }
 .paper .muted { color: #7a5a36; }
+
+/* ---- The valley's people: the age pyramid and the forecast bars (PopulationPanel) ---- */
+.pyr-legend { display: flex; justify-content: space-between; font-size: var(--fs-small, 12px); opacity: 0.85; margin: 4px 0; }
+.pyramid { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
+.pyr-row { display: grid; grid-template-columns: 1fr 52px 1fr; align-items: center; gap: 4px; }
+.pyr-side { display: flex; }
+.pyr-side.left { justify-content: flex-end; }
+.pyr-age { text-align: center; font-size: 11px; opacity: 0.8; }
+.pyr-bar { height: 14px; min-width: 2px; border-radius: 3px; position: relative; }
+.pyr-bar.m { background: linear-gradient(270deg, #6a8fc0, #3f628f); }
+.pyr-bar.f { background: linear-gradient(90deg, #c07a8f, #8f4a62); }
+.pyr-bar span { position: absolute; top: -1px; font-size: 11px; color: #fff6e0; padding: 0 3px; }
+.pyr-bar.m span { right: 0; }
+.pyr-bar.f span { left: 0; }
+.fc-bar { flex: 1; height: 10px; margin: 0 8px; background: rgba(201, 154, 62, 0.15); border-radius: 5px; overflow: hidden; align-self: center; }
+.fc-bar i { display: block; height: 100%; background: linear-gradient(90deg, #8fb85a, #4f8a36); }
+@media (max-width: 520px) { .pyr-row { grid-template-columns: 1fr 40px 1fr; } }

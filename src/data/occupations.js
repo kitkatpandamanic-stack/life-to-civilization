@@ -27,6 +27,9 @@ export const OCCUPATIONS = {
   farmhand: { workplace: 'farm', restDay: 6, start: 7, end: 17, lunch: true, activity: 'farm', wake: 6, sleep: 22, wage: 14, seasons: ['spring', 'summer', 'autumn'] },
   lumber_foreman: { workplace: 'lumberyard', restDay: 6, start: 7, end: 17, lunch: true, activity: 'spot', wake: 6, sleep: 22 },
   woodcutter: { workplace: 'lumberyard', restDay: 6, start: 7, end: 17, lunch: true, activity: 'chop', wake: 6, sleep: 22, wage: 15 },
+  // Foresters plant saplings and tend the young woods (ForestrySystem): at the lumberyard, or at a tree nursery.
+  forester: { workplace: 'business', restDay: 6, start: 7, end: 16, lunch: true, activity: 'plant', wake: 6, sleep: 22, wage: 14 },
+  nursery_keeper: { workplace: 'business', restDay: 6, start: 7, end: 17, lunch: true, activity: 'inside', wake: 6, sleep: 22 },
   quarry_foreman: { workplace: 'quarry', restDay: 6, start: 7, end: 17, lunch: true, activity: 'spot', wake: 6, sleep: 22 },
   miner: { workplace: 'quarry', restDay: 6, start: 7, end: 17, lunch: true, activity: 'mine', wake: 6, sleep: 22, wage: 16 },
   blacksmith: { workplace: 'smithy', restDay: 6, start: 8, end: 18, lunch: true, activity: 'spot', wake: 7, sleep: 22 },

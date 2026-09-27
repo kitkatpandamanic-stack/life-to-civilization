@@ -24,6 +24,9 @@ import { InventionPanel } from './panels/InventionPanel.js';
 import { ColonyPanel } from './panels/ColonyPanel.js';
 import { MinePanel } from './panels/MinePanel.js';
 import { LawPanel } from './panels/LawPanel.js';
+import { PopulationPanel } from './panels/PopulationPanel.js';
+import { ForestPanel } from './panels/ForestPanel.js';
+import { StallPanel } from './panels/StallPanel.js';
 import { t, fmtMoney, onLanguageChange, npcName, itemName } from '../i18n/i18n.js';
 import { tr, escapeHtml, hoodLabel, districtLabel, buildingLabel } from './format.js';
 import { WEATHER_ICONS } from '../systems/WeatherSystem.js';
@@ -87,7 +90,7 @@ const TOAST_ICONS = [
   [/save|load/, '💾'],
 ];
 
-const REFRESH_EVENTS = ['inventory:changed', 'storage:changed', 'construction:changed', 'land:changed', 'workers:changed', 'business:changed', 'player:changed', 'jobs:changed', 'economy:changed', 'social:changed', 'player:levelup', 'player:skillup', 'chronicle', 'building:changed', 'property:changed'];
+const REFRESH_EVENTS = ['inventory:changed', 'storage:changed', 'construction:changed', 'land:changed', 'workers:changed', 'business:changed', 'player:changed', 'jobs:changed', 'economy:changed', 'social:changed', 'player:levelup', 'player:skillup', 'chronicle', 'building:changed', 'property:changed', 'stall:changed', 'civic:changed'];
 
 export class UIManager {
   constructor(scene, sim) {
@@ -584,6 +587,15 @@ export class UIManager {
   }
   openLaw() {
     this.openPanel(new LawPanel(this));
+  }
+  openPopulation(tab) {
+    this.openPanel(new PopulationPanel(this, tab));
+  }
+  openForest() {
+    this.openPanel(new ForestPanel(this));
+  }
+  openStall() {
+    this.openPanel(new StallPanel(this));
   }
 
   /** A family proposes a match for one of your children. */

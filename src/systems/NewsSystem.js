@@ -73,7 +73,8 @@ export class NewsSystem {
     for (const item of NEWS.prices) if (now[item] !== undefined) prices[item] = { p: now[item], was: last[item]?.p ?? null };
     const thefts = (sim.state.crime?.cases || []).filter((c) => c.day > since).length;
     const ads = Object.entries(this.S.ads).filter(([id, until]) => until >= day && sim.economy.biz(id)).map(([id]) => id);
-    const issue = { no: ++this.S.no, day, printed: this.printed(), headlines: ranked, prices, thefts, ads };
+    const woods = sim.forestry ? { status: sim.forestry.status(), h: Math.round(sim.forestry.health() * 100) } : null;
+    const issue = { no: ++this.S.no, day, printed: this.printed(), headlines: ranked, prices, thefts, ads, woods };
     this.S.issues.push(issue);
     if (this.S.issues.length > NEWS.keep) this.S.issues.shift();
     // (old advertisements run out)

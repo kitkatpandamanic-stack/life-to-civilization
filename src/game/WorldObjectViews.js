@@ -40,6 +40,8 @@ export class WorldObjectViews {
         if (obj.state === 'grown' || obj.state === 'young' || obj.state === 'sapling') {
           // Each tree keeps its own shape (from where it stands).
           const v = Math.floor(hash2(obj.tx, obj.ty, 4242) * TREE_VARIANTS);
+          // (An apple tree with its apples still on: ForestrySystem.)
+          if (obj.variant === 'apple' && obj.fruit > 0 && obj.state === 'grown') return [`tree_apple_${s}_f_${v}`, ORIGIN_Y.tree_apple];
           return [v ? `tree_${obj.variant}_${s}_${v}` : `tree_${obj.variant}_${s}`, ORIGIN_Y[`tree_${obj.variant}`]];
         }
         return [`stump_${s}`, ORIGIN_Y.stump];

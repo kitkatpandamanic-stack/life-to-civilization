@@ -268,7 +268,9 @@
     "factory_hand": {
       "m": "Factory hand",
       "f": "Factory hand"
-    }
+    },
+    "forester": "Forester",
+    "nursery_keeper": "Nursery keeper"
   },
   "building": {
     "hall": "Village Hall",
@@ -503,6 +505,26 @@
     "omelette": {
       "name": "Omelette",
       "desc": "Three eggs in a hot pan. Quick and filling."
+    },
+    "sapling": {
+      "name": "Sapling",
+      "desc": "A young forest tree in a pot of soil. Plant it on a stump, cleared ground or at the forest's edge — or on your own land for a woodlot."
+    },
+    "apple_sapling": {
+      "name": "Apple sapling",
+      "desc": "A young apple tree. Planted, it grows into a tree that bears apples every autumn."
+    },
+    "honey": {
+      "name": "Honey",
+      "desc": "Golden honey from the hives on the meadows. Sweet, and good for a tired body."
+    },
+    "mushroom": {
+      "name": "Mushrooms",
+      "desc": "Gathered in the damp woods. The tavern cooks them into stew."
+    },
+    "resin": {
+      "name": "Resin",
+      "desc": "Sticky pine resin, for pitch and varnish. The warehouse sells it on to the towns."
     }
   },
   "item_cat": {
@@ -669,12 +691,14 @@
     "rock_coal": "Coal deposit",
     "bush_berry": "Berry bush",
     "crop_wheat": "Wheat",
-    "rock_clay": "Clay pit"
+    "rock_clay": "Clay pit",
+    "tree_apple": "Apple tree"
   },
   "decor": {
     "well": "Well",
     "notice_board": "Notice board",
-    "expedition": "Waymark — the road out of the valley"
+    "expedition": "Waymark — the road out of the valley",
+    "market_stall": "Market stall"
   },
   "action": {
     "chop": "Chop tree",
@@ -790,7 +814,16 @@
     "colony_supplies": "Leave supplies (food, firewood)",
     "law": "Law and order",
     "read_paper": "Read the paper",
-    "mine_manage": "The mine: dig deeper, shore up"
+    "mine_manage": "The mine: dig deeper, shore up",
+    "pick_apples": "Pick apples ({n})",
+    "plant_sapling": "Plant: {item}",
+    "pickup_saplings": "Take the saplings ({qty})",
+    "rounds_lamps": "Light the lamp",
+    "rounds_chimneys": "Sweep the chimney",
+    "start_outing": "Start work here ({hours} h)",
+    "market_stall": "Market stall",
+    "population": "The valley's people",
+    "forest_report": "The woods"
   },
   "reason": {
     "nothing_here": "Nothing to do here.",
@@ -1106,7 +1139,19 @@
     "already_constable": "You're already the constable.",
     "has_lock": "Your storage already has a lock.",
     "no_press": "The valley can't print yet (it needs printing).",
-    "ad_running": "Your advertisement is still running."
+    "ad_running": "Your advertisement is still running.",
+    "cant_plant_here": "Nothing can be planted here.",
+    "no_apples": "No apples on it now.",
+    "orchard_not_yours": "That's a farm's orchard, not yours.",
+    "already_bargained": "You've already asked today.",
+    "no_active_job": "You aren't doing a job right now.",
+    "queue_full": "You've already lined up a job.",
+    "job_yours_only": "This one you have to do yourself.",
+    "stall_rented": "You've rented the stall for today already.",
+    "stall_not_rented": "Rent the stall first.",
+    "cant_sell_that": "That can't be sold at a stall.",
+    "stall_full": "No room for more kinds of goods on the stall.",
+    "not_headman": "Only the headman can change that."
   },
   "toast": {
     "hungry": "You're getting hungry. Press Q to eat.",
@@ -1405,7 +1450,24 @@
     "case_cold": "The trail has gone cold.",
     "gazette_out": "The Valley Gazette, No. {n}, is out (Journal → News).",
     "news_sheet_out": "A new news sheet on the notice board (Journal → News).",
-    "ad_placed": "Your advertisement will run for a week."
+    "ad_placed": "Your advertisement will run for a week.",
+    "planted_apple": "Apple tree planted. In a couple of years it'll bear fruit.",
+    "planted_tree": "Sapling planted.",
+    "picked_apples": "Picked {qty} apples.",
+    "bargain_yes": "They agreed: {job} now pays {money}.",
+    "bargain_half": "Met halfway: {job} now pays {money}.",
+    "bargain_no": "No luck: {job} still pays {money}.",
+    "job_queued": "Lined up: {job}. It starts when you're done.",
+    "queued_dropped": "The job you lined up fell through: {job}.",
+    "outing_gathered": "Got {qty} × {item}. Take it back to be paid.",
+    "tree_planted_job": "Tree planted ({n}/{qty}).",
+    "saplings_picked": "You take {qty} saplings. Plant them in the woods.",
+    "rounds_lamps": "Lamp lit. {n} to go.",
+    "rounds_chimneys": "Chimney swept. {n} to go.",
+    "job_rank_up": "You're getting good at it: {job} — {jrank}. It pays more now.",
+    "job_done_bonus": "Job complete: {job}. Paid {money} (with {bonus} extra), +{xp} XP",
+    "planting_part_paid": "Paid for the {n} trees you planted: {money}.",
+    "stall_closed": "The market's closing. Your stall took {money} today."
   },
   "objective": {
     "harvest": "Harvest ripe wheat in the farm fields ({have}/{qty})",
@@ -1432,7 +1494,12 @@
     "c_haul_drop": "Deliver {item} ×{qty} to {building}",
     "c_deliver": "Bring {item} ×{qty} to {building}",
     "freight_deliver": "Take {qty} {item} to {building}",
-    "freight_pickup": "Pick up {qty} {item} at {building} (for {to})"
+    "freight_pickup": "Pick up {qty} {item} at {building} (for {to})",
+    "rounds_lamps": "Light the lamps ({n} left) — next: {building}",
+    "rounds_chimneys": "Sweep the chimneys ({n} left) — next: {building}",
+    "pickup_saplings": "Take the saplings at {building}",
+    "outing": "Go out to {pkind} and start work",
+    "plant_trees": "Plant the saplings in the woods ({n}/{qty})"
   },
   "job": {
     "farm_harvest": {
@@ -1534,6 +1601,114 @@
     "mill_hand": {
       "name": "Mill hand",
       "desc": "Heave sacks of grain and flour at the mill. Hard, honest work."
+    },
+    "lamplighter": {
+      "name": "Lamplighter",
+      "desc": "Light the lamps by the houses as dusk falls. The village pays."
+    },
+    "night_watch": {
+      "name": "Night watch",
+      "desc": "Walk the lanes late into the night and keep an eye out. Paid by the village."
+    },
+    "chimney_sweep": {
+      "name": "Chimney sweep",
+      "desc": "Sweep the chimneys of a few houses before the cold sets in. Sooty, tiring work."
+    },
+    "road_mending": {
+      "name": "Road mending",
+      "desc": "Fill the potholes, level the ruts. Paid by the hour — work as long as you like."
+    },
+    "well_digging": {
+      "name": "Well digging",
+      "desc": "A new street needs a well. Dig deep — heavy work with a pickaxe."
+    },
+    "gravedigger": {
+      "name": "Gravedigger",
+      "desc": "Someone has died. Dig a grave in the churchyard for the funeral."
+    },
+    "messenger": {
+      "name": "Messenger",
+      "desc": "Carry a message from the hall to a villager's house."
+    },
+    "hall_clerk": {
+      "name": "Hall clerk",
+      "desc": "Copy out the village's accounts and letters at the hall. Clean hands, steady pay."
+    },
+    "tutor": {
+      "name": "Tutor",
+      "desc": "Help the village children with their letters and sums for an afternoon."
+    },
+    "nurse_helper": {
+      "name": "Nurse's helper",
+      "desc": "Someone is poorly. Sit with them, fetch water, change the dressings."
+    },
+    "midwife_helper": {
+      "name": "Midwife's helper",
+      "desc": "A baby has just been born. Help the mother and the midwife for a couple of hours."
+    },
+    "expedition_guide": {
+      "name": "Guide",
+      "desc": "Lead visitors from another settlement a day's walk through the valley. Long, well paid."
+    },
+    "tailoring": {
+      "name": "Tailoring",
+      "desc": "Mend clothes and sew on buttons at the store."
+    },
+    "cobbling": {
+      "name": "Cobbling",
+      "desc": "Patch soles and restitch boots at the store."
+    },
+    "barber": {
+      "name": "Barber's chair",
+      "desc": "Cut hair and trim beards at the tavern. Customers tip if they like it."
+    },
+    "woodcarving": {
+      "name": "Woodcarving",
+      "desc": "Carve spoons, bowls and handles at the carpenter's."
+    },
+    "cartwright_helper": {
+      "name": "Cartwright's helper",
+      "desc": "Help build and mend carts and wheels at the carters'."
+    },
+    "bricklaying": {
+      "name": "Bricklaying",
+      "desc": "Lay bricks for the builders on a site in the village. Paid by the hour."
+    },
+    "bookkeeping": {
+      "name": "Bookkeeping",
+      "desc": "Keep the warehouse's ledgers straight: what came in, what went out."
+    },
+    "ferry_rowing": {
+      "name": "Ferry rowing",
+      "desc": "Row people and parcels across the river. Paid by the hour, and passengers tip."
+    },
+    "shepherding": {
+      "name": "Shepherding",
+      "desc": "Take the farm's flock out to graze on the pasture and bring them home safe."
+    },
+    "beekeeping": {
+      "name": "Beekeeping",
+      "desc": "Tend the hives on the flower meadows and bring the honey to the store."
+    },
+    "gamekeeping": {
+      "name": "Gamekeeping",
+      "desc": "Walk the woods for the lumberyard: check on the deer, clear fallen branches, watch for poachers."
+    },
+    "tree_planting": {
+      "name": "Tree planting",
+      "desc": "Take saplings from the lumberyard and plant them in the woods: on stumps, cleared ground or at the forest's edge. Paid for each tree."
+    },
+    "mushroom_foraging": {
+      "name": "Mushroom gathering",
+      "desc": "Search the damp woods for mushrooms for the tavern's stew."
+    },
+    "resin_tapping": {
+      "name": "Resin tapping",
+      "desc": "Tap the pines for resin and bring it to the warehouse."
+    },
+    "charcoal_burning": {
+      "name": "Charcoal burning",
+      "desc": "Stack deadwood in a clearing and let it smoulder into charcoal for the smithy."
     }
   },
   "chronicle": {
@@ -1855,7 +2030,42 @@
     "theft_player": "Someone stole {item} from your storage.",
     "thief_caught": "{npc} was caught stealing and fined {money}.",
     "thief_banished": "{npc}, caught stealing three times, has been sent out of the valley.",
-    "player_constable": "You became the village constable."
+    "player_constable": "You became the village constable.",
+    "forester_planting": {
+      "m": "{npc}, the forester, planted the first saplings in the woods.",
+      "f": "{npc}, the forester, planted the first saplings in the woods."
+    },
+    "forester_taken_on": "{building} has taken on a forester: {npc} will plant and tend the woods.",
+    "player_planted": "You planted your first tree in the valley.",
+    "orchard_planted": "{building} has planted an orchard: apple trees by the farmhouse.",
+    "timber_imported": "With nothing left to fell nearby, {building} sent for timber from outside ({n} logs).",
+    "forest_regrown": "The woods have grown back! The forest stands at {n}% of what it was.",
+    "player_job_master": "You're a master at it now: {job}.",
+    "player_stall": "You set up a market stall on the square for the first time.",
+    "youth_to_town": {
+      "m": "{npc} set off for the towns to seek his fortune.",
+      "f": "{npc} set off for the towns to seek her fortune."
+    },
+    "youth_returned": {
+      "m": "{npc} came home from the towns — with savings and a trade ({occ}).",
+      "f": "{npc} came home from the towns — with savings and a trade ({occ})."
+    },
+    "youth_stayed_away": {
+      "m": "{npc} has decided to stay in the towns for good.",
+      "f": "{npc} has decided to stay in the towns for good."
+    },
+    "policy_forestry_low": "The headman lifted the felling limit: cut as much as you like.",
+    "policy_forestry_normal": "The headman set the felling limit back to normal.",
+    "policy_forestry_high": "The headman protected the woods: a strict felling limit, and a fund that pays for every tree planted.",
+    "policy_family_low": "The headman stopped all help for families.",
+    "policy_family_normal": "The headman set help for families back to normal.",
+    "policy_family_high": "The headman brought in an allowance for every baby born.",
+    "policy_health_low": "The headman cut the clinic's money: the sick pay their own way.",
+    "policy_health_normal": "The headman set the clinic's money back to normal.",
+    "policy_health_high": "The headman made the clinic free for everyone.",
+    "policy_welcome_low": "The headman stopped welcoming newcomers.",
+    "policy_welcome_normal": "The headman's welcome for newcomers is back to normal.",
+    "policy_welcome_high": "The headman offers every newcomer a settling-in grant."
   },
   "event": {
     "good_harvest": {
@@ -2549,7 +2759,41 @@
     "world_look_hint": "Painted: soft, hand-painted ground. Classic: the simple square tiles (lighter on slow computers).",
     "look_painted": "Painted",
     "look_classic": "Classic",
-    "news_since": "Since the paper came out"
+    "news_since": "Since the paper came out",
+    "plant_spot": "Place to plant",
+    "plant_spot_hint": "A tree could grow here",
+    "apples_on": "{n} apples on the tree",
+    "orchard_of": "Orchard of {building}",
+    "your_apple_tree": "Your apple tree",
+    "young_tree": "Young tree",
+    "young_tree_planted": "Young tree (planted)",
+    "job_hourly": "{money} an hour, start {from}–{to}",
+    "job_outing": "{hours} h out in {place}",
+    "job_outing_yield": "{hours} h out in {place}, bring back {item}",
+    "job_plant": "Plant {qty} saplings, {money} a tree",
+    "job_rank_next": "{n} more to become: {rank}",
+    "bargain_yes": "They agreed to more",
+    "bargain_half": "Met halfway",
+    "bargain_no": "They said no",
+    "n_hours": "{n} h",
+    "unqueue": "Don't line it up",
+    "queue_job": "Line up next",
+    "queue_tip": "It starts once your current job is done (and its hours have come).",
+    "bargain": "Ask for more",
+    "bargain_tip": "Ask for better pay before you start (once a day). Chance they agree: about {n}%.",
+    "job_tips": "Tips",
+    "the_village": "the village",
+    "queued_note": "Lined up: it starts when your current job is done.",
+    "tab_best_pay": "💡 Best pay",
+    "advice_request": "{npc} needs {qty} × {item}",
+    "advice_stall": "A day at your market stall",
+    "advice_now": "now",
+    "per_hour": "{money}/h",
+    "show": "Show",
+    "queued_line": "Next up: {job}",
+    "advice_labour": "notice board pay {n}%",
+    "advice_none": "Nothing open you can do today. Check back at noon — more work comes in.",
+    "advice_hint": "Pay by the hour, walking included. Bring more than asked for a delivery and each extra is paid too; finish quickly for a bonus; get better at a job and it pays more."
   },
   "dialog": {
     "intro": [
@@ -2783,6 +3027,14 @@
       "researcher": [
         "We're close. I can feel it. Another month — if the money holds.",
         "Most days nothing works. Then one day, something does."
+      ],
+      "forester": [
+        "For every tree we fell, I plant two. Someone has to think of the next generation.",
+        "See those little ones by the stumps? Mine. In a couple of years they'll be proper trees."
+      ],
+      "nursery_keeper": [
+        "Acorns, pine cones, apple pips — everything starts small here.",
+        "A sapling needs water, patience and a bit of luck."
       ]
     },
     "weather": {
@@ -2979,7 +3231,8 @@
       "child_heir": "One day, all this will be yours",
       "child_future": "Let's talk about your future",
       "match_talk": "About a match for my {name}…",
-      "colony_invite": "Come and live in {colony}"
+      "colony_invite": "Come and live in {colony}",
+      "counter_offer": "Could you make it {money}?"
     },
     "no_gifts": "You have nothing suitable to give.",
     "chat_again": [
@@ -3263,7 +3516,23 @@
     ],
     "child_heir_line": "Really? I won't let you down.",
     "colony_yes": "A fresh start? Yes — we'll come.",
-    "colony_no": "Not for me, I'm afraid."
+    "colony_no": "Not for me, I'm afraid.",
+    "counter_yes": [
+      "All right, {money} it is. You drive a hard bargain.",
+      "Fair enough — {money}."
+    ],
+    "counter_half": [
+      "I can't go that high… {money}, and that's my last word.",
+      "Let's meet halfway: {money}."
+    ],
+    "counter_no": [
+      "No, that's what I can offer. Take it or leave it.",
+      "Sorry, I can't pay more than that."
+    ],
+    "counter_cant_afford": [
+      "I'd love to, but I simply don't have that much.",
+      "I haven't got that kind of money."
+    ]
   },
   "rank": {
     "apprentice": "apprentice {occ}",
@@ -3882,7 +4151,8 @@
     "match_refused": "You turned down their match.",
     "inherited_grudge": "They hated your parent — and don't trust you.",
     "became_settler": "Went to live in your settlement.",
-    "caught_stealing": "Was caught stealing."
+    "caught_stealing": "Was caught stealing.",
+    "child_returned": "My child came home from the towns: {npc}."
   },
   "talk": {
     "deflect": [
@@ -4350,6 +4620,10 @@
       "moved_for": [
         "We've moved to {building} — {hwhy}. Best thing we've done in a while.",
         "Have you seen our new place? {building}. We wanted {hwhy}."
+      ],
+      "child_returned": [
+        "{npc} came home! All that time in the towns — and look at them now.",
+        "Have you seen {npc}? Back from the towns, with a trade and money in their pocket."
       ]
     },
     "work": {
@@ -5058,7 +5332,8 @@
     "trading_post": "trading post",
     "brickworks": "brickworks",
     "sawmill": "sawmill",
-    "factory": "factory"
+    "factory": "factory",
+    "tree_nursery": "tree nursery"
   },
   "biz_name": {
     "general_store": [
@@ -5220,6 +5495,16 @@
       "The New Works",
       "Toolmakers' Hall",
       "Many Hands Works"
+    ],
+    "tree_nursery": [
+      "Green Shoots",
+      "The Acorn",
+      "Little Grove",
+      "Seedling Beds",
+      "Oak & Pine",
+      "Young Wood",
+      "The Orchard Gate",
+      "Fern Hollow"
     ]
   },
   "career": {
@@ -6502,7 +6787,13 @@
     "res_clay": "Clay",
     "res_bush": "Berry bushes",
     "res_crop": "Crops",
-    "click_hint_pick": "Click a marker or a building to pick it — then follow, show or manage it."
+    "click_hint_pick": "Click a marker or a building to pick it — then follow, show or manage it.",
+    "layer_forest": "Woods",
+    "forest_grown": "Grown tree",
+    "forest_young": "Young tree",
+    "forest_planted": "Planted",
+    "forest_stump": "Stump",
+    "forest_apple": "Apple tree"
   },
   "institution": {
     "market": {
@@ -6618,7 +6909,11 @@
     "need_literacy": "{n}% who can read",
     "need_school": "a working school",
     "need_graduates": "{n} university graduates",
-    "saving_building": "Put aside for"
+    "saving_building": "Put aside for",
+    "policy_forestry": "Forestry",
+    "policy_family": "Families",
+    "policy_health": "Health",
+    "policy_welcome": "Newcomers"
   },
   "deed": {
     "player_built": "{name} built a {building_type}.",
@@ -9418,6 +9713,159 @@
     "ads": "Advertisements",
     "ad_running": "Advertised in the Gazette — {n} more days.",
     "advertise": "Advertise in the Gazette ({money})",
-    "advertise_hint": "A week's advertisement: more villagers come to your shop."
+    "advertise_hint": "A week's advertisement: more villagers come to your shop.",
+    "woods": "The woods",
+    "woods_thick": "Thick and healthy ({n}%).",
+    "woods_healthy": "Healthy ({n}%).",
+    "woods_thinning": "Thinning ({n}%) — foresters are planting.",
+    "woods_bare": "Nearly bare ({n}%). Timber is getting dear."
+  },
+  "job_rank": {
+    "newcomer": "Newcomer",
+    "hand": "Hand",
+    "skilled": "Skilled",
+    "master": "Master"
+  },
+  "place_kind": {
+    "forest": "the woods",
+    "pines": "the pine woods",
+    "meadow": "a flower meadow",
+    "pasture": "the pasture",
+    "clearing": "a clearing",
+    "far": "the far valley"
+  },
+  "pop": {
+    "title": "The valley's people",
+    "open": "People",
+    "tab_overview": "Overview",
+    "tab_ages": "Ages",
+    "tab_forecast": "Forecast",
+    "tab_policies": "Policies",
+    "people": "People (with you)",
+    "stages": "Stages of life",
+    "this_year": "This year",
+    "last_year": "Last year",
+    "births": "Born",
+    "deaths": "Died",
+    "arrived": "Moved in",
+    "left": "Moved away",
+    "abroad": "Went to the towns",
+    "returned": "Came back",
+    "life": "How long people live",
+    "life_birth": "A newborn can expect",
+    "life_60": "At 60, people reach about",
+    "years": "{n} years",
+    "care": "A doctor or the clinic",
+    "care_yes": "yes — people live longer",
+    "care_no": "no",
+    "life_hint": "A doctor, the clinic, a roof and enough to eat keep people alive longer. The health policy decides who pays for the clinic.",
+    "births_now": "Babies",
+    "birth_mult": "Couples having babies",
+    "birth_why": "Grown-ups have about {money} on average, {jobless}% are out of work, mood {mood}. Money, work, food and a grandparent at home all help; so does the family policy.",
+    "labour": "Work and wages",
+    "vacancies": "Jobs going unfilled",
+    "seekers": "People looking for work",
+    "wages": "Pay",
+    "labour_short": "Short of hands",
+    "labour_surplus": "More hands than work",
+    "labour_balanced": "Balanced",
+    "labour_hint": "When businesses can't find workers, pay goes up (for you too, on the notice board). When many are looking for work, it goes down.",
+    "in_towns": "Off in the towns",
+    "back_in": "back in about {n} days",
+    "men": "Men",
+    "women": "Women",
+    "stage_child": "Children",
+    "stage_youth": "Youths",
+    "stage_adult": "Adults",
+    "stage_elder": "Elders",
+    "stage_child_ages": "0–12",
+    "stage_youth_ages": "13–17",
+    "stage_adult_ages": "18–59",
+    "stage_elder_ages": "60+",
+    "stage_child_hint": "At home and at school; they grow into the valley's future workers.",
+    "stage_youth_hint": "Learning a trade. At 18 they look for work — and if there's none, some go off to the towns.",
+    "stage_adult_hint": "They work, marry, raise children and open businesses.",
+    "stage_elder_hint": "Retired, on a pension. A grandparent at home helps a young family (more babies).",
+    "trend_growing": "If things go on as they are, the valley will grow.",
+    "trend_shrinking": "If things go on as they are, the valley will shrink. More work, homes and food would help.",
+    "trend_steady": "If things go on as they are, the valley will stay about the same size.",
+    "births_year": "Babies a year (about)",
+    "deaths_year": "Deaths a year (about)",
+    "migration_year": "People moving in/out a year",
+    "next_years": "The next years",
+    "in_years": "In {n} years",
+    "elders_n": "{n} over 60",
+    "forecast_hint": "A rough guess from how things are now and the last two years. Your choices — work, homes, the headman's policies — change it.",
+    "policy_family_low": "No help for families: fewer babies, money saved.",
+    "policy_family_normal": "No special help for families.",
+    "policy_family_high": "An allowance from the treasury for every baby: more couples have children.",
+    "policy_health_low": "The sick pay their own way: people die younger.",
+    "policy_health_normal": "The clinic as it is.",
+    "policy_health_high": "A free clinic for all (paid weekly from the treasury): people live longer.",
+    "policy_welcome_low": "A cold shoulder: fewer newcomers come.",
+    "policy_welcome_normal": "Newcomers are welcome.",
+    "policy_welcome_high": "A settling-in grant for every grown-up newcomer: more people come — and the young are likelier to stay.",
+    "policy_forestry_low": "No felling limit: the lumberyard cuts all it wants.",
+    "policy_forestry_normal": "When the woods fall below half, only a few trees a day are felled.",
+    "policy_forestry_high": "Below 70% only a few trees a day are felled, and the village pays the nurseries for every tree planted.",
+    "paid_allowances": "Paid in baby allowances",
+    "paid_grants": "Paid in settling-in grants",
+    "clinic_unpaid": "The treasury couldn't pay for the free clinic this week.",
+    "policies_yours": "You're the headman: these are yours to set.",
+    "policies_headman": "The headman sets these. Stand for election at the hall to set them yourself."
+  },
+  "forest": {
+    "title": "The woods",
+    "open": "Woods",
+    "health": "Forest health",
+    "status_thick": "Thick and healthy",
+    "status_healthy": "Healthy",
+    "status_thinning": "Thinning",
+    "status_bare": "Nearly bare",
+    "limit_on": "The felling limit is on (below {n}%): the lumberyard fells only a few trees a day and plants instead.",
+    "grown": "Grown trees",
+    "young": "Young trees and saplings",
+    "stumps": "Stumps and cleared ground",
+    "planted": "Trees planted",
+    "by_you": "{n} by you",
+    "foresters": "Foresters",
+    "nurseries": "Tree nurseries",
+    "imported": "Timber sent for from outside",
+    "over_time": "The woods over the weeks",
+    "rules": "Felling and planting",
+    "policy": "Forestry policy",
+    "fund_paid": "Paid from the planting fund",
+    "orchards": "Orchards",
+    "orchard_of": "{building}",
+    "apple_trees": "{n} apple trees",
+    "your_trees": "Your apple trees",
+    "no_orchards": "No orchards yet. Farms plant apple trees in spring and autumn; you can plant apple saplings on your own land.",
+    "hint": "Every tree felled leaves a stump. Foresters and woodcutters with nothing to fell plant saplings; saplings grow into trees in about two seasons (slower in winter). Buy saplings at the store or a tree nursery and plant them yourself — the tree-planting job on the notice board pays for each one."
+  },
+  "stall": {
+    "title": "Market stall",
+    "intro": "Rent a stall on the square for the day ({money}) and sell your own goods to the villagers passing by, from {from}:00 to {to}:00. What's left at closing time comes back to you.",
+    "so_far": "You've had the stall {n} days and taken {money} in all.",
+    "rent": "Rent for today ({money})",
+    "open_until": "Open — until {hour}:00",
+    "opens_at": "The market opens at {hour}:00",
+    "closed_today": "The market has closed for today",
+    "earned": "Taken today",
+    "prices": "Your prices",
+    "markup_0_8": "Cheap (−20%)",
+    "markup_1": "Like the shops",
+    "markup_1_2": "Dearer (+20%)",
+    "markup_1_5": "Dear (+50%)",
+    "prices_hint": "Cheaper than the shops and it sells fast; dearer and fewer stop to buy. Food sells best, and fewer people come out in the rain.",
+    "on_stall": "On the stall",
+    "per_hour": "~{n} an hour",
+    "take_back": "Take back",
+    "your_goods": "Your goods",
+    "shops_ask": "shops ask {money}",
+    "all": "All",
+    "empty": "Nothing on the stall yet — put some of your goods out.",
+    "nothing_to_sell": "You aren't carrying anything to sell.",
+    "sold": "Sold",
+    "hint": "The money comes from the villagers' own purses. A bigger village means more customers."
   }
 }

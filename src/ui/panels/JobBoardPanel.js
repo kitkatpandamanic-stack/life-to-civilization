@@ -1,6 +1,10 @@
 /**
  * Job board — today's work. Opened from the notice board (all jobs),
  * a workplace, or by asking an employer in conversation.
+ *
+ * Each job shows its pay (your rank in it, what you bargained for), and lets you ask for more before you
+ * start, choose your hours (hourly work), or line it up for when your current job's done. The "Best pay" tab
+ * compares everything you could earn today by the hour.
  */
 import { headlineWeight } from '../../data/headlines.js';
 import { paperHtml } from '../paper.js';
@@ -17,6 +21,7 @@ export class JobBoardPanel extends Panel {
     this.bizId = bizId;
     this.fromNpc = fromNpc;
     this.tab = 'jobs';
+    this.hours = {}; // hourly jobs: the hours you've picked
   }
 
   /** Once the village is big enough, the board carries a proper weekly newspaper. */
@@ -50,10 +55,18 @@ export class JobBoardPanel extends Panel {
     const active = sim.jobs.active?.jobId === jobId;
     const openings = sim.state.jobs.openings[jobId] || 0;
     const employer = sim.jobs.employerOf(jobId);
-    const owner = sim.economy.owner(employer);
+    const owner = sim.jobs.npcOfEmployer(employer);
+    const place = employer === 'village' ? 'hall' : sim.economy.biz(employer)?.building;
+    const hours = def.hourly ? this.hours[jobId] ?? def.durationHours : null;
     const what =
       def.type === 'shift'
-        ? t('ui.job_shift', { hours: def.durationHours, from: `${def.hours[0]}:00`, to: `${def.hours[1]}:00` })
+        ? def.hourly
+          ? t('ui.job_hourly', { money: fmtMoney(sim.jobs.pay(jobId, { hours: 1 })), from: `${def.hours[0]}:00`, to: `${def.hours[1]}:00` })
+          : t('ui.job_shift', { hours: def.durationHours, from: `${def.hours[0]}:00`, to: `${def.hours[1]}:00` })
+        : def.type === 'outing'
+          ? t(def.yield ? 'ui.job_outing_yield' : 'ui.job_outing', { hours: def.durationHours, place: t(`place_kind.${def.place}`), item: def.yield ? t(`item.${def.yield.item}.name`) : '' })
+        : def.type === 'plant'
+          ? t('ui.job_plant', { qty: def.qty, money: fmtMoney(Math.round(sim.jobs.pay(jobId) / def.qty)) })
         : def.type === 'courier'
           ? t('ui.job_courier')
           : def.type === 'rounds'
@@ -62,18 +75,41 @@ export class JobBoardPanel extends Panel {
               ? t('ui.job_haul', { qty: def.qty, item: t(`item.${def.item}.name`) })
               : t('ui.job_deliver', { qty: def.qty, item: t(`item.${def.item}.name`) });
     const seasonal = def.seasons ? `<span class="chip">${escapeHtml(def.seasons.map((s) => t(`season.${s}`)).join(', '))}</span>` : '';
+    // Your rank in this line of work, and what bargaining got you today.
+    const rank = sim.jobs.rankOf(jobId);
+    const next = sim.jobs.toNextRank(jobId);
+    const done = sim.jobs.timesDone(jobId);
+    const rankChip = done ? `<span class="chip" title="${escapeHtml(next ? t('ui.job_rank_next', { n: next.left, rank: t(`job_rank.${next.rank}`) }) : '')}">⭐ ${escapeHtml(t(`job_rank.${rank.id}`))} · ${done}</span>` : '';
+    const bs = sim.jobs.bargainState(jobId);
+    const bargainChip = bs ? `<span class="badge ${bs.result === 'no' ? '' : 'good'}">🤝 ${escapeHtml(t(`ui.bargain_${bs.result}`))}</span>` : '';
+    const pay = sim.jobs.pay(jobId, hours ? { hours } : {});
+    const q = sim.state.jobs.queued;
+    const queued = q?.jobId === jobId;
+    // Buttons: take it (or line it up), ask for more, pick your hours.
+    const busy = !!sim.jobs.active && !active;
+    const canQ = busy ? sim.jobs.canQueue(jobId) : null;
+    const hourBtns = def.hourly && !active ? `<div class="btn-row">${[...new Set([def.hourly[0], Math.round((def.hourly[0] + def.hourly[1]) / 2), def.hourly[1]])].map((h) => button(t('ui.n_hours', { n: h }), 'hours', { job: jobId, h }, { cls: h === hours ? 'primary sm' : 'sm' })).join('')}</div>` : '';
+    const bargain = !active && !bs ? sim.jobs.canBargain(jobId) : null;
+    const mainBtn = busy
+      ? queued
+        ? button(t('ui.unqueue'), 'unqueue', {}, { cls: 'sm' })
+        : button(t('ui.queue_job'), 'queue', { job: jobId }, { disabled: !canQ.ok, cls: 'sm', title: canQ.ok ? t('ui.queue_tip') : tr(sim, `reason.${canQ.reason}`, canQ.params || {}) })
+      : button(t('ui.accept'), 'accept', { job: jobId }, { disabled: !check.ok, cls: 'primary', title: check.ok ? '' : tr(sim, `reason.${check.reason}`, check.params || {}) });
+    const bargainBtn = bargain ? button(t('ui.bargain'), 'bargain', { job: jobId }, { cls: 'sm', disabled: !bargain.ok, title: t('ui.bargain_tip', { n: Math.round(sim.jobs.bargainChance(jobId) * 100) }) }) : '';
     return `<div class="job-card${active ? ' active' : ''}${check.ok ? '' : ' unavailable'}">
       <div class="job-top">
-        <div class="job-name">${def.item ? icon(def.item, 24) : ''} ${escapeHtml(t(`job.${jobId}.name`))} ${seasonal}</div>
-        <div class="job-pay">💰 ${escapeHtml(fmtMoney(sim.jobs.pay(jobId)))} · ⭐ ${def.xp} XP${sim.jobs.rushOf(def) ? ` <span class="badge good">🌾 ${escapeHtml(t('ui.harvest_rush'))}</span>` : ''}</div>
+        <div class="job-name">${(def.yield?.item || def.item) ? icon(def.yield?.item || def.item, 24) : ''} ${escapeHtml(t(`job.${jobId}.name`))} ${seasonal} ${rankChip}</div>
+        <div class="job-pay">💰 ${escapeHtml(fmtMoney(pay))}${hours ? ` <span class="muted small">(${escapeHtml(t('ui.n_hours', { n: hours }))})</span>` : ''} · ⭐ ${def.xp} XP${sim.jobs.rushOf(def) ? ` <span class="badge good">🌾 ${escapeHtml(t('ui.harvest_rush'))}</span>` : ''} ${bargainChip}${def.tips ? ` <span class="chip">🪙 ${escapeHtml(t('ui.job_tips'))}</span>` : ''}</div>
       </div>
       <div class="desc">${escapeHtml(t(`job.${jobId}.desc`))}</div>
-      <div class="muted small">📍 ${escapeHtml(buildingLabel(sim, sim.economy.biz(employer)?.building))} · ${escapeHtml(t('ui.employer'))}: ${escapeHtml(npcName(owner))} · ${escapeHtml(what)}</div>
+      <div class="muted small">📍 ${escapeHtml(buildingLabel(sim, place))} · ${escapeHtml(t('ui.employer'))}: ${escapeHtml(employer === 'village' ? t('ui.the_village') : npcName(owner))} · ${escapeHtml(what)}</div>
+      ${hourBtns}
       <div class="job-bottom">
         <div class="reqs">${this.describeRequirements(def)} <span class="muted small">${escapeHtml(t('ui.openings', { n: openings }))}</span></div>
-        ${active ? `<span class="badge">${escapeHtml(t('ui.in_progress'))}</span>` : `<div class="btn-row">${button(t('ui.accept'), 'accept', { job: jobId }, { disabled: !check.ok, cls: 'primary', title: check.ok ? '' : tr(sim, `reason.${check.reason}`, check.params || {}) })}${this.crewButton(jobId)}</div>`}
+        ${active ? `<span class="badge">${escapeHtml(t('ui.in_progress'))}</span>` : `<div class="btn-row">${mainBtn}${bargainBtn}${busy ? '' : this.crewButton(jobId)}</div>`}
       </div>
-      ${!check.ok && !active ? `<div class="warn small">${escapeHtml(tr(sim, `reason.${check.reason}`, check.params || {}))}</div>` : ''}
+      ${queued ? `<div class="good small">⏭️ ${escapeHtml(t('ui.queued_note'))}</div>` : ''}
+      ${!check.ok && !active && !busy ? `<div class="warn small">${escapeHtml(tr(sim, `reason.${check.reason}`, check.params || {}))}</div>` : ''}
     </div>`;
   }
 
@@ -81,6 +117,7 @@ export class JobBoardPanel extends Panel {
   crewButton(jobId) {
     const sim = this.sim;
     if (!sim.workers.list().length) return '';
+    if (sim.contracts.canTakeJob(jobId).reason === 'job_yours_only') return '';
     const chk = sim.contracts.canTakeJob(jobId);
     return button(t('contract.send_workers'), 'job_crew', { job: jobId }, { disabled: !chk.ok, title: chk.ok ? t('contract.send_workers_tip') : tr(sim, `reason.${chk.reason}`, chk.params || {}) });
   }
@@ -117,12 +154,33 @@ export class JobBoardPanel extends Panel {
   render() {
     const sim = this.sim;
     if (!this.bizId && !this.fromNpc) {
-      const head = tabs([['jobs', t('ui.tab_jobs')], ['contracts', t('contract.tab', { n: this.sim.state.contracts.offers.length })], ['news', this.gazette() ? t('ui.tab_gazette') : t('ui.tab_village_news')]], this.tab);
+      const head = tabs([['jobs', t('ui.tab_jobs')], ['best', t('ui.tab_best_pay')], ['contracts', t('contract.tab', { n: this.sim.state.contracts.offers.length })], ['news', this.gazette() ? t('ui.tab_gazette') : t('ui.tab_village_news')]], this.tab);
       if (this.tab === 'news') return head + this.renderNews();
+      if (this.tab === 'best') return head + this.renderBest();
       if (this.tab === 'contracts') return head + contractsTab(this.sim);
       return head + this.renderJobs();
     }
     return this.renderJobs();
+  }
+
+  /** Everything you could earn today, best paid by the hour first (JobSystem.advice). */
+  renderBest() {
+    const sim = this.sim;
+    const list = sim.jobs.advice().slice(0, 12);
+    const L = sim.population?.labour();
+    const rows = list
+      .map((a, i) => {
+        const name = a.kind === 'job' ? t(`job.${a.id}.name`) : a.kind === 'request' ? tr(sim, 'ui.advice_request', { npc: a.npc, qty: a.qty, item: a.item }) : t('ui.advice_stall');
+        const when = a.now ? t('ui.advice_now') : a.reason ? tr(sim, `reason.${a.reason}`, a.params || {}) : '';
+        const act = a.kind === 'job' ? button(t('ui.show'), 'show_job', { job: a.id }, { cls: 'sm' }) : a.kind === 'stall' ? button(t('ui.show'), 'open_stall', {}, { cls: 'sm' }) : '';
+        return `<div class="kv ${i === 0 ? 'good' : ''}"><span>${i === 0 ? '🏆 ' : ''}${escapeHtml(name)} <span class="muted small">${escapeHtml(when)}</span></span><b>${escapeHtml(t('ui.per_hour', { money: fmtMoney(Math.round(a.perHour)) }))}</b><span class="muted small">${escapeHtml(fmtMoney(a.pay))} · ~${escapeHtml(t('ui.n_hours', { n: a.hours.toFixed(1) }))}</span>${act}</div>`;
+      })
+      .join('');
+    const q = sim.state.jobs.queued;
+    return `${L ? `<div class="muted small">${escapeHtml(t(`pop.labour_${L.state}`))} · ${escapeHtml(t('ui.advice_labour', { n: `${L.factor >= 1 ? '+' : ''}${Math.round((L.factor - 1) * 100)}` }))}</div>` : ''}
+      ${q ? `<div class="good small">⏭️ ${escapeHtml(t('ui.queued_line', { job: t(`job.${q.jobId}.name`) }))}</div>` : ''}
+      ${rows || `<div class="muted">${escapeHtml(t('ui.advice_none'))}</div>`}
+      <div class="hint">${escapeHtml(t('ui.advice_hint'))}</div>`;
   }
 
   renderJobs() {
@@ -171,7 +229,22 @@ export class JobBoardPanel extends Panel {
       if (!this.bizId && !this.fromNpc) this.tab = 'contracts';
       else this.ui.togglePanel('journal');
     } else if (action === 'accept') {
-      if (this.sim.jobs.accept(data.job)) this.ui.closePanel();
+      const d = JOBS[data.job];
+      if (this.sim.jobs.accept(data.job, d.hourly ? { hours: this.hours[data.job] ?? d.durationHours } : {})) this.ui.closePanel();
+    } else if (action === 'hours') {
+      this.hours[data.job] = Number(data.h);
+    } else if (action === 'bargain') {
+      const r = this.sim.jobs.bargain(data.job);
+      if (!r.ok) this.sim.toast(`reason.${r.reason}`, r.params || {}, 'warn');
+    } else if (action === 'queue') {
+      const d = JOBS[data.job];
+      this.sim.jobs.queue(data.job, d.hourly ? { hours: this.hours[data.job] ?? d.durationHours } : {});
+    } else if (action === 'unqueue') {
+      this.sim.jobs.unqueue();
+    } else if (action === 'show_job') {
+      this.tab = 'jobs';
+    } else if (action === 'open_stall') {
+      return this.ui.openStall();
     } else if (action === 'back_dialogue') {
       this.ui.openDialogue(this.fromNpc);
     }

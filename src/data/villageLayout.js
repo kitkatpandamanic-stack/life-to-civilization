@@ -59,8 +59,8 @@ export const DECOR = [
   // Waymarks where the road leaves the valley: expeditions set out from here.
   { type: 'signpost', tx: 7, ty: 44, block: true, interact: 'expedition' },
   { type: 'signpost', tx: 113, ty: 44, block: true, interact: 'expedition' },
-  { type: 'stall', tx: 41, ty: 43, w: 2, block: true, variant: 0 },
-  { type: 'stall', tx: 51, ty: 43, w: 2, block: true, variant: 1 },
+  { type: 'stall', tx: 41, ty: 43, w: 2, block: true, variant: 0, interact: 'market_stall' },
+  { type: 'stall', tx: 51, ty: 43, w: 2, block: true, variant: 1, interact: 'market_stall' },
   { type: 'lamp', tx: 40, ty: 36, block: true, light: true },
   { type: 'lamp', tx: 53, ty: 36, block: true, light: true },
   { type: 'lamp', tx: 40, ty: 45, block: true, light: true },

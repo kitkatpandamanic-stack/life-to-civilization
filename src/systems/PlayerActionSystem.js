@@ -41,6 +41,8 @@ export class PlayerActionSystem {
       return { ok: true };
     }
     if (!kind || !this.sim.resources.isHarvestable(obj)) return { ok: false, reason: 'nothing_here' };
+    // A farm's apple tree is its orchard, not firewood.
+    if (kind === 'chop' && obj.variant === 'apple' && obj.owner && obj.owner !== 'player') return { ok: false, reason: 'orchard_not_yours' };
     const p = this.p;
     const toolKind = TOOL_BY_ACTION[kind];
     if (toolKind && !this.sim.inventory.bestTool(toolKind)) return { ok: false, reason: `need_${toolKind}` };

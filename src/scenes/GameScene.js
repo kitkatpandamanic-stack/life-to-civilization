@@ -377,6 +377,23 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  /** An outing from the board (the woods, a meadow, the pasture): some hours out there, then what you gathered. */
+  workOuting() {
+    if (this.busy) return;
+    const sim = this.sim;
+    const job = sim.jobs.active;
+    if (!sim.jobs.canStartOuting().ok) return;
+    this.busy = true;
+    this.player.cancelAction();
+    const minutes = sim.jobs.startOuting();
+    this.ui.showStatus('work', { job: job.jobId, minutes });
+    sim.time.fastForward(minutes, BALANCE.jobs.shiftRealMs, () => {
+      sim.jobs.finishOuting();
+      this.busy = false;
+      this.ui.hideStatus();
+    });
+  }
+
   /** Exploring a discovery site: some time passes, then you find out what's there. */
   exploreSite(id) {
     if (this.busy) return;

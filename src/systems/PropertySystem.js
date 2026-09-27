@@ -813,7 +813,9 @@ export class PropertySystem {
   findRoof(n) {
     if (n.age < 16) {
       const kin = this.sim.family.relatives(n).find((r) => r.homeId);
-      this.moveIn([n], kin ? kin.homeId : 'hall', 'moved');
+      if (kin) this.moveIn([n], kin.homeId, 'moved');
+      // The village hall takes them in if there's a bed — otherwise they stay with their parents, wherever they sleep.
+      else if (this.occupants('hall') < this.capacity('hall')) this.moveIn([n], 'hall', 'moved');
       return;
     }
     const kinHome = this.sim.family.relatives(n).map((r) => r.homeId).find((h) => h && this.isHome(h) && this.occupants(h) < this.capacity(h) + 1 && !this.sim.economy.businessAtBuilding(h));

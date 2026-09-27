@@ -247,14 +247,16 @@ export class FamilySystem {
       const father = this.spouse(mother);
       if (!father || father.gender !== 'm') continue;
       const home = mother.homeId;
-      if (!home) continue;
+      if (!home || home === 'hall') continue; // (a bed in the village hall is a shelter, not a home to raise a baby in)
       const P = sim.property;
       if (P.occupants(home) >= P.capacity(home)) continue; // no room for a baby
       const householdMoney = this.household(mother).reduce((s, n) => s + n.money, 0);
       if (householdMoney < LIFE.minHouseholdMoney) continue;
       const kids = mother.kin.children.filter((id) => this.byId(id)).length;
       const wanted = mother.goal?.type === 'family' || father.goal?.type === 'family' ? GOALS.familyBirthMult : 1; // hoping for a child
-      const chance = LIFE.birthChancePerSeason * Math.pow(0.6, kids) * (mother.age > 35 ? 0.6 : 1) * wanted;
+      // How the valley is doing — money, work, food, mood, a grandparent at home, the family policy (PopulationSystem).
+      const times = this.sim.population?.birthMult(mother) ?? 1;
+      const chance = LIFE.birthChancePerSeason * Math.pow(0.6, kids) * (mother.age > 35 ? 0.6 : 1) * wanted * times;
       if (rand.chance(chance)) this.birth(mother, father);
     }
   }
@@ -310,6 +312,7 @@ export class FamilySystem {
     }
     for (const sib of this.children(mother)) if (sib !== baby) sim.memory.remember(sib, 'sibling_born', { who: baby.id, params: { npc: baby.id } });
     sim.chronicle('chronicle.npc_baby', { npc: mother.id, npc2: father.id, npc3: baby.id, gender: baby.gender });
+    sim.population?.born(baby, mother);
     sim.bus.emit('family:changed', baby.id);
     return baby;
   }
@@ -330,6 +333,8 @@ export class FamilySystem {
       }
       if (npc.age < 60) chance = 0.002;
       chance *= npc.health < 40 ? 3 : 1;
+      // Care: a doctor or the clinic, a roof, food — and the health policy (PopulationSystem).
+      chance *= sim.population?.deathMult(npc) ?? 1;
       if (rand.chance(chance)) this.die(npc, 'age');
     }
   }
@@ -455,6 +460,7 @@ export class FamilySystem {
       occupation: npc.occupation, kin: npc.kin, owned: npc.owns || null, level: npc.level,
     });
     sim.chronicle('chronicle.npc_died', { npc: npc.id, gender: npc.gender, n: age });
+    sim.population?.died(npc);
     sim.npcs.remove(npc);
     for (const r of this.relatives(npc)) this.syncFamily(r);
     sim.bus.emit('family:changed', npc.id);

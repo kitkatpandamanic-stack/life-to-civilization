@@ -16,7 +16,7 @@ const TOOL_FOR = { chop: 'axe', mine: 'pickaxe', till: 'hoe', water: 'watering_c
 
 /** The prompt's icon, by what you're facing (buildings: their business's icon, or what they are). */
 const OBJECT_ICONS = { tree: '🌳', rock: '🪨', bush: '🫐', crop: '🌾', log: '🪵', deadwood: '🪵', herb: '🌿', mushroom: '🍄', flower: '🌼' };
-const DECOR_ICONS = { notice_board: '📋', well: '🪣', land_sign: '🪧', expedition: '🧭' };
+const DECOR_ICONS = { notice_board: '📋', well: '🪣', land_sign: '🪧', expedition: '🧭', market_stall: '🧺' };
 const FURNITURE_ICONS = { bed: '🛏️', chest: '🧰', table: '🍽️', workbench: '🪚', stove: '🍳', door: '🚪', forge: '🔥', shelf: '📚', fireplace: '🔥' };
 
 export function targetIcon(scene, target) {
@@ -42,6 +42,10 @@ export function targetIcon(scene, target) {
       return '🏗️';
     case 'ground':
       return sim.farming.field(target.tx, target.ty)?.crop ? '🌱' : '🟫';
+    case 'plant_spot':
+      return '🌱';
+    case 'job_spot':
+      return '⛺';
     case 'water':
       return '💧';
     case 'animal':
@@ -131,6 +135,24 @@ export class InteractionSystem {
         consider({ kind: 'object', id: obj.id, labelY: LABEL_OFFSET[obj.kind] || 36 }, obj.tx * TS + TS / 2, obj.ty * TS + TS - 6, bias);
       }
     }
+    // Carrying saplings (ForestrySystem): stumps and cleared ground nearby, or open ground in front of you, to plant.
+    const F = this.sim.forestry;
+    const planting = F && F.saplingsCarried().length > 0;
+    if (planting) {
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const obj = this.scene.objects.objectAt(tile.tx + dx, tile.ty + dy);
+          if (!obj || obj.kind !== 'tree' || (obj.state !== 'stump' && obj.state !== 'cleared')) continue;
+          if (!F.canPlantAt(obj.tx, obj.ty, { player: true, apple: true })) continue;
+          consider({ kind: 'plant_spot', tx: obj.tx, ty: obj.ty, id: `plant_${obj.tx}_${obj.ty}`, labelY: 30 }, obj.tx * TS + TS / 2, obj.ty * TS + TS / 2, 6);
+        }
+      }
+    }
+    // An outing from the board: the place out in the woods or fields where the work is.
+    if (this.sim.jobs.atOutingPlace(tile.tx, tile.ty)) {
+      const pl = this.sim.jobs.active.place;
+      consider({ kind: 'job_spot', id: 'job_spot', labelY: 40 }, pl.tx * TS + TS / 2, pl.ty * TS + TS / 2, -30, R + 40);
+    }
     for (const s of this.static) consider(s, s.x, s.y);
     // Discovery sites out in the valley.
     for (const s of this.sim.state.exploration.sites) {
@@ -144,6 +166,8 @@ export class InteractionSystem {
       if (!this.sim.world.isBlocked(ft.tx, ft.ty) || this.sim.farming.field(ft.tx, ft.ty)) {
         consider({ kind: 'ground', tx: ft.tx, ty: ft.ty, labelY: 30 }, ft.tx * TS + TS / 2, ft.ty * TS + TS / 2, 20);
       }
+    } else if (planting && !this.scene.objects.objectAt(ft.tx, ft.ty) && F.canPlantAt(ft.tx, ft.ty, { player: true, apple: true })) {
+      consider({ kind: 'plant_spot', tx: ft.tx, ty: ft.ty, id: `plant_${ft.tx}_${ft.ty}`, labelY: 30 }, ft.tx * TS + TS / 2, ft.ty * TS + TS / 2, 24);
     } else if (this.sim.world.isWater(ft.tx, ft.ty) && (this.sim.farming.canNeedsRefill() || this.sim.inventory.bestTool('fishing_rod'))) {
       consider({ kind: 'water', tx: ft.tx, ty: ft.ty, labelY: 26 }, ft.tx * TS + TS / 2, ft.ty * TS + TS / 2, 10);
     }

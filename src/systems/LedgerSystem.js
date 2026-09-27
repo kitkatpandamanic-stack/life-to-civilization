@@ -55,6 +55,8 @@ const SOURCES = [
   ['crime', 'fitLock', 'shopping'],
   ['crime', 'weekly', 'jobs'],
   ['news', 'advertise', 'business'],
+  ['stall', 'open', 'business'],
+  ['stall', 'onHour', 'sales'],
   ['crafting', 'rentForge', 'crafting'],
   ['actions', 'eatAtTavern', 'food'],
   ['actions', 'payTavernBed', 'lodging'],

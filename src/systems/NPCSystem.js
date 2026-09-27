@@ -28,6 +28,7 @@ import { SKILLED } from '../data/careers.js';
 import { rand } from '../core/rng.js';
 import { findPath } from '../world/Pathfinder.js';
 
+import { FOREST } from '../data/forestry.js';
 const NB = BALANCE.npc;
 
 export class NPCSystem {
@@ -532,7 +533,8 @@ export class NPCSystem {
       if (npc.employer === 'player') return this.sim.workers.continueWork(npc);
       const act = this.activityOf(npc);
       if (task.stage === 'doing' && now >= task.until) {
-        if (act === 'farm') this.nextFarmPlot(npc);
+        if (task.planting || act === 'plant') this.finishPlanting(npc);
+        else if (act === 'farm') this.nextFarmPlot(npc);
         else if (act === 'chop' || act === 'mine') this.finishGather(npc);
         else if (act === 'fish') this.finishFishing(npc);
         else if (act === 'build') {
@@ -694,6 +696,7 @@ export class NPCSystem {
     S.emigrants ??= [];
     S.emigrants.push({ id: npc.id, nameIdx: npc.nameIdx, surnameIdx: npc.surnameIdx, gender: npc.gender, look: npc.look, kin: npc.kin, left: this.time.day, age: npc.age });
     if (S.emigrants.length > 200) S.emigrants.shift();
+    this.sim.population?.departed(npc); // gone for good, or off to the towns for a while
     this.remove(npc);
   }
 
@@ -870,6 +873,8 @@ export class NPCSystem {
         return this.nextFishing(npc);
       case 'build':
         return this.nextBuild(npc);
+      case 'plant':
+        return this.nextPlanting(npc);
       default:
         return this.goInto(npc, bld.id);
     }
@@ -881,6 +886,18 @@ export class NPCSystem {
     const now = this.time.total;
     const act = this.activityOf(npc);
     npc.workedToday = true;
+    // Planting (a forester — or a woodcutter with nothing to fell): see ForestrySystem.
+    if (task.planting || act === 'plant') {
+      if (task.stage === 'to_target' && task.plant) {
+        task.stage = 'doing';
+        task.until = now + Math.round(FOREST.plantMinutes / this.productivity(npc));
+        this.face(npc, task.plant.tx, task.plant.ty);
+      } else if (task.stage === 'idle_go') {
+        task.stage = 'idle_wait';
+        task.until = now + 60;
+      }
+      return;
+    }
     if (act === 'inside') {
       this.enter(npc, this.workBuilding(npc).id);
       task.stage = 'inside';
@@ -1003,12 +1020,18 @@ export class NPCSystem {
     const wants = this.sim.economy.wantsMore(biz, mainItem);
     // Woodcutters only fell full-grown trees (young ones are left to grow).
     // …and leave your land alone: what grows on it is yours.
-    const usable = (o) => (kind !== 'tree' || o.state === 'grown') && (kind !== 'rock' || (rock === 'clay') === (o.variant === 'clay')) && (!o.reservedBy || o.reservedBy === npc.id) && !this.sim.land.ownsTile(o.tx, o.ty);
+    // (Apple trees are orchards, not timber.)
+    const usable = (o) => (kind !== 'tree' || (o.state === 'grown' && o.variant !== 'apple')) && (kind !== 'rock' || (rock === 'clay') === (o.variant === 'clay')) && (!o.reservedBy || o.reservedBy === npc.id) && !this.sim.land.ownsTile(o.tx, o.ty);
     // Nothing left near the yard? Go deeper into the woods (a longer walk, but there's work).
-    const target = wants ? this.sim.resources.findNearest(kind, bld.door.tx, bld.door.ty, NB.searchRadius, usable) || this.sim.resources.findNearest(kind, bld.door.tx, bld.door.ty, NB.searchRadius * 2.2, usable) : null;
+    // The woods too thin to fell more today (the felling limit — ForestrySystem)?
+    const mayFell = kind !== 'tree' || (this.sim.forestry?.mayFell(biz) ?? true);
+    const target = wants && mayFell ? this.sim.resources.findNearest(kind, bld.door.tx, bld.door.ty, NB.searchRadius, usable) || this.sim.resources.findNearest(kind, bld.door.tx, bld.door.ty, NB.searchRadius * 2.2, usable) : null;
     if (!target) {
-      // Nothing left to fell nearby? Plant the stumps instead, so there's timber in years to come.
-      if (kind === 'tree' && wants) this.replant(npc, bld);
+      // Nothing to fell? Plant instead (and tend the young trees), so there's timber in years to come.
+      if (kind === 'tree') {
+        if (wants && this.sim.economy.biz(biz)) this.sim.economy.biz(biz).noTreesDay = this.time.day;
+        return this.nextPlanting(npc);
+      }
       npc.task.stage = 'idle_go';
       const spot = bld.workSpots[0] || bld.door;
       return this.walkTo(npc, spot.tx, spot.ty);
@@ -1028,29 +1051,51 @@ export class NPCSystem {
     this.walkTo(npc, stand.tx, stand.ty);
   }
 
-  /** A woodcutter with no trees left in reach plants saplings where stumps stand. */
-  replant(npc, bld) {
-    const res = this.sim.resources;
-    let stump = null;
-    let bestD = Infinity;
-    for (const o of Object.values(this.sim.state.objects)) {
-      if (o.kind !== 'tree' || (o.state !== 'stump' && o.state !== 'cleared') || this.sim.land.plotAt(o.tx, o.ty) || this.sim.land.ownsTile(o.tx, o.ty)) continue;
-      const d = Math.abs(o.tx - bld.door.tx) + Math.abs(o.ty - bld.door.ty);
-      if (d < bestD && d <= NB.searchRadius) {
-        bestD = d;
-        stump = o;
+  /**
+   * Planting work (ForestrySystem): the nearest stump, cleared ground or forest edge to plant — or a young
+   * tree to tend. Nothing at all to do: wait at the yard. Returns true if they're off to plant.
+   */
+  nextPlanting(npc) {
+    if (!npc.task) return false;
+    const bld = this.workBuilding(npc);
+    const F = this.sim.forestry;
+    if (npc.task.plant) F?.release(npc.task.plant);
+    const job = bld && F ? F.nextTask(npc, bld.door) : null;
+    npc.task.plant = job;
+    npc.task.planting = !!job;
+    if (!job) {
+      npc.task.stage = 'idle_go';
+      const spot = bld?.workSpots?.[0] || bld?.door;
+      if (spot) this.walkTo(npc, spot.tx, spot.ty);
+      return false;
+    }
+    npc.task.stage = 'to_target';
+    let stand = null;
+    for (const [dx, dy] of [[0, 1], [-1, 0], [1, 0], [0, -1]]) {
+      if (!this.world.isBlocked(job.tx + dx, job.ty + dy)) {
+        stand = { tx: job.tx + dx, ty: job.ty + dy };
+        break;
       }
     }
-    if (!stump) return;
-    stump.state = 'sapling';
-    stump.stageDay = this.time.day;
-    stump.planted = true;
-    res.changed(stump);
+    stand = stand || this.world.nearestWalkable(job.tx, job.ty + 1, 3);
+    this.walkTo(npc, stand.tx, stand.ty);
+    return true;
+  }
+
+  finishPlanting(npc) {
+    const task = npc.task;
+    const job = task.plant;
+    const done = this.sim.forestry?.doTask(npc, job);
+    task.plant = null;
+    task.planting = false;
     const S = this.sim.state.settlement;
-    if (!S.replantingStarted) {
+    if (done && job.kind === 'plant' && npc.occupation !== 'forester' && !S.replantingStarted) {
       S.replantingStarted = true;
-      this.sim.chronicle('chronicle.replanting', { npc: npc.id, gender: npc.gender, building: bld.id });
+      this.sim.chronicle('chronicle.replanting', { npc: npc.id, gender: npc.gender, building: this.workBuilding(npc)?.id });
     }
+    // A woodcutter goes back to felling if there's something to fell; a forester plants on.
+    if (this.activityOf(npc) === 'chop') return this.nextGather(npc, 'tree');
+    return this.nextPlanting(npc);
   }
 
   finishGather(npc) {
@@ -1059,7 +1104,10 @@ export class NPCSystem {
     const obj = res.get(npc.task.targetId);
     let carry = null;
     if (obj && res.isHarvestable(obj)) {
-      if (act === 'chop') carry = { item: 'wood', qty: res.fellTree(obj.id) };
+      if (act === 'chop') {
+        carry = { item: 'wood', qty: res.fellTree(obj.id) };
+        this.sim.forestry?.felled(this.workBusiness(npc));
+      }
       else {
         const r = res.mineRock(obj.id);
         if (r.item) carry = { item: r.item, qty: r.qty };
@@ -1075,6 +1123,7 @@ export class NPCSystem {
   }
 
   clearReservation(npc) {
+    if (npc.task?.plant) this.sim.forestry?.release(npc.task.plant);
     const id = npc.task?.targetId;
     if (!id) return;
     const obj = this.sim.resources.get(id);

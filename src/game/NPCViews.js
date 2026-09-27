@@ -138,6 +138,8 @@ export class NPCViews {
       return null;
     }
     const act = this.sim.npcs.activityOf(npc);
+    // Planting a sapling or tending a young tree: kneeling at the soil, like the fields.
+    if (t.planting || act === 'plant') return t.stage === 'doing' ? 'farm' : null;
     if (act === 'build') return t.stage === 'doing' ? 'build' : null;
     if (act === 'chop' || act === 'mine') return t.stage === 'doing' ? act : null;
     if (act === 'farm') return t.stage === 'doing' ? 'farm' : null;

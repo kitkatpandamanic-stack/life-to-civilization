@@ -173,6 +173,8 @@ export function resolveParams(sim, params = {}) {
     else if (k === 'interest') out[k] = t(`interest_obj.${v}`);
     else if (k === 'field') out[k] = t(`knowledge.${v}`);
     else if (k === 'crank') out[k] = t(`contractor_rank.${v}`);
+    else if (k === 'jrank') out[k] = t(`job_rank.${v}`); // your rank in a line of work (JobSystem)
+    else if (k === 'pkind') out[k] = t(`place_kind.${v}`); // where an outing goes
     else if (k === 'grade' || k === 'speed') out[k] = t(`contract.grade.${v}`).toLowerCase();
     else if (k === 'dl') out[k] = t(`contract.when.${v}`);
     else if (k === 'role') out[k] = t(`assignment.${v}`);

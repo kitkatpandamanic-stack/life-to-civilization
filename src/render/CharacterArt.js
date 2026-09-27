@@ -77,6 +77,8 @@ export const JOB_GARB = {
   farmhand: { head: 'straw' },
   lumber_foreman: { head: 'knit', body: 'waistcoat', colour: '#5a3f24' },
   woodcutter: { head: 'knit', body: 'waistcoat', colour: '#5a3f24' },
+  forester: { head: 'straw', body: 'waistcoat', colour: '#3f5a2f' },
+  nursery_keeper: { head: 'straw', body: 'white_apron' },
   sawyer: { head: 'knit' },
   sawmill_hand: { head: 'knit' },
   hunter: { head: 'knit', body: 'waistcoat', colour: '#4f5a36' },

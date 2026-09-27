@@ -16,7 +16,9 @@ import { colonyName } from './ColonyPanel.js';
 import { PLOTS } from '../../data/land.js';
 
 /** Map layers — one at a time, only when you ask for it. */
-const LAYERS = ['normal', 'buildings', 'workers', 'jobs', 'resources', 'transport', 'infrastructure', 'ownership', 'land_use', 'value', 'places', 'population'];
+const LAYERS = ['normal', 'buildings', 'workers', 'jobs', 'resources', 'forest', 'transport', 'infrastructure', 'ownership', 'land_use', 'value', 'places', 'population'];
+/** The woods (the Forest layer): grown, young and newly planted trees, stumps, orchards (ForestrySystem). */
+const FOREST_COLORS = { grown: '#1f6a2a', young: '#6fc04a', planted: '#b8e86a', stump: '#8a5a2a', apple: '#e0503a' };
 /** Buildings by what they are (the Buildings layer). */
 const BCAT_COLORS = { home: '#f0c060', farm: '#9ad050', shop: '#e0603a', industry: '#a0a0b8', storage: '#c890ff', public: '#60a0f0', site: '#60d0a0' };
 /** Your workers by what they're doing (the Workers layer) — the same groups as the Workers screen. */
@@ -176,7 +178,10 @@ export class MapPanel extends Panel {
     else if (L === 'buildings') legend = Object.entries(BCAT_COLORS).map(([k, c]) => `<span><i class="lg" style="background:${c};border-radius:2px"></i>${escapeHtml(t(`map.bcat_${k}`))}</span>`).join('') + `<span><i class="lg" style="border:2px solid #ffcf5a;border-radius:2px"></i>${escapeHtml(t('map.yours'))}</span>`;
     else if (L === 'workers') legend = Object.entries(GROUP_COLORS).map(([k, c]) => `<span><i class="lg" style="background:${c}"></i>${escapeHtml(t(`wf.group_${k}`))}</span>`).join('');
     else if (L === 'jobs') legend = `<span><i class="lg" style="background:#ffcf5a"></i>${escapeHtml(t('map.jobs_contracts'))}</span><span><i class="lg" style="background:#60d0a0;border-radius:2px"></i>${escapeHtml(t('map.jobs_sites'))}</span>`;
-    else if (L === 'resources') legend = Object.entries(RES_COLORS).map(([k, c]) => `<span><i class="lg" style="background:${c};border-radius:2px"></i>${escapeHtml(t(`map.res_${k}`))}</span>`).join('');
+    else if (L === 'forest') {
+      const f = this.sim.forestry.summary();
+      legend = `${Object.entries(FOREST_COLORS).map(([k, c]) => `<span><i class="lg" style="background:${c};border-radius:50%"></i>${escapeHtml(t(`map.forest_${k}`))}</span>`).join('')}<span><b>${escapeHtml(t(`forest.status_${f.status}`))} · ${Math.round(f.health * 100)}%</b></span>`;
+    } else if (L === 'resources') legend = Object.entries(RES_COLORS).map(([k, c]) => `<span><i class="lg" style="background:${c};border-radius:2px"></i>${escapeHtml(t(`map.res_${k}`))}</span>`).join('');
     return `${filters(LAYERS.map((l) => [l, t(`map.layer_${l}`)]), L, 'layer')}
       <div class="map-wrap"><canvas class="map-canvas clickable" title="${escapeHtml(t('map.click_hint'))}"></canvas></div>
       <div class="map-legend">
@@ -270,6 +275,21 @@ export class MapPanel extends Panel {
     this.draw();
   }
 
+  /** The Woods layer (ForestrySystem): every tree as a dot — dark grown, bright young, pale planted, brown stumps, red apple trees. */
+  drawForest(ctx) {
+    ctx.globalAlpha = 0.9;
+    for (const o of Object.values(this.sim.state.objects)) {
+      if (o.kind !== 'tree') continue;
+      const k = o.variant === 'apple' ? 'apple' : o.state === 'grown' ? 'grown' : o.state === 'stump' || o.state === 'cleared' ? 'stump' : o.planted ? 'planted' : 'young';
+      if (k === 'stump' && o.state === 'cleared' && !o.felledDay) continue;
+      ctx.fillStyle = FOREST_COLORS[k];
+      ctx.beginPath();
+      ctx.arc(o.tx * SCALE + SCALE / 2, o.ty * SCALE + SCALE / 2, k === 'grown' ? SCALE * 0.55 : SCALE * 0.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
   /** The chosen layer, drawn over the buildings (and land). */
   drawLayer(ctx) {
     const sim = this.sim;
@@ -281,6 +301,7 @@ export class MapPanel extends Panel {
       ctx.fillRect(b.tx * SCALE, b.ty * SCALE, b.w * SCALE, b.h * SCALE);
       ctx.globalAlpha = 1;
     };
+    if (L === 'forest') return; // (drawn over the fog — drawForest: the lumberyard knows its woods)
     if (L === 'ownership') {
       // Every piece of land, tinted by who owns it (nobody's land left bare), with the lines between them.
       const T2 = sim.territory;
@@ -617,6 +638,7 @@ export class MapPanel extends Panel {
         if (!X.isSeen(cx * C, cy * C)) ctx.fillRect(cx * C * SCALE, cy * C * SCALE, C * SCALE, C * SCALE);
       }
     }
+    if (this.layer === 'forest') this.drawForest(ctx);
     ctx.font = 'bold 11px Nunito, sans-serif';
     ctx.textAlign = 'center';
     // What you've found out in the valley: ? discovered · ✓ explored · ★ outpost.

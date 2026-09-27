@@ -25,12 +25,13 @@ export const BUSINESS_TYPES = {
   general_store: {
     kind: 'shop', sector: 'grocery', icon: '🧺', openHours: [8, 19],
     ownerOccupation: 'shopkeeper', workerOccupation: 'store_clerk', maxWorkers: 1,
-    sells: ['bread', 'apple', 'cheese', 'potato', 'carrot', 'cabbage', 'fish', 'hay', 'wheat_seeds', 'carrot_seeds', 'potato_seeds', 'cabbage_seeds', 'pumpkin_seeds', 'watering_can', 'fishing_rod', 'bow', 'bricks', 'glass'],
+    sells: ['bread', 'apple', 'cheese', 'potato', 'carrot', 'cabbage', 'fish', 'hay', 'wheat_seeds', 'carrot_seeds', 'potato_seeds', 'cabbage_seeds', 'pumpkin_seeds', 'watering_can', 'fishing_rod', 'bow', 'bricks', 'glass', 'sapling', 'apple_sapling', 'honey', 'mushroom'],
     buys: ['wood', 'stone', 'clay', 'wheat', 'berries', 'apple', 'carrot', 'potato', 'cabbage', 'pumpkin', 'planks', 'stool', 'chair', 'table', 'fish', 'meat', 'hide', 'bricks'],
     // From you only (your farm animals — LivestockSystem): not restocked, not ordered; the surplus goes to traders.
     buysFromYou: ['egg', 'milk', 'wool'],
-    targets: { bread: 20, apple: 14, cheese: 8, potato: 12, carrot: 12, cabbage: 8, fish: 6, wheat_seeds: 20, carrot_seeds: 20, potato_seeds: 20, cabbage_seeds: 12, pumpkin_seeds: 8, watering_can: 2, fishing_rod: 2, bow: 1, bricks: 14, glass: 6, hay: 12, wood: 20, stone: 16, clay: 10, wheat: 20, berries: 10, pumpkin: 4, planks: 12, stool: 3, chair: 3, table: 2 },
+    targets: { bread: 20, apple: 14, cheese: 8, potato: 12, carrot: 12, cabbage: 8, fish: 6, sapling: 6, apple_sapling: 3, wheat_seeds: 20, carrot_seeds: 20, potato_seeds: 20, cabbage_seeds: 12, pumpkin_seeds: 8, watering_can: 2, fishing_rod: 2, bow: 1, bricks: 14, glass: 6, hay: 12, wood: 20, stone: 16, clay: 10, wheat: 20, berries: 10, pumpkin: 4, planks: 12, stool: 3, chair: 3, table: 2 },
     // Bread from the mill's flour; without flour, grinding wheat by hand is slow work.
+    // (Saplings come by caravan like everything it doesn't make — see outsideTrade; honey and mushrooms only when someone brings them in.)
     recipes: { bread: { alts: [{ in: { flour: 1 }, out: 2 }, { in: { wheat: 1 }, out: 1, cost: 1.5 }], perDay: 9, perWorker: 3, import: true } },
     startCost: 360, openable: true,
   },
@@ -38,10 +39,10 @@ export const BUSINESS_TYPES = {
     kind: 'shop', sector: 'tavern', icon: '🍺', openHours: [9, 23],
     ownerOccupation: 'innkeeper', workerOccupation: 'tavern_server', maxWorkers: 1,
     sells: ['stew', 'pie'],
-    buys: ['berries', 'wheat', 'bread', 'fish', 'meat'],
-    targets: { stew: 12, pie: 8, berries: 12, wheat: 8, bread: 4 },
+    buys: ['berries', 'wheat', 'bread', 'fish', 'meat', 'mushroom'],
+    targets: { stew: 12, pie: 8, berries: 12, wheat: 8, bread: 4, mushroom: 4 },
     recipes: {
-      stew: { alts: [{ in: { meat: 1 }, out: 3 }, { in: { fish: 1 }, out: 2 }, { in: { bread: 1 }, out: 3 }, { in: { wheat: 1 }, out: 2 }], perDay: 12, perWorker: 4, cap: 2, import: true },
+      stew: { alts: [{ in: { meat: 1 }, out: 3 }, { in: { fish: 1 }, out: 2 }, { in: { mushroom: 2 }, out: 3 }, { in: { bread: 1 }, out: 3 }, { in: { wheat: 1 }, out: 2 }], perDay: 12, perWorker: 4, cap: 2, import: true },
       pie: { alts: [{ in: { berries: 3 }, out: 1 }], perDay: 6, perWorker: 2, cap: 2, import: true },
     },
     startCost: 420, openable: true,
@@ -156,7 +157,7 @@ export const BUSINESS_TYPES = {
   warehouse: {
     kind: 'depot', sector: 'trade', icon: '📦', premises: 'warehouse',
     ownerOccupation: 'merchant', workerOccupation: 'warehouse_hand', maxWorkers: 2,
-    targets: { wood: 50, stone: 50, wheat: 50, fish: 25, coal: 20, iron_ore: 20 },
+    targets: { wood: 50, stone: 50, wheat: 50, fish: 25, coal: 20, iron_ore: 20, resin: 12 },
     startCost: 320, openable: true,
   },
   carters: {
@@ -171,10 +172,24 @@ export const BUSINESS_TYPES = {
     targets: {},
     startCost: 200, openable: true,
   },
+  // Saplings raised from seed: sold to the store, villagers and you — and planted out in the woods by its foresters
+  // (paid by the village's planting fund). Villagers open one when the woods are thinning (ForestrySystem).
+  tree_nursery: {
+    kind: 'shop', sector: 'forestry', icon: '🌱', openHours: [8, 17],
+    ownerOccupation: 'nursery_keeper', workerOccupation: 'forester', maxWorkers: 2,
+    sells: ['sapling', 'apple_sapling'],
+    buys: [],
+    targets: { sapling: 16, apple_sapling: 6 },
+    recipes: {
+      sapling: { alts: [{ in: {}, out: 1 }], perDay: 3, perWorker: 2, cap: 2 },
+      apple_sapling: { alts: [{ in: {}, out: 1 }], perDay: 1, perWorker: 0.5, cap: 2 },
+    },
+    startCost: 220, openable: true,
+  },
   farm: {
     kind: 'producer', sector: 'farming', icon: '🌾', output: 'farm',
     ownerOccupation: 'farmer', workerOccupation: 'farmhand', maxWorkers: 3,
-    targets: { wheat: 30, hay: 24 }, // (hay: cut in summer and autumn, winter fodder)
+    targets: { wheat: 30, hay: 24, apple: 12 }, // (hay: cut in summer and autumn, winter fodder; apples from its orchard — ForestrySystem)
   },
   lumberyard: {
     kind: 'producer', sector: 'lumber', icon: '🪵',
@@ -202,6 +217,7 @@ export const EXPERIENCE = {
   bakery: ['baker_hand', 'farmhand', 'farmer', 'tavern_server'],
   carpentry: ['carpenter_hand', 'woodcutter', 'lumber_foreman'],
   fishery: ['fisher', 'fisherman'],
+  tree_nursery: ['forester', 'woodcutter', 'farmhand', 'farmer'],
   mill: ['mill_hand', 'miller', 'farmhand', 'baker_hand', 'farmer'],
   builders: ['builder', 'carpenter_hand', 'woodcutter', 'master_builder'],
   warehouse: ['warehouse_hand', 'store_clerk', 'shopkeeper', 'merchant'],

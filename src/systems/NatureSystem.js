@@ -19,12 +19,13 @@
 import { AREAS } from '../data/villageLayout.js';
 import { T } from '../world/WorldGenerator.js';
 import { hashStr, rand } from '../core/rng.js';
+import { FOREST } from '../data/forestry.js';
 
 export const NATURE = {
   sproutDays: [8, 18], // a stump may sprout this many days after felling…
   sproutBase: 0.3, // …with this chance, +0.12 per healthy tree nearby
   rotDays: 45, // stumps that never sprout rot away into grass
-  saplingDays: 16, // sapling → young (growing season only)
+  saplingDays: 16, // sapling → young (winter days count for half — ForestrySystem FOREST.winterGrowth)
   youngDays: 26, // young → grown
   seedChance: 0.0012, // chance per grown tree per day to seed a free tile next to it
   maxTreesFactor: 1.05, // forests spread back to about their natural size, not beyond
@@ -69,7 +70,7 @@ export class NatureSystem {
 
   treeCount(stateFilter = (s) => s === 'grown') {
     let n = 0;
-    for (const o of Object.values(this.sim.state.objects)) if (o.kind === 'tree' && stateFilter(o.state)) n++;
+    for (const o of Object.values(this.sim.state.objects)) if (o.kind === 'tree' && o.variant !== 'apple' && stateFilter(o.state)) n++;
     return n;
   }
 
@@ -77,7 +78,7 @@ export class NatureSystem {
   forestAround(tx, ty, r = 3) {
     let n = 0;
     for (const o of Object.values(this.sim.state.objects)) {
-      if (o.kind === 'tree' && o.state === 'grown' && Math.abs(o.tx - tx) <= r && Math.abs(o.ty - ty) <= r) n++;
+      if (o.kind === 'tree' && o.state === 'grown' && o.variant !== 'apple' && Math.abs(o.tx - tx) <= r && Math.abs(o.ty - ty) <= r) n++;
     }
     return n;
   }
@@ -205,6 +206,8 @@ export class NatureSystem {
     for (const o of Object.values(objs)) {
       if (o.kind !== 'tree') continue;
       let changed = false;
+      // Winter: saplings and young trees still grow, slowly (so there's timber again by spring).
+      if (!growing && (o.state === 'sapling' || o.state === 'young')) o.stageDay = (o.stageDay ?? day) + (1 - FOREST.winterGrowth);
       if (o.state === 'stump') {
         o.felledDay ??= day;
         if (o.sproutDay === undefined) o.sproutDay = o.felledDay + rand.int(NATURE.sproutDays[0], NATURE.sproutDays[1]);
@@ -221,15 +224,16 @@ export class NatureSystem {
           o.state = 'cleared';
           changed = true;
         }
-      } else if (o.state === 'sapling' && growing && day - (o.stageDay ?? day) >= NATURE.saplingDays) {
+      } else if (o.state === 'sapling' && day - (o.stageDay ?? day) >= NATURE.saplingDays) {
         o.state = 'young';
         o.stageDay = day;
         changed = true;
-      } else if (o.state === 'young' && growing && day - (o.stageDay ?? day) >= NATURE.youngDays) {
+      } else if (o.state === 'young' && day - (o.stageDay ?? day) >= NATURE.youngDays) {
         o.state = 'grown';
         delete o.felledDay;
         delete o.sproutDay;
         delete o.triedSprout;
+        delete o.tendedDay;
         changed = true;
       } else if (o.state === 'cleared' && !this.sim.land.ownsTile(o.tx, o.ty) && growing && rand.chance(0.004 * (1 + this.forestAround(o.tx, o.ty, 2)))) {
         // Open ground inside a forest fills in again.
@@ -237,16 +241,28 @@ export class NatureSystem {
         o.stageDay = day;
         changed = true;
       }
-      if (o.state === 'grown') grown++;
+      if (o.state === 'grown' && o.variant !== 'apple') grown++;
       if (changed) sim.resources.changed(o);
     }
     // Healthy forests spread (a little).
     if (growing && grown < this.n.startTrees * NATURE.maxTreesFactor) {
-      const seeders = Object.values(objs).filter((o) => o.kind === 'tree' && o.state === 'grown');
+      const seeders = Object.values(objs).filter((o) => o.kind === 'tree' && o.state === 'grown' && o.variant !== 'apple');
       for (const t of seeders) {
         if (!rand.chance(NATURE.seedChance)) continue;
         const tx = t.tx + rand.int(-2, 2);
         const ty = t.ty + rand.int(-2, 2);
+        if (occupied.has(`${tx},${ty}`) || !this.canGrowAt(tx, ty)) continue;
+        occupied.add(`${tx},${ty}`);
+        this.addObject({ kind: 'tree', variant: t.variant, tx, ty, state: 'sapling', stageDay: day });
+      }
+      // Young trees seed the ground too, if less often (so a replanted wood fills itself in).
+      const seed = this.sim.state.seed;
+      for (const t of Object.values(objs)) {
+        if (t.kind !== 'tree' || t.state !== 'young' || t.variant === 'apple') continue;
+        if (hashStr(`seed:${t.id}:${day}`, seed) >= NATURE.seedChance * FOREST.youngSeedShare) continue;
+        const h = hashStr(`seedat:${t.id}:${day}`, seed);
+        const tx = t.tx + (Math.floor(h * 5) - 2);
+        const ty = t.ty + (Math.floor(((h * 5) % 1) * 5) - 2);
         if (occupied.has(`${tx},${ty}`) || !this.canGrowAt(tx, ty)) continue;
         occupied.add(`${tx},${ty}`);
         this.addObject({ kind: 'tree', variant: t.variant, tx, ty, state: 'sapling', stageDay: day });

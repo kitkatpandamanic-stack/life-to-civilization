@@ -24,6 +24,7 @@ export function paperHtml(sim) {
     ${heads}
     ${prices ? `<div class="paper-sec">${escapeHtml(t('news.prices'))}</div><div class="small">${prices}</div>` : ''}
     <div class="paper-sec">${escapeHtml(t('news.law'))}</div><div class="small">${escapeHtml(is.thefts ? t('news.thefts', { n: is.thefts }) : t('news.no_thefts'))}</div>
+    ${is.woods ? `<div class="paper-sec">${escapeHtml(t('news.woods'))}</div><div class="small">🌲 ${escapeHtml(t(`news.woods_${is.woods.status}`, { n: is.woods.h }))}</div>` : ''}
     <div class="paper-sec">${escapeHtml(t('news.outlook'))}</div><div class="small">${escapeHtml(t(`news.outlook_${sim.time.season}`))}</div>
     ${ads ? `<div class="paper-sec">${escapeHtml(t('news.ads'))}</div>${ads}` : ''}
   </div>`;

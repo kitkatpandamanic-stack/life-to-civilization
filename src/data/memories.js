@@ -137,6 +137,7 @@ export const MEMORY_KINDS = {
   gave_up_building: { imp: 4, val: -4 },
   arrived_village: { imp: 5, val: 2 },
   friend_left: { imp: 3, val: -2 },
+  child_returned: { imp: 5, val: 5 }, // their child came home from the towns (PopulationSystem)
   player_helped_build: { imp: 3, val: 3, bond: { f: 6, t: 10, r: 6 }, merge: 14, share: true },
   bought_land: { imp: 4, val: 3 },
   developed_row: { imp: 5, val: 4 },

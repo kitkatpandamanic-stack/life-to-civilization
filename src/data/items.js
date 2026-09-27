@@ -25,11 +25,16 @@ export const ITEMS = {
   hide: { category: 'material', weight: 1.5, basePrice: 9 },
   wool: { category: 'material', weight: 0.5, basePrice: 7 }, // shorn from your sheep (LivestockSystem)
   hay: { category: 'material', weight: 0.8, basePrice: 1 }, // winter fodder, from the farm
+  resin: { category: 'material', weight: 0.5, basePrice: 5 }, // tapped from pines (a forest job): pitch and varnish, sold on by the warehouse
+  sapling: { category: 'material', weight: 1, basePrice: 4 }, // a young forest tree to plant out (ForestrySystem)
+  apple_sapling: { category: 'material', weight: 1.2, basePrice: 9 }, // an apple tree for an orchard
   iron_ingot: { category: 'material', weight: 1.5, basePrice: 26 },
 
   // Food
   berries: { category: 'food', weight: 0.2, basePrice: 1, food: { hunger: 5 } },
   apple: { category: 'food', weight: 0.4, basePrice: 3, food: { hunger: 12 } },
+  mushroom: { category: 'food', weight: 0.2, basePrice: 2, food: { hunger: 6 } }, // gathered in the woods (a forest job)
+  honey: { category: 'food', weight: 0.5, basePrice: 7, food: { hunger: 10, energy: 3 } }, // from the hives on the meadows
   carrot: { category: 'food', weight: 0.3, basePrice: 3, food: { hunger: 8 } },
   potato: { category: 'food', weight: 0.5, basePrice: 3, food: { hunger: 10 } },
   cabbage: { category: 'food', weight: 1, basePrice: 5, food: { hunger: 14 } },

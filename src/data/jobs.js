@@ -8,6 +8,16 @@
  *   shift    — work a timed shift inside the workplace (time fast-forwards)
  *   rounds   — pick up letters at the employer, then deliver one to each of several houses
  *   haul     — pick up materials at the employer and carry them to a building site in the village
+ *   outing   — go out to a place (the woods, a meadow, a pasture…) and work there a few hours; with a
+ *              yield, bring what you gathered back to the employer (then it's paid like a delivery)
+ *   plant    — take saplings from the employer and plant them out in the woods (paid per tree)
+ *
+ * employer 'village' — the village itself pays (from its treasury), at the hall
+ * when       — the job only exists when there's call for it (a funeral, a newborn, the sick…: JobSystem.condition)
+ * hourly     — [min, max] hours: you choose how long to work, paid perHour
+ * tips       — customers may tip (a barber, a server)
+ * piece      — pay per tree planted (plant jobs); deliveries always pay per extra unit you bring
+ * roundsKind — rounds that aren't letters: 'lamps' (light the street lamps), 'chimneys' (sweep them)
  *
  * employer     — a business id ('store', 'farm'…) — or employerType: any business of that
  *                type the village has (a bakery, a carpenter's…); the one that can pay best hires
@@ -173,6 +183,208 @@ export const JOBS = {
     hours: [7, 12], dailySlots: 1,
     requires: { level: 3, attributes: { strength: 3 } },
   },
+};
+
+// ---- More work: the village's own jobs, trades' helpers, and work in the woods and fields.
+// (Added to JOBS below, kept apart so the older list stays easy to read.)
+const MORE_JOBS = {
+  // The village pays (from its treasury) — ask at the hall.
+  lamplighter: {
+    employer: 'village', type: 'rounds', roundsKind: 'lamps', qty: 4,
+    pay: 14, xp: 16, skill: null, rep: 1,
+    hours: [17, 21], dailySlots: 1,
+    requires: { level: 1 },
+  },
+  night_watch: {
+    employer: 'village', type: 'shift', durationHours: 4, energy: 16,
+    pay: 22, xp: 26, skill: null, rep: 2,
+    hours: [20, 23], dailySlots: 1,
+    requires: { level: 2, reputation: 2 },
+  },
+  chimney_sweep: {
+    employer: 'village', type: 'rounds', roundsKind: 'chimneys', qty: 3,
+    pay: 21, xp: 22, skill: null, rep: 1,
+    hours: [8, 15], seasons: ['autumn', 'winter'], dailySlots: 1,
+    requires: { level: 1 },
+  },
+  road_mending: {
+    employer: 'village', type: 'shift', durationHours: 3, hourly: [1, 6], perHour: 5, energy: 15,
+    pay: 15, xp: 20, skill: 'construction', skillXp: 12, rep: 1,
+    hours: [7, 15], dailySlots: 2,
+    requires: { level: 1 },
+  },
+  well_digging: {
+    employer: 'village', type: 'shift', durationHours: 5, energy: 26, when: 'well_needed',
+    pay: 38, xp: 44, skill: 'mining', skillXp: 15, rep: 2,
+    hours: [7, 12], dailySlots: 1,
+    requires: { level: 3, tool: 'pickaxe', attributes: { strength: 3 } },
+  },
+  gravedigger: {
+    employer: 'village', type: 'shift', durationHours: 3, energy: 16, when: 'funeral',
+    pay: 20, xp: 20, skill: null, rep: 1,
+    hours: [7, 16], dailySlots: 1,
+    requires: { level: 1 },
+  },
+  messenger: {
+    employer: 'village', type: 'courier', item: 'package',
+    pay: 12, xp: 16, skill: null, rep: 1,
+    hours: [8, 17], dailySlots: 2,
+    requires: { level: 1 },
+  },
+  hall_clerk: {
+    employer: 'village', type: 'shift', durationHours: 3, energy: 8,
+    pay: 22, xp: 30, skill: 'learning', skillXp: 20, rep: 1,
+    hours: [9, 14], dailySlots: 1,
+    requires: { level: 2, reputation: 4 },
+  },
+  tutor: {
+    employer: 'village', type: 'shift', durationHours: 2, energy: 8, when: 'children',
+    pay: 18, xp: 26, skill: 'learning', skillXp: 20, rep: 2,
+    hours: [14, 18], dailySlots: 1,
+    requires: { level: 3, reputation: 5 },
+  },
+  nurse_helper: {
+    employer: 'village', type: 'shift', durationHours: 3, energy: 12, when: 'sick',
+    pay: 20, xp: 26, skill: null, rep: 2,
+    hours: [8, 18], dailySlots: 1,
+    requires: { level: 2 },
+  },
+  midwife_helper: {
+    employer: 'village', type: 'shift', durationHours: 2, energy: 10, when: 'newborn',
+    pay: 26, xp: 24, skill: null, rep: 2,
+    hours: [6, 20], dailySlots: 1,
+    requires: { level: 2 },
+  },
+  expedition_guide: {
+    employer: 'village', type: 'outing', place: 'far', durationHours: 6, energy: 26, when: 'settlements',
+    pay: 48, xp: 60, skill: 'exploration', skillXp: 30, rep: 2,
+    hours: [6, 11], dailySlots: 1,
+    requires: { level: 4 },
+  },
+
+  // Helping the trades.
+  tailoring: {
+    employer: 'store', type: 'shift', durationHours: 3, energy: 8,
+    pay: 18, xp: 22, skill: null, rep: 1,
+    hours: [9, 15], dailySlots: 1,
+    requires: { level: 1 },
+  },
+  cobbling: {
+    employer: 'store', type: 'shift', durationHours: 3, energy: 10,
+    pay: 18, xp: 22, skill: null, rep: 1,
+    hours: [9, 15], dailySlots: 1,
+    requires: { level: 2 },
+  },
+  barber: {
+    employer: 'tavern', type: 'shift', durationHours: 2, energy: 6, tips: true,
+    pay: 12, xp: 16, skill: null, rep: 1,
+    hours: [10, 16], dailySlots: 1,
+    requires: { level: 1 },
+  },
+  woodcarving: {
+    employerType: 'carpentry', type: 'shift', durationHours: 3, energy: 10,
+    pay: 22, xp: 28, skill: 'carpentry', skillXp: 20, rep: 1,
+    hours: [9, 15], dailySlots: 1,
+    requires: { level: 2 },
+  },
+  cartwright_helper: {
+    employerType: 'carters', type: 'shift', durationHours: 4, energy: 18,
+    pay: 28, xp: 34, skill: 'carpentry', skillXp: 20, rep: 1,
+    hours: [8, 13], dailySlots: 1,
+    requires: { level: 2 },
+  },
+  bricklaying: {
+    employerType: 'builders', type: 'shift', durationHours: 4, hourly: [2, 8], perHour: 7, energy: 20, when: 'sites',
+    pay: 28, xp: 34, skill: 'construction', skillXp: 25, rep: 1,
+    hours: [7, 13], dailySlots: 1,
+    requires: { level: 2 },
+  },
+  bookkeeping: {
+    employerType: 'warehouse', type: 'shift', durationHours: 3, energy: 6,
+    pay: 30, xp: 36, skill: 'trading', skillXp: 20, rep: 1,
+    hours: [9, 14], dailySlots: 1,
+    requires: { level: 3, reputation: 4 },
+  },
+  ferry_rowing: {
+    employerType: 'fishery', type: 'shift', durationHours: 2, hourly: [1, 4], perHour: 6, energy: 14, tips: true,
+    pay: 12, xp: 16, skill: 'fishing', skillXp: 8, rep: 1,
+    hours: [7, 18], dailySlots: 1,
+    requires: { level: 1 },
+  },
+
+  // Out in the fields and woods.
+  shepherding: {
+    employer: 'farm', type: 'outing', place: 'pasture', durationHours: 4, energy: 10,
+    pay: 18, xp: 22, skill: 'farming', skillXp: 12, rep: 1,
+    hours: [6, 12], seasons: ['spring', 'summer', 'autumn'], dailySlots: 1,
+    requires: { level: 1 },
+  },
+  beekeeping: {
+    employer: 'store', type: 'outing', place: 'meadow', durationHours: 3, energy: 10, yield: { item: 'honey', qty: [2, 4] },
+    pay: 16, xp: 22, skill: 'foraging', skillXp: 15, rep: 1,
+    hours: [8, 15], seasons: ['spring', 'summer'], dailySlots: 1,
+    requires: { level: 1 },
+  },
+  gamekeeping: {
+    employer: 'lumberyard', type: 'outing', place: 'forest', durationHours: 3, energy: 12,
+    pay: 20, xp: 26, skill: 'hunting', skillXp: 15, rep: 1,
+    hours: [6, 14], dailySlots: 1,
+    requires: { level: 2 },
+  },
+  tree_planting: {
+    employer: 'lumberyard', type: 'plant', item: 'sapling', qty: 6, piece: 4,
+    pay: 24, xp: 26, skill: 'foraging', skillXp: 12, rep: 1,
+    hours: [6, 16], dailySlots: 2,
+    requires: { level: 1 },
+  },
+  mushroom_foraging: {
+    employer: 'tavern', type: 'outing', place: 'forest', durationHours: 2, energy: 10, yield: { item: 'mushroom', qty: [3, 6] },
+    pay: 12, xp: 18, skill: 'foraging', skillXp: 15, rep: 1,
+    hours: [6, 16], seasons: ['summer', 'autumn'], dailySlots: 2,
+    requires: { level: 1 },
+  },
+  resin_tapping: {
+    employerType: 'warehouse', type: 'outing', place: 'pines', durationHours: 3, energy: 12, yield: { item: 'resin', qty: [2, 4] },
+    pay: 18, xp: 24, skill: 'woodcutting', skillXp: 12, rep: 1,
+    hours: [7, 15], seasons: ['spring', 'summer', 'autumn'], dailySlots: 1,
+    requires: { level: 2, tool: 'axe' },
+  },
+  charcoal_burning: {
+    employer: 'smithy', type: 'outing', place: 'clearing', durationHours: 5, energy: 20, yield: { item: 'coal', qty: [3, 5] },
+    pay: 30, xp: 36, skill: 'woodcutting', skillXp: 15, rep: 1,
+    hours: [6, 12], dailySlots: 1,
+    requires: { level: 2, tool: 'axe' },
+  },
+};
+Object.assign(JOBS, MORE_JOBS);
+
+/**
+ * Pay and progress in a line of work (JobSystem):
+ *   ranks   — the more often you've done a job, the better you're paid (newcomer → hand → skilled → master)
+ *   bargain — ask for more before you start (once a day): the better they know and trust you, the likelier
+ *   speed   — deliveries finished within this many hours of taking them earn a premium
+ *   tips    — a share of the pay, more with charm
+ */
+export const JOB_PAY = {
+  ranks: [
+    { id: 'newcomer', from: 0, mult: 1 },
+    { id: 'hand', from: 4, mult: 1.08 },
+    { id: 'skilled', from: 12, mult: 1.18 },
+    { id: 'master', from: 30, mult: 1.3 },
+  ],
+  bargainUp: 0.15, // they agree: this much more
+  bargainHalf: 0.07, // they meet you halfway
+  bargainBase: 0.3,
+  speedHours: 3,
+  speedPremium: 0.1,
+  tipBase: 0.06,
+  tipPerCharisma: 0.02,
+  tipLuck: 0.15,
+  pieceShare: 0.9, // each unit you bring beyond what was asked is paid at this share of the rate
+  pieceMax: 1, // …up to this many times the amount asked for again
+  villageReserve: 30, // the village won't pay out its last coins for odd jobs
+  counterUp: 0.3, // a counter-offer on a villager's request asks this much more
+  stallRent: 5,
 };
 
 /** Openings are posted at dawn; at midday the board is topped up with this share of them again. */

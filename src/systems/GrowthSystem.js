@@ -688,7 +688,8 @@ export class GrowthSystem {
     const economy = (sim.events.modifier('migration') - 1) * 2; // a boom draws people in, a slump drives them off
     const status = sim.civic?.attractiveness() || 0; // a town draws more people than a village
     const learning = sim.eduworld?.attraction() || 0; // a school for the children, a doctor, a name for some trade
-    return jobs * 1.0 + Math.min(homes, 3) * 0.7 - unemployed * 0.8 - homeless * 1.5 - (food > 1.5 ? 1 : 0) + (this.projects().length ? 0.3 : 0) + economy + status + learning;
+    const welcome = sim.population?.welcomeBonus() || 0; // the headman's welcome for newcomers (or cold shoulder)
+    return welcome + jobs * 1.0 + Math.min(homes, 3) * 0.7 - unemployed * 0.8 - homeless * 1.5 - (food > 1.5 ? 1 : 0) + (this.projects().length ? 0.3 : 0) + economy + status + learning;
   }
 
   migration() {

@@ -383,6 +383,12 @@ export class EnterpriseSystem {
         score = (share - 0.45) * 3 + pop / 28 - same * 1.3 + (priceSignal(['fish']) - 1) + 0.3;
         break;
       }
+      case 'tree_nursery': {
+        // The woods are thinning (ForestrySystem) — and more so if the village pays for planting.
+        const h = this.sim.forestry ? this.sim.forestry.health() : 1;
+        score = (0.9 - h) * 4 - same * 2.5 + pop / 60 + (this.sim.forestry?.policy() === 'high' ? 0.8 : 0);
+        break;
+      }
       default:
         score = -1;
     }

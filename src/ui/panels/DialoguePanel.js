@@ -304,6 +304,8 @@ export class DialoguePanel extends Panel {
     if (this.view === 'request') {
       const req = sim.jobs.requestFor(npc.id);
       opt(t('dialog.opt.accept_request'), 'accept_request', { id: req?.id });
+      // Ask for more (once): a counter-offer (JobSystem.counterOffer).
+      if (req && req.reward > 0 && !req.countered) opt(tr(sim, 'dialog.opt.counter_offer', { money: Math.round(req.reward * 1.3 + 2) }), 'counter_offer', { id: req.id });
       opt(t('dialog.opt.decline'), 'back');
       return opts.join('');
     }
@@ -548,6 +550,11 @@ export class DialoguePanel extends Panel {
         if (!req) break;
         this.line = this.say(req.reward > 0 ? 'dialog.request_ask' : 'dialog.request_ask_free', { qty: req.qty, item: req.item, money: req.reward });
         this.view = 'request';
+        break;
+      }
+      case 'counter_offer': {
+        const r = sim.jobs.counterOffer(Number(data.id));
+        if (r.ok) this.line = this.say(`dialog.counter_${r.result}`, { money: r.reward });
         break;
       }
       case 'accept_request':

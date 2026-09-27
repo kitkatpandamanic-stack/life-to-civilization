@@ -124,6 +124,9 @@ import { ColonySystem } from '../systems/ColonySystem.js';
 import { MineSystem } from '../systems/MineSystem.js';
 import { CrimeSystem } from '../systems/CrimeSystem.js';
 import { NewsSystem } from '../systems/NewsSystem.js';
+import { ForestrySystem } from '../systems/ForestrySystem.js';
+import { PopulationSystem } from '../systems/PopulationSystem.js';
+import { StallSystem } from '../systems/StallSystem.js';
 import { CivicSystem } from '../systems/CivicSystem.js';
 import { LedgerSystem } from '../systems/LedgerSystem.js';
 import { LettingSystem } from '../systems/LettingSystem.js';
@@ -229,6 +232,9 @@ export class Simulation {
     this.mines = new MineSystem(this); // your mines: levels, timber supports, cave-ins
     this.crime = new CrimeSystem(this); // thieves, locks, the watch, and you as constable
     this.news = new NewsSystem(this); // the weekly paper: headlines, prices, advertisements
+    this.forestry = new ForestrySystem(this); // forest health, foresters, planting, the felling limit, orchards
+    this.population = new PopulationSystem(this); // births, deaths, the young going off (and coming back), labour, forecasts
+    this.stall = new StallSystem(this); // your market stall on the square
     this.civic = new CivicSystem(this); // it weighs up everyone and everything
     this.letting = new LettingSystem(this);
     this.housing = new HousingSystem(this); // how villagers choose where to live

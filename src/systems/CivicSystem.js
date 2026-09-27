@@ -43,6 +43,8 @@ export class CivicSystem {
     V.council ??= [];
     V.policies ??= { tax: 'normal', relief: 'normal' };
     V.policies.schooling ??= 'normal';
+    // Forestry, families, health and newcomers (ForestrySystem, PopulationSystem).
+    for (const k of ['forestry', 'family', 'health', 'welcome']) V.policies[k] ??= 'normal';
     V.institutions ??= {};
     V.fund ??= 0;
     V.project ??= null;
@@ -189,6 +191,9 @@ export class CivicSystem {
     const kids = this.sim.family.children(voter).filter((k) => k.age >= 5 && k.age <= 16).length;
     const reads = this.sim.education?.know(voter, 'reading') || 0;
     if (kids || reads >= 50) s += ({ low: -1, normal: 0, high: 1 }[policies.schooling] ?? 0) * (kids ? 1 : 0.5);
+    // Young families like an allowance; the old and the sick a free clinic.
+    if (voter.age >= 20 && voter.age <= 40 && voter.kin?.spouse) s += ({ low: -0.6, normal: 0, high: 0.6 }[policies.family] ?? 0);
+    if (voter.age >= 55 || (voter.health ?? 100) < 50) s += ({ low: -0.8, normal: 0, high: 0.8 }[policies.health] ?? 0);
     return s;
   }
 
@@ -199,6 +204,10 @@ export class CivicSystem {
       tax: T('greedy') || T('ambitious') ? 'high' : T('careful') ? 'low' : 'normal',
       relief: T('generous') ? 'high' : T('greedy') ? 'low' : 'normal',
       schooling: T('scholar') || (npc && (this.sim.education?.know(npc, 'reading') || 0) >= 55) ? 'high' : T('greedy') ? 'low' : 'normal',
+      forestry: T('careful') ? 'high' : T('greedy') ? 'low' : 'normal',
+      family: T('generous') || (npc?.kin?.children?.length || 0) >= 3 ? 'high' : T('greedy') ? 'low' : 'normal',
+      health: T('careful') || (npc?.age || 0) >= 55 ? 'high' : T('greedy') ? 'low' : 'normal',
+      welcome: T('natural_leader') || T('generous') ? 'high' : T('aggressive') ? 'low' : 'normal',
     };
   }
 

@@ -41,6 +41,10 @@ export function targetName(scene, target) {
       if (!c) return '';
       return t('ui.site_of', { name: sim.construction.isPlayers(c) ? t(`buildable.${c.type}.name`) : t(`vbuilding.${c.type}`) });
     }
+    case 'plant_spot':
+      return t('ui.plant_spot');
+    case 'job_spot':
+      return t(`job.${sim.jobs.active?.jobId}.name`);
     case 'ground': {
       const f = sim.farming.field(target.tx, target.ty);
       if (f?.crop) return t(`crop.${f.crop}`);
@@ -89,6 +93,19 @@ export function targetSubtitle(scene, target) {
     const state = sim.farming.isRipe(f) ? t('ui.crop_ripe') : t('ui.crop_growing', { d: Math.floor(f.growth), days: crop.days });
     return `${state}${f.watered ? ` · ${t('ui.watered')}` : ''}`;
   }
+  if (target.kind === 'object') {
+    // Trees: an apple tree's apples, whose orchard it is; a young tree still growing (ForestrySystem).
+    const o = sim.state.objects[target.id];
+    if (o?.kind === 'tree') {
+      if (sim.forestry?.isApple(o)) {
+        if (o.fruit > 0) return t('ui.apples_on', { n: o.fruit });
+        if (o.owner && o.owner !== 'player') return t('ui.orchard_of', { building: buildingLabel(sim, sim.economy.biz(o.owner)?.building || '') });
+        return o.owner === 'player' ? t('ui.your_apple_tree') : '';
+      }
+      if (o.state === 'young') return t(o.planted ? 'ui.young_tree_planted' : 'ui.young_tree');
+    }
+  }
+  if (target.kind === 'plant_spot') return t('ui.plant_spot_hint');
   if (target.kind === 'water' && sim.inventory.bestTool('fishing_rod')) {
     const c = sim.nature.fishChance(sim.nature.waterBody(target.tx, target.ty));
     return t(`ui.fish_${c > 0.55 ? 'plenty' : c > 0.3 ? 'some' : 'few'}`);
@@ -124,9 +141,19 @@ export function getActions(scene, target) {
     case 'object': {
       const obj = sim.state.objects[target.id];
       const kind = sim.actions.actionFor(obj);
+      // An apple tree with its apples on: pick them (yours, or a wild tree — not a farm's orchard).
+      if (sim.forestry?.isApple(obj) && obj.fruit > 0) add('action.pick_apples', { n: obj.fruit }, () => sim.forestry.pick(obj), sim.forestry.canPick(obj));
       if (kind && (sim.resources.isHarvestable(obj) || kind === 'water')) add(kind === 'water' ? 'action.water_crop' : `action.${kind}`, {}, () => scene.performObjectAction(obj), sim.actions.check(obj));
       break;
     }
+    case 'job_spot': {
+      const job = sim.jobs.active;
+      if (job?.type === 'outing') add('action.start_outing', { hours: JOBS[job.jobId].durationHours }, () => scene.workOuting(), sim.jobs.canStartOuting());
+      break;
+    }
+    case 'plant_spot':
+      for (const item of sim.forestry.saplingsCarried()) add('action.plant_sapling', { item }, () => sim.forestry.playerPlant(target.tx, target.ty, item), sim.forestry.canPlayerPlant(target.tx, target.ty, item));
+      break;
     case 'discovery': {
       const s = sim.exploration.site(target.id);
       if (s.state === 'discovered' || s.state === 'unknown') add('action.explore_site', {}, () => scene.exploreSite(s.id), sim.exploration.canExploreSite({ ...s, state: 'discovered' }));
@@ -166,6 +193,8 @@ export function getActions(scene, target) {
         if (sim.farming.canNeedsRefill()) add('action.fill_can', {}, () => sim.farming.refillCan());
       }
       if (target.type === 'notice_board') add('action.read_board', {}, () => ui.openJobBoard());
+      // A stall on the square: rent it for the day and sell your own goods (StallSystem).
+      if (target.type === 'market_stall') add('action.market_stall', {}, () => ui.openStall());
       if (target.type === 'notice_board' && sim.news?.latest()) add('action.read_paper', {}, () => ui.openJournal('news'));
       if (target.type === 'notice_board' && sim.town?.S.meeting) add('action.town_meeting', { proposal: sim.town.S.meeting.proposal }, () => ui.openMeeting());
       // A festival on the square: give something towards it (FestivalSystem).
@@ -335,6 +364,9 @@ function playerBuildingActions(scene, id, add) {
 function groundActions(scene, tx, ty, add) {
   const farm = scene.sim.farming;
   const act = farm.actionFor(tx, ty);
+  // Your own land, no field here: a woodlot or an orchard (ForestrySystem).
+  const F = scene.sim.forestry;
+  if (F && !farm.field(tx, ty)) for (const item of F.saplingsCarried()) add('action.plant_sapling', { item }, () => F.playerPlant(tx, ty, item), F.canPlayerPlant(tx, ty, item));
   if (act === 'plant') {
     const seeds = farm.seedsCarried();
     if (seeds.length <= 1) add('action.farm_plant', { item: seeds[0] || 'wheat_seeds' }, () => scene.performFarm('plant', tx, ty, seeds[0]), farm.check('plant', tx, ty, seeds[0]));
@@ -403,13 +435,14 @@ function buildingActions(scene, id, add) {
   if (jobs.canPickup(id)) {
     const job = jobs.active;
     if (job.type === 'haul') add('action.pickup_haul', { qty: job.qty, item: job.item }, () => jobs.pickup());
+    else if (job.type === 'plant') add('action.pickup_saplings', { qty: job.qty }, () => jobs.pickup());
     else if (job.type === 'rounds') add('action.pickup_letters', { n: job.targets.length }, () => jobs.pickup());
     else add('action.pickup_package', {}, () => jobs.pickup());
   }
   if (jobs.canTurnIn(id)) {
     const job = jobs.active;
     if (job.type === 'courier') add('action.deliver_package', {}, () => jobs.turnIn(id));
-    else if (job.type === 'rounds') add('action.deliver_letter', {}, () => jobs.turnIn(id));
+    else if (job.type === 'rounds') add(JOBS[job.jobId].roundsKind ? `action.rounds_${JOBS[job.jobId].roundsKind}` : 'action.deliver_letter', {}, () => jobs.turnIn(id));
     else add('action.deliver_goods', { qty: job.qty, item: job.item }, () => jobs.turnIn(id));
   }
   // Freight (FreightSystem): a load waiting here for you to carry, or the load you've brought.
@@ -429,7 +462,7 @@ function buildingActions(scene, id, add) {
   // Your shift here (a job from the board).
   const job = jobs.active;
   if (job?.type === 'shift' && job.stage === 'go' && jobs.jobBuilding(job)?.id === id) {
-    add('action.start_shift', { hours: JOBS[job.jobId].durationHours }, () => scene.workShift(), jobs.canStartShift(id));
+    add('action.start_shift', { hours: job.hours || JOBS[job.jobId].durationHours }, () => scene.workShift(), jobs.canStartShift(id));
   }
   // Contracts: hand over goods here, or collect goods to haul.
   for (const c of sim.contracts.at(id)) {
@@ -572,6 +605,9 @@ function buildingActions(scene, id, add) {
   }
   // Law and order: at the hall, or the watch house once the village has one (CrimeSystem).
   if (id === 'hall' || sim.world.buildings[id]?.type === 'watch_house') add('action.law', {}, () => ui.openLaw());
+  // The valley's people (the hall) and its woods (the hall, a lumberyard, a tree nursery).
+  if (id === 'hall') add('action.population', {}, () => ui.openPopulation());
+  if (id === 'hall' || ['lumberyard', 'tree_nursery'].includes(def?.type)) add('action.forest_report', {}, () => ui.openForest());
   // Every building can be inspected: owner, residents, condition, value, history.
   if (sim.property.rec(id)) add('action.inspect', {}, () => ui.openProperty(id), OK, 'F');
 }

@@ -94,6 +94,11 @@ export class HallPanel extends Panel {
       ${policy('tax')}
       ${policy('relief')}
       ${policy('schooling')}
+      ${policy('family')}
+      ${policy('health')}
+      ${policy('welcome')}
+      ${policy('forestry')}
+      <div class="btn-row">${button(t('pop.open'), 'open_population', {}, { cls: 'sm', ico: '👥' })}${button(t('forest.open'), 'open_forest', {}, { cls: 'sm', ico: '🌲' })}</div>
       ${kv(t('hall.treasury'), fmtMoney(village.treasury))}
       ${village.civicSaving ? kv(t('hall.saving_building'), `${escapeHtml(t(`vbuilding.${village.civicSaving.type}`))} · ${fmtMoney(village.civicSaving.amount)}`) : ''}
       ${tax ? kv(t('hall.taxes_week'), fmtMoney(tax.business + tax.property)) : ''}
@@ -214,6 +219,10 @@ export class HallPanel extends Panel {
       case 'policy':
         C.setPolicy(data.kind, data.lv);
         break;
+      case 'open_population':
+        return this.ui.openPopulation();
+      case 'open_forest':
+        return this.ui.openForest();
       case 'project':
         C.setProject(data.id);
         break;

@@ -18,7 +18,7 @@ import { createRailTextures } from './RailArt.js';
 import { finishFor, paintFinish } from './PaintFinish.js';
 import { roofSurface, wallSurface, paintedWindow, paintedDoor, finishBuilding } from './PaintedBuildings.js';
 import { paintFieldCrop } from './PaintedFields.js';
-import { TREE_VARIANTS, paintOak, paintPine, paintBush, paintStump, paintRock, paintRubble, paintTuft } from './PaintedNature.js';
+import { TREE_VARIANTS, paintOak, paintPine, paintApple, paintBush, paintStump, paintRock, paintRubble, paintTuft } from './PaintedNature.js';
 
 const TS = 32;
 const FLOOR_H = 30; // an upper storey adds this much wall
@@ -807,6 +807,55 @@ const ICON_DRAW = {
     ctx.ellipse(20, 8, 4, 2, -0.5, 0, Math.PI * 2);
     ctx.fill();
   },
+  mushroom(ctx) {
+    for (const [x, y, r] of [[11, 16, 7], [21, 19, 5]]) {
+      ctx.fillStyle = '#efe3c8';
+      ctx.fillRect(x - 2, y, 4, r + 4);
+      ctx.fillStyle = '#b5652e';
+      ctx.beginPath();
+      ctx.ellipse(x, y, r, r * 0.65, 0, Math.PI, 0);
+      ctx.fill();
+      circle(ctx, x - r * 0.35, y - r * 0.3, 1.2, '#f3d6b0');
+    }
+  },
+  honey(ctx) {
+    ctx.fillStyle = '#c98a1e';
+    rrect(ctx, 8, 10, 16, 18, 5);
+    ctx.fill();
+    ctx.fillStyle = '#f4c24a';
+    rrect(ctx, 10, 14, 12, 12, 4);
+    ctx.fill();
+    ctx.fillStyle = '#8a6a4a';
+    ctx.fillRect(9, 6, 14, 5);
+    ctx.fillStyle = '#fff2b0';
+    ctx.fillRect(12, 16, 2, 6);
+  },
+  resin(ctx) {
+    ctx.fillStyle = '#7a5230';
+    ctx.fillRect(6, 8, 8, 20);
+    circle(ctx, 20, 18, 7, '#d98a1a');
+    circle(ctx, 22, 12, 4, '#e8a83a');
+    circle(ctx, 18, 16, 2, '#ffd98a');
+  },
+  sapling(ctx) {
+    ctx.fillStyle = '#7a5230';
+    rrect(ctx, 9, 22, 14, 7, 2);
+    ctx.fill();
+    ctx.fillStyle = '#5b3f25';
+    ctx.fillRect(15, 10, 2, 13);
+    for (const [x, y, r] of [[12, 12, 4], [20, 11, 4], [16, 7, 4]]) circle(ctx, x, y, r, '#4f8f3f');
+    circle(ctx, 14, 6, 1.5, '#9fcf6a');
+  },
+  apple_sapling(ctx) {
+    ctx.fillStyle = '#7a5230';
+    rrect(ctx, 9, 22, 14, 7, 2);
+    ctx.fill();
+    ctx.fillStyle = '#5b3f25';
+    ctx.fillRect(15, 10, 2, 13);
+    for (const [x, y, r] of [[12, 12, 4], [20, 11, 4], [16, 7, 4]]) circle(ctx, x, y, r, '#5f9a44');
+    circle(ctx, 19, 13, 2, '#d23b3b');
+    circle(ctx, 12, 9, 1.6, '#fbe3ec');
+  },
   bread(ctx) {
     ctx.fillStyle = '#c98a3e';
     rrect(ctx, 5, 11, 22, 13, 6);
@@ -940,6 +989,8 @@ export function createAllTextures(scene) {
     for (let v = 0; v < TREE_VARIANTS; v++) {
       addCanvas(scene, v ? `tree_oak_${s}_${v}` : `tree_oak_${s}`, paintOak(s, v));
       addCanvas(scene, v ? `tree_pine_${s}_${v}` : `tree_pine_${s}`, paintPine(s, v));
+      addCanvas(scene, v ? `tree_apple_${s}_${v}` : `tree_apple_${s}`, paintApple(s, v));
+      addCanvas(scene, `tree_apple_${s}_f_${v}`, paintApple(s, v, true));
     }
     addCanvas(scene, `stump_${s}`, paintStump(s));
     addCanvas(scene, `rubble_${s}`, paintRubble(s));

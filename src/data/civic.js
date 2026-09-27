@@ -61,6 +61,14 @@ export const POLICIES = {
   relief: { low: 0.5, normal: 1, high: 1.6 },
   // Schools: teachers' pay and books (tight: families pay a small fee too).
   schooling: { low: 0.6, normal: 1, high: 1.5 },
+  // Forestry (ForestrySystem): the felling limit, and (high) a planting fund that pays for every tree planted.
+  forestry: { low: 1, normal: 1, high: 1 },
+  // Families (PopulationSystem): an allowance for each baby (high), none at all (low).
+  family: { low: 0.9, normal: 1, high: 1.25 },
+  // Health: a free clinic for all (high), or the sick pay their own way (low).
+  health: { low: 1.2, normal: 1, high: 0.75 },
+  // Newcomers: a settling-in grant and a welcome (high), or a cold shoulder (low).
+  welcome: { low: 0.6, normal: 1, high: 1.4 },
 };
 
 /** Deeds your family is remembered for, and what each is worth to its renown. */

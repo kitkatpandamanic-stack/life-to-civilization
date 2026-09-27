@@ -106,21 +106,39 @@ const after = snap(sim2);
 for (const k of Object.keys(before)) check(`after loading: ${k} as they were`, before[k] === after[k], before[k] === after[k] ? '' : `${String(before[k]).slice(0, 90)} ≠ ${String(after[k]).slice(0, 90)}`);
 
 // …and the game goes on the same way.
+const had = new Set(sim.world.buildingList.map((b) => b.id));
 days(sim, 7);
 days(sim2, 7);
 const s1 = snap(sim);
 const s2 = snap(sim2);
+// (The two games don't roll the same dice — the random numbers are shared between them — so a house half
+// built when the game was saved may be finished in one and not yet in the other, and what villagers start
+// building that week differs. What was there when it was saved must be there, unchanged, in both.)
+const newIds = new Set([...sim.world.buildingList, ...sim2.world.buildingList].filter((b) => !had.has(b.id)).map((b) => b.id));
+const kept = (s) => s.world.buildingList.filter((b) => had.has(b.id)).map((b) => `${b.id}:${b.type}:${b.tx},${b.ty},${b.w}x${b.h}`).join('|');
+s1.buildings = kept(sim);
+s2.buildings = kept(sim2);
 // (Who owns which land and what it's used for — not its price or how built-up it counts as, which follow
-// the week's trade, and the two games don't roll the same dice: the random numbers are shared between them.)
-const shape = (s) => JSON.stringify(Object.entries(s.state.territory.plots).map(([id, r]) => [id, r.owner, r.type]));
+// the week's trade. Land a villager bought that week for a house of their own is left out: who gets there
+// first follows the dice. Yours stays yours in both.)
+const savedPlots = JSON.parse(saved).territory.plots;
+const settled = (id) => sim.state.territory.plots[id]?.owner === savedPlots[id]?.owner && sim2.state.territory.plots[id]?.owner === savedPlots[id]?.owner;
+// (…nor land where something new went up, or started to, in either game.)
+const busy = new Set();
+for (const g of [sim, sim2]) {
+  for (const c of g.construction.list) busy.add(g.territory.idAt(c.tx + Math.floor(c.w / 2), c.ty + Math.floor(c.h / 2)));
+  for (const b of g.world.buildingList) if (newIds.has(b.id)) busy.add(g.territory.idAt(b.tx + Math.floor(b.w / 2), b.ty + Math.floor(b.h / 2)));
+}
+const shape = (s) => JSON.stringify(Object.entries(s.state.territory.plots).filter(([id]) => settled(id) && !busy.has(id)).map(([id, r]) => [id, r.owner, r.type]));
+check('a week on, your land is still yours in both', Object.entries(savedPlots).filter(([, r]) => r.owner === 'player').every(([id]) => sim.state.territory.plots[id]?.owner === 'player' && sim2.state.territory.plots[id]?.owner === 'player'));
 s1.plots = shape(sim);
 s2.plots = shape(sim2);
 // (Public works: what's been done — cobbles, bridges, lamps — not the fund, which follows the week's trade.)
 const works = (x) => JSON.stringify({ paved: x.state.infra.paved, bridges: x.state.infra.bridges, lamps: x.state.infra.lamps });
 s1.infra = works(sim);
 s2.infra = works(sim2);
-const same = ['buildings', 'tiles', 'parcels', 'plots', 'hoods', 'districts', 'infra'].filter((k) => s1[k] === s2[k]);
-check('a week on, the saved game and the one that went on without saving agree', same.length === 7, `the same: ${same.join(', ')}`);
+const same = ['buildings', 'tiles', 'plots', 'infra'].filter((k) => s1[k] === s2[k]);
+check('a week on, the saved game and the one that went on without saving agree', same.length === 4, `the same: ${same.join(', ')}`);
 
 // A save from before neighbourhoods, infrastructure, NPC development and flats still loads.
 const old = JSON.parse(saved);

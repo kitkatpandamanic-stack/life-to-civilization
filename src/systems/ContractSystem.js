@@ -544,6 +544,8 @@ export class ContractSystem {
     const J = this.sim.jobs;
     const d = JOBS[jobId];
     if (!d) return { ok: false, reason: 'contract_gone' };
+    // Work out in the woods and fields, planting, and the village's own odd jobs are yours to do yourself.
+    if (['outing', 'plant'].includes(d.type) || d.employer === 'village' || d.hourly) return { ok: false, reason: 'job_yours_only' };
     if (!this.sim.workers.list().length) return { ok: false, reason: 'no_workers' };
     if (this.S.active.length >= this.maxActive()) return { ok: false, reason: 'too_many_contracts', params: { n: this.maxActive() } };
     if (!J.employerOf(jobId)) return { ok: false, reason: 'no_employer', params: { biz_type: d.employerType } };
@@ -570,6 +572,8 @@ export class ContractSystem {
   canHandOver() {
     const job = this.sim.jobs.active;
     if (!job) return { ok: false, reason: 'contract_gone' };
+    const jd = JOBS[job.jobId];
+    if (['outing', 'plant'].includes(jd.type) || jd.employer === 'village' || jd.hourly) return { ok: false, reason: 'job_yours_only' };
     if (!this.sim.workers.list().length) return { ok: false, reason: 'no_workers' };
     if (this.S.active.length >= this.maxActive()) return { ok: false, reason: 'too_many_contracts', params: { n: this.maxActive() } };
     const started = (job.type === 'harvest' && job.harvested > 0) || job.stage === 'working' || (['courier', 'rounds', 'haul'].includes(job.type) && job.stage !== 'pickup');

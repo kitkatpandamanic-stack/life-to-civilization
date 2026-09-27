@@ -16,6 +16,7 @@ export const TREE_VARIANTS = 3;
 export const SIZES = {
   tree_oak: { w: 96, h: 112, feet: 104 },
   tree_pine: { w: 64, h: 108, feet: 101 },
+  tree_apple: { w: 72, h: 84, feet: 78 },
   stump: { w: 36, h: 30, feet: 24 },
   rock: { w: 40, h: 34, feet: 28 },
   rubble: { w: 34, h: 22, feet: 16 },
@@ -224,6 +225,31 @@ export function paintOak(season, variant = 0) {
       ctx.fill();
     }
   }
+  return c;
+}
+
+/** An apple tree (an orchard's — ForestrySystem): low and round, blossom in spring, red apples in autumn while they hang. */
+export function paintApple(season, variant = 0, fruit = false) {
+  const S = SIZES.tree_apple;
+  const c = canvas(S.w, S.h);
+  const ctx = c.getContext('2d');
+  const rnd = mulberry32(3000 + variant * 71 + season.length * 13);
+  const cx = S.w / 2 + (variant - 1);
+  groundShadow(ctx, cx, S.feet - 1, 22, 6, season === 'winter' ? 0.16 : 0.3);
+  if (season === 'winter') {
+    trunk(ctx, cx, 46, S.feet, 8, rnd, true);
+    bareBranches(ctx, cx, 48, 30, 90, rnd);
+    return c;
+  }
+  trunk(ctx, cx, 46, S.feet, 8, rnd);
+  const shapes = [
+    [[0, -22, 17], [-14, -14, 12], [14, -14, 12], [-8, -32, 11], [9, -32, 11], [0, -8, 11]],
+    [[0, -20, 16], [-15, -18, 13], [15, -12, 11], [-4, -34, 12], [11, -30, 10], [-8, -6, 10]],
+    [[0, -24, 18], [-13, -12, 11], [13, -16, 12], [-9, -36, 10], [8, -36, 11], [4, -6, 10]],
+  ][variant % 3];
+  const clumps = shapes.map(([x, y, r]) => [cx + x + (rnd() - 0.5) * 2, 56 + y + (rnd() - 0.5) * 2, r + (rnd() - 0.5) * 2]);
+  const C = season === 'autumn' ? AUTUMN_MIX[0] : CROWN[season];
+  paintLeaves(ctx, clumps, season === 'autumn' ? { ...CROWN.summer, hi: C.hi } : C, rnd, { blossom: season === 'spring' ? '#fbe3ec' : null, fruit: fruit || season === 'summer' ? (season === 'summer' ? '#9cc24a' : '#d23a2c') : null });
   return c;
 }
 
