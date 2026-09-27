@@ -166,6 +166,7 @@ export function getActions(scene, target) {
         if (sim.farming.canNeedsRefill()) add('action.fill_can', {}, () => sim.farming.refillCan());
       }
       if (target.type === 'notice_board') add('action.read_board', {}, () => ui.openJobBoard());
+      if (target.type === 'notice_board' && sim.news?.latest()) add('action.read_paper', {}, () => ui.openJournal('news'));
       if (target.type === 'notice_board' && sim.town?.S.meeting) add('action.town_meeting', { proposal: sim.town.S.meeting.proposal }, () => ui.openMeeting());
       // A festival on the square: give something towards it (FestivalSystem).
       if (target.type === 'notice_board' && sim.festivals?.active()) add('action.festival_gift', { money: 50 }, () => {
@@ -446,6 +447,8 @@ function buildingActions(scene, id, add) {
   // Your own business.
   if (bizId && sim.holdings.isMine(bizId)) {
     add('action.manage_enterprise', {}, () => ui.openEnterprise(bizId));
+    // A mining camp of yours: dig it deeper, shore up the tunnels (MineSystem).
+    if (sim.mines?.isMine(bizId)) add('action.mine_manage', {}, () => ui.openMine(bizId));
     // A workshop of yours has a bench for your own ideas (InventionSystem).
     if (['smithy', 'carpentry', 'sawmill', 'factory', 'brickworks'].includes(def?.type)) add('action.invent', {}, () => ui.openInventions());
     // Your hired workers: send them to work here (they join the staff).
@@ -567,6 +570,8 @@ function buildingActions(scene, id, add) {
     add('action.village_affairs', {}, () => ui.openHall());
     add('action.read_board', {}, () => ui.openJobBoard());
   }
+  // Law and order: at the hall, or the watch house once the village has one (CrimeSystem).
+  if (id === 'hall' || sim.world.buildings[id]?.type === 'watch_house') add('action.law', {}, () => ui.openLaw());
   // Every building can be inspected: owner, residents, condition, value, history.
   if (sim.property.rec(id)) add('action.inspect', {}, () => ui.openProperty(id), OK, 'F');
 }

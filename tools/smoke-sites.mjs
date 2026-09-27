@@ -86,8 +86,12 @@ if (h.ok) {
   const [seeker] = sim.growth.arrive({ size: 1 });
   seeker.age = Math.max(20, Math.min(45, seeker.age));
   seeker.traits = ['hard_worker'];
-  run(16 * 1440);
-  const meat = sim.economy.stock(lodge, 'meat') + sim.enterprise.books(lodge, 7).rev;
+  // (they apply at the lodge — other work in the valley might otherwise take them first)
+  for (let i = 0; i < 6 && seeker.employer !== lodge; i++) sim.npcs.tryHire(seeker, lodge);
+  // (a hunter's luck varies: give them a few weeks)
+  const bag = () => sim.economy.stock(lodge, 'meat') + sim.enterprise.books(lodge, 7).rev;
+  for (let d = 0; d < 40 && !bag(); d += 8) run(8 * 1440);
+  const meat = bag();
   check('hunters bring in game', sim.npcs.staffOf(lodge).length >= 1 && meat > 0, `${sim.npcs.staffOf(lodge).length} hunters, ${meat}`);
 }
 

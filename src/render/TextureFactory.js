@@ -667,6 +667,23 @@ const DECOR_DRAW = {
     ctx.lineTo(28, 13);
     ctx.fill();
   },
+  bench(ctx) {
+    // a wooden bench: seat planks on two stone feet, a backrest behind
+    ellipse(ctx, 22, 21, 20, 3, 'rgba(0,0,0,0.22)');
+    ctx.fillStyle = '#7a7266';
+    ctx.fillRect(6, 13, 5, 8);
+    ctx.fillRect(33, 13, 5, 8);
+    ctx.fillStyle = '#6b4a2b';
+    ctx.fillRect(3, 2, 38, 3);
+    ctx.fillRect(3, 6, 38, 3);
+    ctx.fillStyle = '#5a3a20';
+    ctx.fillRect(6, 2, 2, 11);
+    ctx.fillRect(36, 2, 2, 11);
+    ctx.fillStyle = '#9a6a3e';
+    ctx.fillRect(2, 11, 40, 4);
+    ctx.fillStyle = '#7a5230';
+    ctx.fillRect(2, 15, 40, 1.5);
+  },
   signpost(ctx) {
     ellipse(ctx, 14, 42, 8, 2, 'rgba(0,0,0,0.2)');
     ctx.fillStyle = '#6b4a2b';
@@ -692,6 +709,7 @@ const DECOR_DRAW = {
 const DECOR_SIZE = {
   well: [40, 48], notice_board: [40, 48], stall: [64, 56], lamp: [16, 52], fence: [32, 24], fence_v: [32, 32],
   barrel: [24, 28], crate: [26, 26], anvil: [32, 24], logpile: [64, 36], hay: [30, 26], signpost: [28, 44], founding_stone: [32, 48],
+  bench: [44, 24],
 };
 
 function drawTuft(season) {

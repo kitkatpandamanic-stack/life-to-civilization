@@ -7,6 +7,7 @@
  *              and from the side they're on
  *   the valley rain, wind and thunder; birds by day, crickets and owls at night; the crowd at a festival;
  *              the rooster in the morning, the bell at noon; fires crackling
+ *              where you stand: the river rushing (louder nearer), leaves rustling in a wind, frogs by the water
  *   music      the mood follows the season, the hour, the weather and the festivals (audio/Music.js)
  *
  * Nothing here changes the simulation. It only reads it.
@@ -177,6 +178,9 @@ export class SoundDirector {
         wind: new NoiseBed({ type: 'bandpass', freq: 500, q: 0.8, lfo: 0.13, lfoDepth: 280 }),
         crowd: new NoiseBed({ type: 'bandpass', freq: 650, q: 1.2, lfo: 0.4, lfoDepth: 150 }),
         fire: new NoiseBed({ type: 'bandpass', freq: 1200, q: 0.6 }),
+        // Where you are: the river rushing by, leaves rustling overhead.
+        river: new NoiseBed({ type: 'bandpass', freq: 900, q: 0.5, lfo: 0.21, lfoDepth: 220 }),
+        leaves: new NoiseBed({ type: 'highpass', freq: 3200, q: 0.4, lfo: 0.33, lfoDepth: 900 }),
       };
     }
     const B = this.beds;
@@ -189,7 +193,8 @@ export class SoundDirector {
     const day = h >= 5.5 && h < 20;
     const night = h >= 21 || h < 4.5;
 
-    B.rain.set(away ? 0 : w === 'storm' ? 0.34 : w === 'rain' ? 0.2 : 0);
+    // Rain drums harder out of doors; indoors it's the roof you hear (the muffle filter softens it).
+    B.rain.set(away ? 0 : (w === 'storm' ? 0.34 : w === 'rain' ? 0.2 : 0) * (inside ? 1.4 : 1));
     B.drops.set(away ? 0 : w === 'storm' ? 0.06 : w === 'rain' ? 0.035 : 0);
     B.wind.set(away ? 0 : w === 'storm' ? 0.3 : w === 'snow' ? 0.14 : w === 'fog' || w === 'cloudy' ? 0.04 : season === 'winter' ? 0.05 : 0.015);
 
@@ -218,14 +223,50 @@ export class SoundDirector {
     B.fire.set(Math.max(0, fire) * 0.12);
     if (fire > 0.2 && Math.random() < 0.3) play('fire', { amb: true, vol: fire });
 
+    // The river, louder the nearer you are (frozen quiet in winter); leaves rustle among the trees when it blows.
+    const near = away || inside ? { water: 99, trees: 0 } : this.surroundings();
+    B.river.set(near.water < 9 ? (1 - near.water / 9) * (season === 'winter' ? 0.03 : 0.11) : 0);
+    const gust = w === 'storm' ? 1 : w === 'rain' ? 0.6 : w === 'snow' ? 0.3 : w === 'cloudy' ? 0.35 : 0.18;
+    B.leaves.set(season === 'winter' ? 0 : Math.min(1, near.trees / 10) * gust * 0.07);
+
     if (away || inside) return;
     const fine = w === 'sunny' || w === 'cloudy' || w === 'fog';
+    // Frogs by the water on spring and summer nights.
+    if (night && near.water < 5 && (season === 'spring' || season === 'summer') && w !== 'storm' && Math.random() < 0.05) play('frog', { amb: true, pan: (Math.random() - 0.5) * 1.4, vol: 0.7 + Math.random() * 0.5 });
     // Birds by day (many in spring, a few in autumn, none in winter).
     const birds = { spring: 0.09, summer: 0.07, autumn: 0.025, winter: 0.004 }[season] || 0;
     if (day && fine && Math.random() < birds * (h < 9 ? 1.8 : 1)) play('bird', { amb: true, pan: (Math.random() - 0.5) * 1.6, vol: 0.6 + Math.random() * 0.6 });
     // Crickets and owls at night.
     if (night && fine && (season === 'summer' || season === 'autumn' || season === 'spring') && Math.random() < (season === 'summer' ? 0.35 : 0.15)) play('cricket', { amb: true, pan: (Math.random() - 0.5) * 1.6, vol: 0.5 + Math.random() * 0.5 });
     if (night && fine && Math.random() < 0.004) play('owl', { amb: true, pan: (Math.random() - 0.5) * 1.6, vol: 0.6 });
+  }
+
+  /** How near the water is (tiles) and how many trees stand round you — for the river and the leaves. */
+  surroundings() {
+    const sim = this.sim;
+    const pc = this.scene.player;
+    const w = sim.world;
+    const px = Math.floor(pc.x / TS);
+    const py = Math.floor(pc.y / TS);
+    // (every few calls — the player doesn't move far in a second)
+    this.near ??= { at: -1, water: 99, trees: 0 };
+    if (this.near.at === `${px},${py}`) return this.near;
+    let water = 99;
+    for (let dy = -9; dy <= 9; dy++) {
+      for (let dx = -9; dx <= 9; dx++) {
+        const x = px + dx;
+        const y = py + dy;
+        if (!w.inBounds(x, y)) continue;
+        const t = w.tiles[w.idx(x, y)];
+        if (t === T.WATER || t === T.DEEP) water = Math.min(water, Math.hypot(dx, dy));
+      }
+    }
+    let trees = 0;
+    for (const o of Object.values(sim.state.objects)) {
+      if (o.kind === 'tree' && (o.state === 'grown' || o.state === 'young') && Math.abs(o.tx - px) <= 5 && Math.abs(o.ty - py) <= 5) trees++;
+    }
+    this.near = { at: `${px},${py}`, water, trees };
+    return this.near;
   }
 
   /** Thunder a moment after the lightning (Atmosphere calls this). */

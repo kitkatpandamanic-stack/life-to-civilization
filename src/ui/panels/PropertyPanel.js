@@ -13,6 +13,7 @@ import { structureHtml, structureParts, structureAction, jobLabel, levelName, bu
 import { RENT_LEVELS } from '../../systems/PropertySystem.js';
 import { LETTING } from '../../systems/LettingSystem.js';
 import { FLATS } from '../../data/housing.js';
+import { bigLoansHtml, bigLoansAction } from '../loans.js';
 
 export class PropertyPanel extends Panel {
   constructor(ui, buildingId, tab = 'overview') {
@@ -59,6 +60,7 @@ export class PropertyPanel extends Panel {
       ${last ? kv(t('ui.taxes_last_week'), `${fmtMoney(last.business + last.property)} (${t('ui.taxes_you', { money: fmtMoney(last.player) })})`) : ''}
       <div class="muted small">${escapeHtml(t('ui.taxes_hint', { n: Math.round(FINANCE.profitTax * 100) }))}</div>
       ${loanHtml}
+      ${bigLoansHtml(sim)}
       ${plan}
       <div class="muted small">${escapeHtml(t('ui.village_fund_hint'))}</div>
       <div class="btn-row">${[25, 100].map((m) => button(t('ui.donate_n', { money: fmtMoney(m) }), 'donate', { money: m }, { disabled: sim.state.player.money < m })).join(' ')}</div>`;
@@ -487,6 +489,10 @@ export class PropertyPanel extends Panel {
       }
       case 'notice_withdraw':
         if (!P.withdrawNotice(this.bid)) this.sim.toast('reason.wont_stay', {}, 'warn');
+        break;
+      case 'bank_borrow':
+      case 'bank_repay':
+        bigLoansAction(this.sim, action, data);
         break;
       case 'borrow': {
         const r = this.sim.finance.borrow(Number(data.n));

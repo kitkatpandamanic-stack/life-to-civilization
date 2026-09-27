@@ -38,6 +38,8 @@ const SOURCES = [
   ['finance', 'weekly', 'taxes'],
   ['finance', 'borrow', 'loans'],
   ['finance', 'repay', 'loans'],
+  ['finance', 'bankBorrow', 'loans'],
+  ['finance', 'bankRepay', 'loans'],
   ['property', 'collectRent', 'rent_income'],
   ['property', 'onDay', 'upkeep'],
   ['letting', 'onDay', 'management'],
@@ -49,6 +51,10 @@ const SOURCES = [
   ['construction', 'startHomeUpgrade', 'building'],
   ['construction', 'hire', 'building'],
   ['structures', 'start', 'building'],
+  ['mines', 'dig', 'business'],
+  ['crime', 'fitLock', 'shopping'],
+  ['crime', 'weekly', 'jobs'],
+  ['news', 'advertise', 'business'],
   ['crafting', 'rentForge', 'crafting'],
   ['actions', 'eatAtTavern', 'food'],
   ['actions', 'payTavernBed', 'lodging'],
@@ -249,7 +255,7 @@ export class LedgerSystem {
       return s + Math.max(0, sim.holdings.valuation(id) - premises);
     }, 0));
     add('investments', sim.holdings.portfolio().filter((x) => !x.closed).reduce((s, x) => s + (x.kind === 'loan' ? x.left : x.amount || 0), 0));
-    add('debts', -((p.loan?.left || 0) + (p.rent?.debt || 0)));
+    add('debts', -((p.loan?.left || 0) + (p.bankLoan?.left || 0) + (p.rent?.debt || 0)));
     return { total: parts.reduce((s, x) => s + x.v, 0), parts };
   }
 }

@@ -13,9 +13,12 @@
  * money and what you're worth, businesses, the treasury, the price of bread, your workers, the status)
  * — for the charts in the journal's history.
  */
+import { BALANCE } from '../config/balance.js';
+
 const MAX_SAMPLES = 400; // (weekly: some fifty years of the valley)
 const STATUS = ['village', 'large_village', 'town', 'city'];
 const MAX_ENTRIES = 400;
+const PRICE_WEEKS = 26;
 
 /** Always part of history. */
 const MILESTONES = new Set([
@@ -176,12 +179,32 @@ export class HistorySystem {
       mine: (sim.holdings?.mine().length || 0) + (sim.businesses?.list().length || 0),
       treasury: Math.round(sim.state.village?.treasury || 0),
       bread: store ? Math.round(sim.economy.unitPrice(store, 'bread') * 10) / 10 : 0,
+      prices: this.prices(),
       workers: sim.workers?.list().length || 0,
       status: STATUS.indexOf(sim.civic?.V.status || 'village'),
     };
     S.push(row);
     if (S.length > MAX_SAMPLES) S.shift();
+    // (the full price list is kept for the last half-year only — the market report's trends)
+    if (S.length > PRICE_WEEKS) delete S[S.length - 1 - PRICE_WEEKS].prices;
     return row;
+  }
+
+  /** This week's prices of the everyday goods (for the market report): the cheapest shop or yard selling each. */
+  prices() {
+    const E = this.sim.economy;
+    if (!E) return {};
+    const out = {};
+    for (const item of BALANCE.economy.priceLogItems || []) {
+      let best = null;
+      for (const id of E.active()) {
+        if (!(E.stock(id, item) > 0)) continue;
+        const p = E.unitPrice(id, item);
+        if (best === null || p < best) best = p;
+      }
+      if (best !== null) out[item] = Math.round(best * 10) / 10;
+    }
+    return out;
   }
 
   samples() {

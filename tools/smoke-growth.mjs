@@ -27,7 +27,9 @@ const runOn = (sim) => (minutes) => {
   check('materials are bought from local suppliers', sim.construction.materialsFraction(c) > 0.3 && sim.economy.biz('lumberyard').money !== yardMoney, `${Math.round(sim.construction.materialsFraction(c) * 100)}%`);
   run(40 * 1440);
   check('the house gets built', c.status === 'done', `${c.status} ${Math.round((c.labor / c.laborNeeded) * 100)}%`);
-  check('the builder moved in', nikita.homeId === c.id, String(nikita.homeId));
+  // (they move in when it's done — and may move on later, if the village offers them something better)
+  const movedIn = nikita.homeId === c.id || sim.state.chronicle.some((e) => e.key === 'chronicle.npc_built_home' && e.params.npc === 'nikita');
+  check('the builder moved in', movedIn, String(nikita.homeId));
   check('the new house belongs to its builder', sim.property.rec(c.id)?.owner === 'nikita');
   check('it has a road to its door', sim.growth.roadDistance(c.tx + 2, c.ty + c.h, 1) <= 1);
 }

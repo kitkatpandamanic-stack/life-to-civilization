@@ -291,6 +291,14 @@ const SFX = {
   cricket: (b, t, o) => {
     for (let i = 0; i < 3; i++) tone(b, t + i * 0.05, { type: 'sine', freq: vary(4400, 0.03), peak: 0.018 * o.vol, d: 0.03, pan: o.pan });
   },
+  // Frogs by the water on warm nights: a low, throaty croak or two.
+  frog: (b, t, o) => {
+    const n = Math.random() < 0.5 ? 2 : 3;
+    for (let i = 0; i < n; i++) {
+      tone(b, t + i * 0.16, { type: 'sawtooth', freq: [vary(210, 0.08), vary(150, 0.08)], a: 0.01, peak: 0.022 * o.vol, d: 0.1, pan: o.pan });
+      noise(b, t + i * 0.16, { type: 'bandpass', freq: vary(420, 0.1), q: 6, a: 0.01, peak: 0.02 * o.vol, d: 0.09, pan: o.pan });
+    }
+  },
   owl: (b, t, o) => {
     tone(b, t, { type: 'sine', freq: [420, 380], a: 0.05, peak: 0.05 * o.vol, d: 0.3, pan: o.pan });
     tone(b, t + 0.45, { type: 'sine', freq: [430, 370], a: 0.05, peak: 0.05 * o.vol, d: 0.5, pan: o.pan });

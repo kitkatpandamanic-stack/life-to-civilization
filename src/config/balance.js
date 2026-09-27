@@ -126,6 +126,26 @@ export const BALANCE = {
     winterWoodPerHousehold: 2,
     farmOutputPerWorker: 5,
     seasonFarmMult: { spring: 0.8, summer: 1.2, autumn: 1.4, winter: 0 },
+    // Prices through the year (on top of supply and demand): the harvest makes food cheap in autumn, it's
+    // dear by the end of winter; firewood is dear in the cold; hay is dear when nothing grows.
+    // Buy when it's cheap, keep it in your storage, sell when it's dear.
+    seasonPrices: {
+      bread: { autumn: 0.92, winter: 1.12, spring: 1.05 },
+      apple: { summer: 0.95, autumn: 0.75, winter: 1.3, spring: 1.2 },
+      potato: { autumn: 0.78, winter: 1.2, spring: 1.25 },
+      carrot: { autumn: 0.8, winter: 1.2, spring: 1.2 },
+      cabbage: { autumn: 0.8, winter: 1.2, spring: 1.2 },
+      pumpkin: { autumn: 0.75, winter: 1.25 },
+      wheat: { autumn: 0.82, winter: 1.1, spring: 1.18 },
+      fish: { summer: 0.9, winter: 1.25 },
+      cheese: { winter: 1.1 },
+      milk: { spring: 0.9, winter: 1.15 },
+      egg: { spring: 0.85, winter: 1.2 },
+      hay: { summer: 0.8, autumn: 0.9, winter: 1.4, spring: 1.2 },
+      wood: { summer: 0.9, autumn: 1.05, winter: 1.3 },
+      berries: { summer: 0.8, winter: 1.4 },
+    },
+    priceLogItems: ['bread', 'apple', 'potato', 'wheat', 'fish', 'milk', 'egg', 'hay', 'wood', 'planks', 'stone', 'bricks', 'iron_ingot'],
     breadPerDay: 9,
     stewPerDay: 12,
     ownerDrawPerDay: 10,

@@ -2,6 +2,8 @@
  * Job board — today's work. Opened from the notice board (all jobs),
  * a workplace, or by asking an employer in conversation.
  */
+import { headlineWeight } from '../../data/headlines.js';
+import { paperHtml } from '../paper.js';
 import { contractsTab, contractAction, contractCard, openCrew } from '../contracts.js';
 import { Panel } from '../Panel.js';
 import { t, npcName, fmtMoney } from '../../i18n/i18n.js';
@@ -19,7 +21,7 @@ export class JobBoardPanel extends Panel {
 
   /** Once the village is big enough, the board carries a proper weekly newspaper. */
   gazette() {
-    return this.sim.state.npcs.length + 1 >= 30;
+    return !!this.sim.news?.printed();
   }
   get id() {
     return 'jobs';
@@ -87,7 +89,6 @@ export class JobBoardPanel extends Panel {
   renderNews() {
     const sim = this.sim;
     const day = sim.time.day;
-    const week = Math.floor(day / 7);
     const items = sim.state.chronicle
       .filter((e) => day - e.day <= 21)
       .map((e) => ({ e, w: headlineWeight(e.key) }))
@@ -96,14 +97,11 @@ export class JobBoardPanel extends Panel {
     const lead = items.filter((x) => x.w >= 3).slice(0, 3);
     const rest = items.filter((x) => !lead.includes(x)).slice(0, 10);
     const line = (x, big) => `<div class="chron${big ? ' lead' : ''}"><span class="chron-date">${escapeHtml(dateString(x.e.day))}</span>${escapeHtml(tr(sim, x.e.key, x.e.params))}</div>`;
-    let html = '';
-    if (this.gazette()) {
-      const pop = sim.state.npcs.length + 1;
-      const bread = sim.economy.sellersOf('bread')[0];
-      html += `<div class="gazette-head"><div class="gazette-title">${escapeHtml(t('ui.gazette_title', { name: villageName(sim) }))}</div><div class="muted small">${escapeHtml(t('ui.gazette_issue', { n: week + 1, date: dateString(day) }))} · ${escapeHtml(t('ui.population'))}: ${pop}${bread ? ` · ${escapeHtml(t('ui.bread_price'))}: ${fmtMoney(sim.economy.unitPrice(bread, 'bread'))}` : ''}</div></div>`;
-    } else html += `<div class="muted small">${escapeHtml(t('ui.village_notices', { name: villageName(sim) }))}</div>`;
-    html += lead.map((x) => line(x, true)).join('');
-    html += `<div class="chronicle">${rest.map((x) => line(x, false)).join('') || `<div class="muted">${escapeHtml(t('ui.no_news'))}</div>`}</div>`;
+    // The week's paper (NewsSystem), then what's happened since it came out.
+    let html = paperHtml(sim);
+    const since = sim.news?.latest()?.day ?? -1;
+    const fresh = [...lead, ...rest].filter((x) => x.e.day > since).slice(0, 8);
+    if (fresh.length) html += `<h3>${escapeHtml(t('ui.news_since'))}</h3><div class="chronicle">${fresh.map((x) => line(x, x.w >= 3)).join('')}</div>`;
     // Public notices: houses for sale, businesses hiring.
     const P = sim.property;
     const sale = P.homes().filter((id) => P.isVacant(id)).slice(0, 4);
@@ -181,17 +179,5 @@ export class JobBoardPanel extends Panel {
 }
 
 /** How newsworthy a chronicle entry is (0 = not for the paper). */
-const HEADLINES = {
-  npc_died: 3, npc_baby: 3, npc_married: 3, business_opened_npc: 3, business_failed: 3, fire_destroyed: 3, deposit_found: 3,
-  population_milestone: 3, migrants_arrived: 2, npc_left_village: 2, fire_started: 2, fire_out: 2, npc_built_home: 2,
-  district_changed: 2, shortage: 2, forest_thinning: 2, fish_scarce: 2, deer_scarce: 2, npc_retired: 2, business_inherited: 2,
-  business_taken_over: 2, business_handed_over: 2, npc_building: 1, village_building: 2, new_rental: 1, building_repaired: 1,
-  building_abandoned: 2, building_ruined: 2, npc_evicted: 1, business_partners: 1, npc_manager: 1, business_expanding: 1,
-  village_well: 1, hood_formed: 2, hood_grew: 1, hood_faded: 1, district_character: 2, npc_development: 1, npc_development_done: 2, npc_bought_lot: 1, npc_land_for_sale: 1,
-  village_lane: 1, village_paved: 2, village_lamp: 1, village_bridge: 2, npc_converted: 1, building_demolished: 1, village_demolished: 1, replanting: 2, iron_running_out: 2, player_built: 2, player_land: 1, business_opened: 2,
-};
-export function headlineWeight(key) {
-  const k = key.replace('chronicle.', '');
-  if (k.startsWith('event.')) return 2;
-  return HEADLINES[k] || 0;
-}
+// (the headline weights live in data/headlines.js — NewsSystem ranks the weekly paper with them too)
+export { headlineWeight };

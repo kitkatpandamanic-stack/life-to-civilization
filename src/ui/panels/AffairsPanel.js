@@ -21,6 +21,7 @@ import { SKILLS } from '../../data/skills.js';
 import { PLAYER_TRANSPORT } from '../../data/settlements.js';
 import { TRANSFERS } from '../../systems/LedgerSystem.js';
 import { maxDurability } from '../../systems/slots.js';
+import { bigLoansHtml, bigLoansAction } from '../loans.js';
 
 const ATTRS = ['strength', 'endurance', 'agility', 'intelligence', 'charisma', 'craftsmanship', 'trading', 'leadership'];
 const GOODS_ORDER = ['resource', 'material', 'food', 'seed', 'furniture', 'tool', 'quest'];
@@ -45,9 +46,10 @@ export class AffairsPanel extends Panel {
       ['finances', t('affairs.tab_finances')],
       ['possessions', t('affairs.tab_possessions')],
       ['property', t('affairs.tab_property')],
+      ['market', `📈 ${t('market.tab')}`],
       ['records', t('affairs.tab_records')],
     ];
-    const body = { summary: () => this.renderSummary(), finances: () => this.renderFinances(), possessions: () => this.renderPossessions(), property: () => this.renderProperty(), records: () => this.renderRecords() }[this.tab]();
+    const body = { summary: () => this.renderSummary(), finances: () => this.renderFinances(), possessions: () => this.renderPossessions(), property: () => this.renderProperty(), market: () => this.renderMarket(), records: () => this.renderRecords() }[this.tab]();
     return tabs(pages, this.tab) + body;
   }
 
@@ -140,6 +142,7 @@ export class AffairsPanel extends Panel {
     const rentDays = Math.max(0, (p.rent?.nextDueDay ?? 0) - sim.time.day);
     if (p.rent?.amount) due.push(this.kv(t('affairs.rent_due', { n: rentDays }), this.money(-(p.rent.amount + (p.rent.debt || 0)))));
     if (p.loan) due.push(this.kv(t('affairs.loan_due', { left: fmtMoney(p.loan.left) }), this.money(-Math.min(p.loan.weekly, p.loan.left))));
+    if (p.bankLoan) due.push(this.kv(t('affairs.loan_due', { left: fmtMoney(p.bankLoan.left) }), this.money(-Math.min(p.bankLoan.weekly, p.bankLoan.left))));
     const wages = sim.workers.list().reduce((a, c) => a + c.salary, 0);
     if (wages) due.push(this.kv(t('affairs.wages_day'), this.money(-wages)));
     const upkeep = PLAYER_TRANSPORT[p.transport || 'foot']?.upkeep || 0;
@@ -166,8 +169,54 @@ export class AffairsPanel extends Panel {
           <h3>${escapeHtml(t('affairs.coming_due'))}</h3>
           ${due.join('') || `<div class="muted small">${escapeHtml(t('affairs.none'))}</div>`}
           ${p.bank ? this.kv(t('affairs.worth_bank'), this.money(p.bank)) : ''}
+          ${bigLoansHtml(sim)}
         </div>
       </div>`;
+  }
+
+  // ------------------------------------------------------------------ the market report
+
+  /**
+   * What the everyday goods cost now (the cheapest shop or yard), how that's moved over the last month, a
+   * little chart of the weeks, and which way the coming season will push it — with what you're holding.
+   */
+  renderMarket() {
+    const sim = this.sim;
+    const S = sim.history?.samples() || [];
+    const withPrices = S.filter((r) => r.prices);
+    const now = sim.history?.prices() || {};
+    const month = withPrices.length > 4 ? withPrices[withPrices.length - 5].prices : null;
+    const have = (item) => {
+      let n = 0;
+      for (const slots of [sim.state.player.inventory, sim.state.player.storage]) for (const s of slots || []) if (s && s.id === item) n += s.qty || 0;
+      return n;
+    };
+    const spark = (item) => {
+      const pts = withPrices.slice(-12).map((r) => r.prices[item]).filter((v) => v !== undefined);
+      if (pts.length < 2) return '';
+      const lo = Math.min(...pts);
+      const hi = Math.max(...pts);
+      const span = hi - lo || 1;
+      const xy = pts.map((v, i) => `${(i / (pts.length - 1)) * 60},${16 - ((v - lo) / span) * 14 - 1}`).join(' ');
+      return `<svg class="mk-spark" viewBox="0 0 60 16" width="60" height="16"><polyline points="${xy}" /></svg>`;
+    };
+    const rows = Object.keys(now)
+      .map((item) => {
+        const p = now[item];
+        const before = month?.[item];
+        const ch = before ? Math.round(((p - before) / before) * 100) : 0;
+        const trend = ch > 3 ? `<span class="neg">▲ ${ch}%</span>` : ch < -3 ? `<span class="pos">▼ ${-ch}%</span>` : `<span class="muted">—</span>`;
+        const out = sim.economy.seasonOutlook(item);
+        const outlook = out === 'up' ? `📈 ${escapeHtml(t('market.dearer'))}` : out === 'down' ? `📉 ${escapeHtml(t('market.cheaper'))}` : '';
+        const n = have(item);
+        return `<tr><td>${icon(item, 18)} ${escapeHtml(itemName(item))}</td><td class="num"><b>${escapeHtml(fmtMoney(p))}</b></td><td class="num">${trend}</td><td>${spark(item)}</td><td class="small">${outlook}</td><td class="num muted">${n ? n : ''}</td></tr>`;
+      })
+      .join('');
+    return `<div class="muted small">${escapeHtml(t('market.hint'))}</div>
+      <table class="mk-table">
+        <tr class="muted small"><th>${escapeHtml(t('market.good'))}</th><th>${escapeHtml(t('market.now'))}</th><th>${escapeHtml(t('market.month'))}</th><th>${escapeHtml(t('market.weeks'))}</th><th>${escapeHtml(t('market.next_season'))}</th><th>${escapeHtml(t('market.yours'))}</th></tr>
+        ${rows || `<tr><td colspan="6" class="muted">${escapeHtml(t('affairs.none'))}</td></tr>`}
+      </table>`;
   }
 
   // ------------------------------------------------------------------ possessions
@@ -343,6 +392,7 @@ export class AffairsPanel extends Panel {
   }
 
   onAction(action, data) {
+    if (bigLoansAction(this.sim, action, data)) return;
     if (action === 'tab') this.tab = data.tab;
     if (action === 'period') this.period = data.p;
     if (action === 'building') this.ui.openProperty(data.id);

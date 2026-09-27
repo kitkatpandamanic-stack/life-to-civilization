@@ -22,6 +22,8 @@ import { MeetingPanel } from './panels/MeetingPanel.js';
 import { ManagementPanel } from './panels/ManagementPanel.js';
 import { InventionPanel } from './panels/InventionPanel.js';
 import { ColonyPanel } from './panels/ColonyPanel.js';
+import { MinePanel } from './panels/MinePanel.js';
+import { LawPanel } from './panels/LawPanel.js';
 import { t, fmtMoney, onLanguageChange, npcName, itemName } from '../i18n/i18n.js';
 import { tr, escapeHtml, hoodLabel, districtLabel, buildingLabel } from './format.js';
 import { WEATHER_ICONS } from '../systems/WeatherSystem.js';
@@ -576,6 +578,12 @@ export class UIManager {
   }
   openColony() {
     this.openPanel(new ColonyPanel(this));
+  }
+  openMine(bizId) {
+    this.openPanel(new MinePanel(this, bizId));
+  }
+  openLaw() {
+    this.openPanel(new LawPanel(this));
   }
 
   /** A family proposes a match for one of your children. */

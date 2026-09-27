@@ -96,3 +96,22 @@ kbd { font-family: var(--font-display); background: var(--parchment-bg); color: 
 .title-card { background: var(--wood-panel); border: 2px solid var(--gold-line); box-shadow: var(--frame), var(--shadow-3); }
 .title-logo { font-family: var(--font-display); font-weight: 900; color: #ffeab8; text-shadow: 0 2px 0 #6a3a0c, 0 4px 0 #3a1e06, 0 0 30px rgba(255, 190, 90, 0.5); }
 .title-sub { font-family: var(--font-display); letter-spacing: 0.1em; }
+
+/* The market report (Your affairs → Market) */
+.mk-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: var(--fs-body); }
+.mk-table th { text-align: left; font-weight: 800; padding: 4px 6px; border-bottom: 1px solid rgba(201, 154, 62, 0.4); }
+.mk-table td { padding: 4px 6px; border-bottom: 1px solid rgba(201, 154, 62, 0.15); vertical-align: middle; }
+.mk-table td .item-icon { vertical-align: middle; }
+.mk-spark polyline { fill: none; stroke: var(--gold-hi); stroke-width: 1.5; }
+
+/* The newspaper (Journal → News) */
+.paper { background: var(--parchment-bg); color: var(--ink-dark); border: 1px solid #9a7440; border-radius: var(--r-sm); padding: 10px 14px 12px; margin-bottom: 12px; box-shadow: inset 0 0 18px rgba(120, 80, 30, 0.25); }
+.paper-mast { font-family: var(--font-display); font-size: 24px; font-weight: 900; text-align: center; letter-spacing: 0.04em; border-bottom: 3px double #6b4a26; padding-bottom: 4px; }
+.paper-date { text-align: center; font-size: var(--fs-tiny); font-weight: 800; color: #6b4a26; margin: 3px 0 8px; text-transform: uppercase; letter-spacing: 0.08em; }
+.paper-head { font-size: var(--fs-body); padding: 4px 0; border-bottom: 1px dotted rgba(90, 60, 30, 0.35); }
+.paper-head.lead { font-family: var(--font-display); font-size: var(--fs-heading); font-weight: 800; }
+.paper-head.you::before { content: '★ '; color: #a0681a; }
+.paper-sec { font-family: var(--font-display); font-weight: 800; margin-top: 8px; border-top: 1px solid rgba(90, 60, 30, 0.5); padding-top: 4px; font-size: var(--fs-small); text-transform: uppercase; letter-spacing: 0.06em; }
+.paper-price { white-space: nowrap; }
+.paper-ad { font-style: italic; font-size: var(--fs-small); }
+.paper .muted { color: #7a5a36; }

@@ -31,6 +31,7 @@ import { ConstructionViews } from '../game/ConstructionViews.js';
 import { BuildMode } from '../game/BuildMode.js';
 import { CameraDirector } from '../game/CameraDirector.js';
 import { INVENT } from '../data/inventions.js';
+import { CRIME } from '../systems/CrimeSystem.js';
 import { WorldOverlay } from '../game/WorldOverlay.js';
 import { FieldViews } from '../game/FieldViews.js';
 import { AnimalViews } from '../game/AnimalViews.js';
@@ -435,6 +436,26 @@ export class GameScene extends Phaser.Scene {
       if (r.finished) sim.toast('toast.invented', { invention: id }, 'good');
       else sim.toast(r.setback ? 'toast.invent_setback' : 'toast.invent_progress', { invention: id, n: r.pct }, r.setback ? 'warn' : 'info');
       this.ui.openInventions();
+    });
+  }
+
+  /** Two hours looking into a theft, as constable (CrimeSystem). */
+  investigate(caseId) {
+    if (this.busy) return;
+    const sim = this.sim;
+    const chk = sim.crime.canInvestigate(caseId);
+    if (!chk.ok) return sim.toast(`reason.${chk.reason}`, chk.params || {}, 'warn');
+    this.busy = true;
+    this.player.cancelAction();
+    this.ui.closePanel?.();
+    this.ui.showStatus('investigating', {});
+    sim.time.fastForward(CRIME.investigateMinutes, BALANCE.jobs.shiftRealMs * 0.5, () => {
+      const r = sim.crime.investigate(caseId);
+      this.busy = false;
+      this.ui.hideStatus();
+      if (r.solved) sim.toast('toast.case_solved', { npc: r.thief, money: r.fined }, 'good');
+      else if (r.ok) sim.toast('toast.case_cold', {}, 'warn');
+      this.ui.openLaw();
     });
   }
 

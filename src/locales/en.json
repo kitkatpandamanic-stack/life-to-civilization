@@ -787,7 +787,10 @@
     "invent": "Work on an invention",
     "dock": "Boats & the river",
     "colony": "The settlement's affairs",
-    "colony_supplies": "Leave supplies (food, firewood)"
+    "colony_supplies": "Leave supplies (food, firewood)",
+    "law": "Law and order",
+    "read_paper": "Read the paper",
+    "mine_manage": "The mine: dig deeper, shore up"
   },
   "reason": {
     "nothing_here": "Nothing to do here.",
@@ -1091,7 +1094,19 @@
     "already_building": "It's already being built.",
     "colony_purse": "Its purse doesn't have {money}.",
     "no_keeper": "No settler to keep the shop.",
-    "colony_no_room": "No room for it there just now."
+    "colony_no_room": "No room for it there just now.",
+    "not_your_mine": "That isn't your mine.",
+    "mine_deepest": "The mine is as deep as it can go.",
+    "mine_caved_in": "The tunnels have caved in — wait until they're cleared.",
+    "mine_shored": "The tunnels are fully shored up.",
+    "recently_bankrupt": "No one will lend to you so soon after a bankruptcy.",
+    "over_limit": "That's more than they'd lend you (up to {money}).",
+    "not_constable": "Only the constable can do that.",
+    "case_closed": "That case is closed.",
+    "already_constable": "You're already the constable.",
+    "has_lock": "Your storage already has a lock.",
+    "no_press": "The valley can't print yet (it needs printing).",
+    "ad_running": "Your advertisement is still running."
   },
   "toast": {
     "hungry": "You're getting hungry. Press Q to eat.",
@@ -1372,7 +1387,25 @@
     "colony_gave_up": "{npc}'s household gave up on {colony} after a hungry winter.",
     "colony_grew": "{colony} is a {stage} now!",
     "colony_supplies": "Supplies left for {colony}'s store ({n}).",
-    "colony_settler": "{npc} will settle in {colony} ({n} of them)."
+    "colony_settler": "{npc} will settle in {colony} ({n} of them).",
+    "bank_loan_cleared": "The loan is paid off — your credit record improves.",
+    "bank_loan_payment": "Loan payment: {money} ({left} left).",
+    "bank_loan_missed": "Missed a loan payment of {money}! {n} more and the lender takes what's owed.",
+    "bankrupt": "Bankrupt: the lender took all it could, and the rest is written off. Your name suffers for it.",
+    "loan_seized": "The lender seized what was owed: {money} from your savings and {n} building(s).",
+    "bank_loan_taken": "You borrowed {money}.",
+    "mine_cave_in": "Cave-in at your mine! {n} miner(s) hurt; work stops for a few days.",
+    "mine_dug": "Your mine now goes down to level {n}.",
+    "theft_yours": "Someone took {qty} × {item} from your storage in the night.",
+    "theft_till": "Thieves took {money} from the till at {building}.",
+    "constable_paid": "Constable's pay: {money}.",
+    "lock_fitted": "A lock on your storage.",
+    "now_constable": "You're the village constable now.",
+    "case_solved": "Case solved: {npc} is fined {money}.",
+    "case_cold": "The trail has gone cold.",
+    "gazette_out": "The Valley Gazette, No. {n}, is out (Journal → News).",
+    "news_sheet_out": "A new news sheet on the notice board (Journal → News).",
+    "ad_placed": "Your advertisement will run for a week."
   },
   "objective": {
     "harvest": "Harvest ripe wheat in the farm fields ({have}/{qty})",
@@ -1813,7 +1846,16 @@
     "colony_founded": "A new settlement was founded: {colony}.",
     "colony_grew": "{colony} has grown into a {stage}.",
     "building_bee": "{npc}'s house had stood half-built for want of money — family and friends chipped in to see it finished.",
-    "village_helped_build": "The village put money towards {npc}'s half-built house, so the family has a roof of its own."
+    "village_helped_build": "The village put money towards {npc}'s half-built house, so the family has a roof of its own.",
+    "player_bankrupt": "You went bankrupt: the lender took what it could.",
+    "player_seized": "Your lender seized {n} building(s) for an unpaid loan.",
+    "mine_deeper": "Your mine was dug down to level {n}.",
+    "mine_cave_in": "The tunnels caved in at the mine by {building}; {n} miner(s) hurt.",
+    "theft": "Thieves struck at {building} in the night.",
+    "theft_player": "Someone stole {item} from your storage.",
+    "thief_caught": "{npc} was caught stealing and fined {money}.",
+    "thief_banished": "{npc}, caught stealing three times, has been sent out of the valley.",
+    "player_constable": "You became the village constable."
   },
   "event": {
     "good_harvest": {
@@ -1981,14 +2023,19 @@
     "family_teach": "Teaching {npc}: {skill}",
     "family_work": "At work, with {npc} alongside",
     "family_play": "An hour with {npc}",
-    "inventing": "At the bench: the {invention}"
+    "inventing": "At the bench: the {invention}",
+    "investigating": "Asking around about the theft…"
   },
   "tips": {
     "tip1": "The notice board on the plaza lists all work. Talking to employers works too.",
     "tip2": "Eat before you're starving (Q). Bread at the store is cheap; berries are free.",
     "tip3": "Roads are faster to walk on than grass.",
     "tip4": "Prices follow supply and demand — don't flood one shop with the same goods.",
-    "tip5": "Chat with villagers every day. Friends pay more and give discounts."
+    "tip5": "Chat with villagers every day. Friends pay more and give discounts.",
+    "tip6": "Prices change with the seasons: see Your affairs (L) → Market, buy cheap and sell dear.",
+    "tip7": "Lock your storage (Law and order, at the hall): thieves are about when times are hard.",
+    "tip8": "A new paper comes out every week — read it at the notice board or in the Journal.",
+    "tip9": "For a big project, borrow from the bank (or the moneylender): Your affairs → Finances. Keep up the payments!"
   },
   "controls": {
     "move": {
@@ -2501,7 +2548,8 @@
     "world_look": "World look",
     "world_look_hint": "Painted: soft, hand-painted ground. Classic: the simple square tiles (lighter on slow computers).",
     "look_painted": "Painted",
-    "look_classic": "Classic"
+    "look_classic": "Classic",
+    "news_since": "Since the paper came out"
   },
   "dialog": {
     "intro": [
@@ -3833,7 +3881,8 @@
     "family_alliance": "Their child married into your family.",
     "match_refused": "You turned down their match.",
     "inherited_grudge": "They hated your parent — and don't trust you.",
-    "became_settler": "Went to live in your settlement."
+    "became_settler": "Went to live in your settlement.",
+    "caught_stealing": "Was caught stealing."
   },
   "talk": {
     "deflect": [
@@ -9280,5 +9329,95 @@
     "supplies": "Supplies left for the store ({n}).",
     "landmark": "Work began on {landmark}.",
     "gave_up": "{npc}'s household gave up after a hungry winter."
+  },
+  "loans": {
+    "title": "Big loans",
+    "lender": "Who'd lend to you",
+    "lender_bank": "The village bank",
+    "lender_moneylender": "The moneylender in town (dearer — until the village has a bank)",
+    "credit": "Your credit record",
+    "credit_good": "good",
+    "credit_fair": "fair",
+    "credit_poor": "poor",
+    "credit_bad": "bad",
+    "limit": "The most you could borrow",
+    "from_bank": "Owed to the bank",
+    "from_moneylender": "Owed to the moneylender",
+    "left": "left",
+    "weekly": "Each week",
+    "missed": "Payments missed: {n} of {of}. Miss them all and the lender takes what's owed — your savings, then your buildings.",
+    "repay_n": "Pay {money}",
+    "repay_all": "Pay it all ({money})",
+    "terms": "{rate}% interest · {weeks} weeks · {money} a week",
+    "hint": "Paid weekly, with the village's taxes. Paying on time improves your record (and your rate); miss {n} payments and the lender seizes what's owed — never the home you live in, nor where your own business runs."
+  },
+  "market": {
+    "tab": "Market",
+    "dearer": "dearer next season",
+    "cheaper": "cheaper next season",
+    "hint": "The cheapest price in the valley for each good this week. Buy when it's cheap, keep it in your storage, and sell when it's dear.",
+    "good": "Good",
+    "now": "Now",
+    "month": "Past month",
+    "weeks": "Weeks",
+    "next_season": "Coming season",
+    "yours": "You have"
+  },
+  "mine": {
+    "title": "Your mine",
+    "surface": "the surface — the miners work the rocks round about",
+    "level_n": "Level {n}",
+    "caved_in": "The tunnels have caved in — no one works below for {n} more days.",
+    "depth": "Depth",
+    "miners": "Miners",
+    "in_store": "In store",
+    "levels": "Levels and their ore (a day, for each miner)",
+    "dig": "Dig level {n} ({planks} planks, {money})",
+    "supports": "Timber supports",
+    "shored": "{n} of {of} props",
+    "risk": "Chance of a cave-in this week: {n}%",
+    "shore": "Shore up ({n} planks)",
+    "hint": "The deeper the mine, the richer the ore — but the more the tunnels need shoring up. Work a shift there yourself, or send miners."
+  },
+  "law": {
+    "title": "Law and order",
+    "your_storage": "your storage",
+    "solved": "solved — {name} was fined {money}",
+    "cold": "gone cold",
+    "open": "no one knows who",
+    "case": "{what} taken from {where}",
+    "investigate": "Look into it",
+    "investigate_hint": "Two hours asking around. Cases from the past week can be solved; older ones have gone cold.",
+    "watch_on": "The village watch keeps an eye out: fewer thieves try, and some cases get solved without you.",
+    "lock": "A lock on your storage",
+    "lock_on": "Your storage is locked: most thieves give up.",
+    "lock_off": "Your storage isn't locked. When times are hard, somebody might help themselves.",
+    "fit_lock": "Fit a lock ({money})",
+    "constable": "The constable",
+    "you_constable": "You're the village constable: {money} a week from the village fund. Your patrols put thieves off, and you can look into thefts.",
+    "constable_hint": "The village needs a constable: {money} a week, patrols that put thieves off, and cases to solve.",
+    "resign": "Step down",
+    "take_post": "Become the constable",
+    "open_cases": "Open cases",
+    "no_cases": "No thefts to look into — a quiet valley.",
+    "closed_cases": "Closed cases"
+  },
+  "news": {
+    "none_yet": "The first issue comes out at the end of the week.",
+    "quiet_week": "A quiet week in the valley.",
+    "ad_line": "Visit {building} — the best in the valley!",
+    "outlook_spring": "Spring: planting time. Food is dear until the harvest.",
+    "outlook_summer": "Summer: long days, fish and fruit coming in. Stock up on firewood while it's cheap.",
+    "outlook_autumn": "Autumn: the harvest is in and food is cheap — a good time to fill the stores.",
+    "outlook_winter": "Winter: firewood and food grow dear as the weeks go by.",
+    "prices": "Prices",
+    "law": "Law and order",
+    "thefts": "{n} theft(s) this week.",
+    "no_thefts": "Not a single theft this week.",
+    "outlook": "The season",
+    "ads": "Advertisements",
+    "ad_running": "Advertised in the Gazette — {n} more days.",
+    "advertise": "Advertise in the Gazette ({money})",
+    "advertise_hint": "A week's advertisement: more villagers come to your shop."
   }
 }

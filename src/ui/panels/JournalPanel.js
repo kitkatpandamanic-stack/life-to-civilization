@@ -13,6 +13,7 @@ import { WEATHER_ICONS } from '../../systems/WeatherSystem.js';
 import { guidePageHtml, guideAction } from '../guide.js';
 import { storiesHtml } from '../stories.js';
 import { lineChart } from '../charts.js';
+import { paperHtml } from '../paper.js';
 
 /** What the history charts can show (HistorySystem.samples). */
 const CHARTS = ['pop', 'money', 'worth', 'biz', 'treasury', 'bread', 'workers'];
@@ -113,7 +114,7 @@ export class JournalPanel extends Panel {
     }
     const p = sim.state.player;
     html += `<h3>${escapeHtml(t('ui.home_title'))}</h3><div class="rumor">🏠 ${escapeHtml(tr(sim, p.rent.debt > 0 ? 'toast.rent_info_debt' : 'toast.rent_info', { money: p.rent.amount, days: Math.max(0, p.rent.nextDueDay - sim.time.day), debt: p.rent.debt }))}</div>`;
-    html += `<h3>${escapeHtml(t('ui.tips'))}</h3><ul class="tips">${['tip1', 'tip2', 'tip3', 'tip4', 'tip5'].map((k) => `<li>${escapeHtml(t(`tips.${k}`))}</li>`).join('')}</ul>`;
+    html += `<h3>${escapeHtml(t('ui.tips'))}</h3><ul class="tips">${['tip1', 'tip2', 'tip3', 'tip4', 'tip5', 'tip6', 'tip7', 'tip8', 'tip9'].map((k) => `<li>${escapeHtml(t(`tips.${k}`))}</li>`).join('')}</ul>`;
     return html;
   }
 
@@ -141,7 +142,7 @@ export class JournalPanel extends Panel {
     const rumors = heard.length
       ? `<h3>${escapeHtml(t('ui.rumors_heard'))}</h3>${heard.map((r) => `<div class="rumor">🗣️ ${escapeHtml(rumorText(sim, r))} <span class="muted small">(${escapeHtml(dateString(r.born))})</span></div>`).join('')}`
       : '';
-    return rumors + this.renderChronicle();
+    return paperHtml(sim) + rumors + this.renderChronicle();
   }
 
   renderChronicle() {

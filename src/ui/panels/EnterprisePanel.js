@@ -8,6 +8,7 @@ import { t, npcName, fmtMoney, itemName } from '../../i18n/i18n.js';
 import { escapeHtml, buildingLabel, npcRole, tr } from '../format.js';
 import { button, icon, portrait } from '../widgets.js';
 import { contractCard, contractAction } from '../contracts.js';
+import { NEWS } from '../../systems/NewsSystem.js';
 
 export class EnterprisePanel extends Panel {
   constructor(ui, bizId, focus = null) {
@@ -64,6 +65,7 @@ export class EnterprisePanel extends Panel {
           <div class="btn-row">${button(t('biz.withdraw', { money: fmtMoney(50) }), 'withdraw', { n: 50 }, { disabled: b.money < 50 })}${button(t('biz.withdraw_all'), 'withdraw', { n: 999999 }, { disabled: b.money < 1 })}${button(t('biz.deposit', { money: fmtMoney(100) }), 'deposit', { n: 100 }, { disabled: sim.state.player.money < 100 })}</div>
           <h3>${escapeHtml(t('biz.running'))}</h3>
           ${def.kind === 'shop' ? step(t('biz.prices'), `${Math.round((b.markup ?? 1) * 100)}%`, 'price_down', 'price_up') : ''}
+          ${def.kind === 'shop' ? this.adHtml() : ''}
           ${def.workerOccupation ? step(t('biz.wages'), `${Math.round((b.wageLevel ?? 1) * 100)}%`, 'wage_down', 'wage_up') : ''}
           ${def.workerOccupation ? step(t('biz.staff_target'), b.maxWorkers ?? def.maxWorkers ?? 0, 'staff_down', 'staff_up') : ''}
           ${kv(t('biz.minded'), escapeHtml(t(presence >= 1 ? 'biz.minded_you' : presence > 0.6 ? 'biz.minded_manager' : 'biz.minded_nobody')))}
@@ -121,10 +123,27 @@ export class EnterprisePanel extends Panel {
     return html + `<div class="muted small">${escapeHtml(t('biz.route_hint'))}</div>`;
   }
 
+  /** An advertisement in the Gazette (NewsSystem): a week of more customers. */
+  adHtml() {
+    const sim = this.sim;
+    const N = sim.news;
+    if (!N) return '';
+    const until = N.S.ads[this.bizId];
+    if (until !== undefined && until >= sim.time.day) return `<div class="small">📣 ${escapeHtml(t('news.ad_running', { n: until - sim.time.day }))}</div>`;
+    const chk = N.canAdvertise(this.bizId);
+    return `<div class="btn-row">${button(t('news.advertise', { money: fmtMoney(NEWS.adCost) }), 'advertise', {}, { cls: 'sm', ico: '📣', disabled: !chk.ok, title: chk.ok ? t('news.advertise_hint') : tr(sim, `reason.${chk.reason}`, chk.params || {}) })}</div>`;
+  }
+
   onAction(action, data) {
     const H = this.sim.holdings;
     const b = this.sim.economy.biz(this.bizId);
     if (contractAction(this.sim, action, data)) return;
+    if (action === 'advertise') {
+      const r = this.sim.news.advertise(this.bizId);
+      if (!r.ok) this.sim.toast(`reason.${r.reason}`, r.params || {}, 'warn');
+      else this.sim.toast('toast.ad_placed', {}, 'good');
+      return;
+    }
     switch (action) {
       case 'withdraw':
         H.withdraw(this.bizId, Number(data.n));

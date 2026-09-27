@@ -125,10 +125,34 @@ export class EconomySystem {
     return this.biz(id)?.stock[item] || 0;
   }
 
-  /** Supply/demand multiplier on the base price. */
+  /** Supply/demand multiplier on the base price (and the time of year — seasonFactor). */
   priceFactor(id, item) {
-    const f = Math.pow((this.target(id, item) + 8) / (this.stock(id, item) + 8), E.priceElasticity);
+    const f = Math.pow((this.target(id, item) + 8) / (this.stock(id, item) + 8), E.priceElasticity) * this.seasonFactor(item);
     return Math.max(E.minPriceFactor, Math.min(E.maxPriceFactor, f));
+  }
+
+  /**
+   * The time of year's pull on a price: cheap after the harvest, dear at the end of winter (BALANCE seasonPrices).
+   * It eases in over the first days of a season rather than jumping.
+   */
+  seasonFactor(item) {
+    const S = E.seasonPrices?.[item];
+    if (!S) return 1;
+    const T = this.sim.time;
+    const now = S[T.season] ?? 1;
+    const prev = S[['winter', 'spring', 'summer', 'autumn'][T.seasonIndex]] ?? 1;
+    const ease = Math.min(1, T.dayOfSeason / 4);
+    return prev + (now - prev) * ease;
+  }
+
+  /** How an item's price will go next season (for the market report): 'up', 'down' or null. */
+  seasonOutlook(item) {
+    const S = E.seasonPrices?.[item];
+    if (!S) return null;
+    const T = this.sim.time;
+    const next = ['summer', 'autumn', 'winter', 'spring'][T.seasonIndex];
+    const d = (S[next] ?? 1) - (S[T.season] ?? 1);
+    return d > 0.04 ? 'up' : d < -0.04 ? 'down' : null;
   }
 
   /** Price per unit: base × supply/demand × the owner's markup (competition pushes it down). */
@@ -329,6 +353,7 @@ export class EconomySystem {
       const bld = this.sim.world.buildings[this.biz(id).building];
       if (home && bld) score -= Math.hypot(home.door.tx - bld.door.tx, home.door.ty - bld.door.ty) / 12;
       score += Math.min(3, (npc.visits?.[this.biz(id).building] || 0) * 0.3);
+      score += this.sim.news?.adBoost(id) || 0; // an advertisement in the Gazette (NewsSystem)
       const owner = this.owner(id);
       if (owner) {
         if (owner === npc || npc.family.includes(owner.id)) score += 4;

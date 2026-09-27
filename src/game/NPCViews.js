@@ -8,6 +8,8 @@
 import { npcName } from '../i18n/i18n.js';
 import { BALANCE } from '../config/balance.js';
 import { ensureCharacter, idleFrame, CHAR_ORIGIN_Y } from './characters.js';
+import { dressedLook, garbKey } from '../render/CharacterArt.js';
+import { LifeMoments } from './LifeMoments.js';
 import { DEPTH } from './depth.js';
 import { workerIndicator } from '../ui/workerCard.js';
 
@@ -19,6 +21,7 @@ export class NPCViews {
     this.sim = sim;
     this.views = new Map();
     for (const npc of sim.state.npcs) this.create(npc);
+    this.life = new LifeMoments(scene, sim); // waving, benches, children at play, facing whoever you talk to
     // The villager you picked (their card is open) or are following: a ring at their feet.
     this.selected = null;
     this.ring = scene.add.ellipse(0, 0, 30, 12).setStrokeStyle(2, 0xffcf5a, 0.95).setFillStyle(0xffcf5a, 0.18).setVisible(false);
@@ -29,7 +32,13 @@ export class NPCViews {
         .setDepth(DEPTH.WORLD_UI - 1);
     }
     this.unsubs = [
-      sim.bus.on('npc:chat', ({ a, b }) => this.showBubble(a, b)),
+      sim.bus.on('npc:chat', ({ a, b }) => {
+        this.showBubble(a, b);
+        const va = this.views.get(a);
+        const vb = this.views.get(b);
+        if (va) va.faceTo = b;
+        if (vb) vb.faceTo = a;
+      }),
       sim.bus.on('npc:argue', ({ a, b }) => this.showAngry(a, b)),
       // Villagers are born, arrive and pass away while you play.
       sim.bus.on('npc:added', (id) => {
@@ -40,9 +49,14 @@ export class NPCViews {
     ];
   }
 
+  /** A villager's texture: their look in the clothes of their trade (seed in the key: another save, other looks). */
+  textureFor(npc) {
+    const g = garbKey(npc);
+    return ensureCharacter(this.scene, `npc_${this.sim.state.seed}_${npc.id}${g ? `_${g}` : ''}`, dressedLook(npc));
+  }
+
   create(npc) {
-    // Seed in the key: a different save = different villagers' looks.
-    const tex = ensureCharacter(this.scene, `npc_${this.sim.state.seed}_${npc.id}`, npc.look);
+    const tex = this.textureFor(npc);
     const sprite = this.scene.add.sprite(npc.x, npc.y, tex, idleFrame(npc.facing)).setOrigin(0.5, CHAR_ORIGIN_Y);
     sprite.setScale(this.scaleFor(npc));
     const tag = this.scene.add
@@ -53,7 +67,7 @@ export class NPCViews {
     const bubble = this.scene.add.image(0, 0, 'bubble').setOrigin(0.5, 1).setDepth(DEPTH.WORLD_UI).setVisible(false);
     // Thought icon: hungry, tired, sick, job hunting, unpaid, carrying goods...
     const thought = this.scene.add.text(0, 0, '', { fontFamily: '"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif', fontSize: '15px' }).setOrigin(0.5, 1).setDepth(DEPTH.WORLD_UI).setVisible(false);
-    this.views.set(npc.id, { npc, tex, sprite, tag, bubble, thought, thoughtText: '', bubbleUntil: 0, fxTimer: 0, anim: '' });
+    this.views.set(npc.id, { npc, tex, garb: garbKey(npc), sprite, tag, bubble, thought, thoughtText: '', bubbleUntil: 0, fxTimer: 0, anim: '' });
   }
 
   /** Pick a villager (their card is open): the ring goes round them. */
@@ -139,6 +153,7 @@ export class NPCViews {
     if (this.selected && !this.scene.ui?.menu && this.selected !== followed) this.selected = null;
     const ringOn = this.selected || followed;
     let ringShown = false;
+    this.life.beginFrame();
     for (const v of this.views.values()) {
       const npc = v.npc;
       const visible = !npc.inside && npc.simLevel !== 'abstract';
@@ -156,6 +171,15 @@ export class NPCViews {
         ringShown = true;
       }
       v.sprite.setPosition(npc.x, npc.y).setDepth(npc.y);
+      // A new job (or grown up): new work clothes.
+      const g = garbKey(npc);
+      if (g !== v.garb) {
+        v.garb = g;
+        v.tex = this.textureFor(npc);
+        v.sprite.anims.stop();
+        v.sprite.setTexture(v.tex, idleFrame(npc.facing));
+        v.anim = '';
+      }
 
       // Animation
       const working = this.isWorking(npc);
@@ -172,6 +196,8 @@ export class NPCViews {
         v.sprite.setFrame(idleFrame(npc.facing));
       }
       v.anim = anim;
+      // Everyday life: sitting on a bench, children at play, a wave, turning to whoever they're talking to.
+      const moment = this.life.apply(v, npc, now, !npc.moving && !working);
 
       // Work particles (wood chips, stone dust, sparks)
       if (working && WORK_FX[working]) {
@@ -197,7 +223,7 @@ export class NPCViews {
 
       const dist = Math.hypot(npc.x - p.x, npc.y - p.y);
       const angry = now < (v.angryUntil || 0);
-      const icon = angry ? '💢' : !bubble && dist < BALANCE.npc.thoughtRadius ? this.sim.npcs.thought(npc) : null;
+      const icon = angry ? '💢' : moment || (!bubble && dist < BALANCE.npc.thoughtRadius ? this.sim.npcs.thought(npc) : null);
       // Children grow up in front of you.
       const scale = this.scaleFor(npc);
       if (v.sprite.scaleX !== scale) v.sprite.setScale(scale);
