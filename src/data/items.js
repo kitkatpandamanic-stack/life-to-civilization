@@ -29,6 +29,9 @@ export const ITEMS = {
   sapling: { category: 'material', weight: 1, basePrice: 4 }, // a young forest tree to plant out (ForestrySystem)
   apple_sapling: { category: 'material', weight: 1.2, basePrice: 9 }, // an apple tree for an orchard
   iron_ingot: { category: 'material', weight: 1.5, basePrice: 26 },
+  // Worn and replaced (TradesSystem): a tailor's and a cobbler's work.
+  clothes: { category: 'material', weight: 1, basePrice: 14 },
+  shoes: { category: 'material', weight: 1, basePrice: 12 },
 
   // Food
   berries: { category: 'food', weight: 0.2, basePrice: 1, food: { hunger: 5 } },

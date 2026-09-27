@@ -286,7 +286,8 @@ export class ForestrySystem {
       this.claims.set(key(spot.tx, spot.ty), npc.id);
       return { kind: 'plant', tx: spot.tx, ty: spot.ty };
     }
-    const young = this.toTend(base.tx, base.ty);
+    // Tending the young trees is a forester's work (a woodcutter plants, or waits).
+    const young = npc.occupation === 'forester' || this.nurseryOf(npc) ? this.toTend(base.tx, base.ty) : null;
     if (young) {
       this.claims.set(key(young.tx, young.ty), npc.id);
       return { kind: 'tend', tx: young.tx, ty: young.ty, obj: young.id };

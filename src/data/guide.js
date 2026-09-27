@@ -104,6 +104,18 @@ export const GUIDE = [
       { id: 'path', icon: '🧭', need: 'hire_worker', done: (s) => !!s.state.guide?.path, open: 'paths', reward: { xp: 30 } },
     ],
   },
+  {
+    // What the valley has besides work: the square on market day, the woods, the towns beyond, the village's life.
+    chapter: 'life',
+    steps: [
+      { id: 'plant_tree', icon: '🌱', need: 'hire_worker', done: (s) => (s.state.forestry?.byPlayer || 0) >= 1, open: 'forest', reward: { money: 10, xp: 30 } },
+      { id: 'stall_day', icon: '🧺', need: 'hire_worker', done: (s) => (s.state.stall?.days || 0) >= 1, where: () => ({ tx: 42, ty: 44 }), open: 'stall', reward: { money: 10, xp: 30 } },
+      { id: 'market_trade', icon: '🛍️', need: 'hire_worker', done: (s) => (s.state.community?.traded || 0) >= 1, where: () => ({ tx: 46, ty: 43 }), open: 'market', reward: { xp: 30 } },
+      { id: 'job_rank', icon: '⭐', need: 'hire_worker', done: (s) => Object.values(s.state.player.jobStats || {}).some((n) => n >= 4), open: 'jobboard', reward: { money: 15, xp: 40 } },
+      { id: 'celebrate', icon: '💐', need: 'hire_worker', done: (s) => (s.state.community?.attended || 0) >= 1, open: 'calendar', reward: { xp: 40 } },
+      { id: 'town_order', icon: '📜', need: 'hire_worker', done: (s) => (s.state.townOrders?.done || 0) >= 1, where: (s) => door(s, 'hall'), open: 'town_orders', reward: { money: 30, xp: 80 } },
+    ],
+  },
 ];
 
 export const PATHS = {

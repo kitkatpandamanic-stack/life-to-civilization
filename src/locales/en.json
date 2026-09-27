@@ -270,7 +270,11 @@
       "f": "Factory hand"
     },
     "forester": "Forester",
-    "nursery_keeper": "Nursery keeper"
+    "nursery_keeper": "Nursery keeper",
+    "tailor": "Tailor",
+    "tailor_hand": "Tailor's hand",
+    "cobbler": "Cobbler",
+    "cobbler_hand": "Cobbler's hand"
   },
   "building": {
     "hall": "Village Hall",
@@ -525,6 +529,14 @@
     "resin": {
       "name": "Resin",
       "desc": "Sticky pine resin, for pitch and varnish. The warehouse sells it on to the towns."
+    },
+    "clothes": {
+      "name": "Clothes",
+      "desc": "A shirt, trousers or a dress — sewn at the tailor's. Everyone needs new ones now and then."
+    },
+    "shoes": {
+      "name": "Boots",
+      "desc": "Good leather boots from the cobbler's. They wear out on the valley's roads."
     }
   },
   "item_cat": {
@@ -825,7 +837,8 @@
     "population": "The valley's people",
     "forest_report": "The woods",
     "traders": "The traders (market day)",
-    "town_orders": "Orders from other towns ({n})"
+    "town_orders": "Orders from other towns ({n})",
+    "fish_ice": "Fish through the ice"
   },
   "reason": {
     "nothing_here": "Nothing to do here.",
@@ -1160,7 +1173,9 @@
     "order_taken": "You've already taken this order on.",
     "order_not_taken": "Take the order on first.",
     "keeper_hired": "Someone's already keeping your stall.",
-    "no_stall_keeper": "Nobody's free to keep your stall today."
+    "no_stall_keeper": "Nobody's free to keep your stall today.",
+    "too_many_trader_orders": "The traders take at most {n} orders at a time.",
+    "not_yet_brought": "Not brought yet — next market day."
   },
   "toast": {
     "hungry": "You're getting hungry. Press Q to eat.",
@@ -1484,7 +1499,9 @@
     "sold_traders": "Sold {qty} × {item} to the traders for {money}.",
     "town_order_failed": "The order from {settlement} ({item}) ran out of time.",
     "town_order_done": "Order complete! Paid {money} (with the bonus).",
-    "town_order_part": "Handed over {qty}. Paid {money}."
+    "town_order_part": "Handed over {qty}. Paid {money}.",
+    "trader_ordered": "Ordered: {qty} × {item}. The traders will bring it next market day.",
+    "trader_collected": "You collected your order from the traders."
   },
   "objective": {
     "harvest": "Harvest ripe wheat in the farm fields ({have}/{qty})",
@@ -2095,7 +2112,22 @@
     "funeral": "The village said goodbye to {npc}; {n} came.",
     "town_order": "{settlement} sends an order: {n} × {item}.",
     "town_order_done": "The order for {settlement} is done: {n} × {item} delivered.",
-    "player_caught_thief": "You caught a thief on the night watch."
+    "player_caught_thief": "You caught a thief on the night watch.",
+    "granary_filled": "The harvest tithe is in: {n} sacks of wheat in the village grain store.",
+    "granary_released": "Bread was getting dear, so the village grain store sold {n} sacks of wheat to the bakers.",
+    "granary_built": "The village built a bigger grain store (room for {n} sacks).",
+    "child_trade": {
+      "m": "{npc} has grown up and is going into a trade ({occ}), with the family's help.",
+      "f": "{npc} has grown up and is going into a trade ({occ}), with the family's help."
+    },
+    "child_family_business": {
+      "m": "{npc} has grown up and is joining the family business.",
+      "f": "{npc} has grown up and is joining the family business."
+    },
+    "child_own_way": {
+      "m": "{npc} has grown up and is going his own way.",
+      "f": "{npc} has grown up and is going her own way."
+    }
   },
   "event": {
     "good_harvest": {
@@ -3065,6 +3097,22 @@
       "nursery_keeper": [
         "Acorns, pine cones, apple pips — everything starts small here.",
         "A sapling needs water, patience and a bit of luck."
+      ],
+      "tailor": [
+        "A good coat lasts years — if it's cut right.",
+        "Wool from the valley's own sheep: nothing warmer."
+      ],
+      "tailor_hand": [
+        "Needle, thread, and a steady hand. That's the whole trade.",
+        "I've sewn more buttons this week than I can count."
+      ],
+      "cobbler": [
+        "The roads here eat boots. Good for business.",
+        "Every step you take, I've had a hand in it."
+      ],
+      "cobbler_hand": [
+        "Leather, wax and patience.",
+        "The smell of new leather — you get used to it."
       ]
     },
     "weather": {
@@ -5365,7 +5413,9 @@
     "brickworks": "brickworks",
     "sawmill": "sawmill",
     "factory": "factory",
-    "tree_nursery": "tree nursery"
+    "tree_nursery": "tree nursery",
+    "tailor": "tailor's",
+    "cobbler": "cobbler's"
   },
   "biz_name": {
     "general_store": [
@@ -5537,6 +5587,26 @@
       "Young Wood",
       "The Orchard Gate",
       "Fern Hollow"
+    ],
+    "tailor": [
+      "The Golden Needle",
+      "Thread & Thimble",
+      "The Warm Coat",
+      "Fine Stitches",
+      "The Wool Basket",
+      "Pins & Patterns",
+      "The Good Cloth",
+      "Hem & Seam"
+    ],
+    "cobbler": [
+      "The Old Boot",
+      "Sole Mates",
+      "Leather & Last",
+      "The Stout Heel",
+      "Good Road Boots",
+      "The Cobbler's Bench",
+      "Step Well",
+      "Hobnails"
     ]
   },
   "career": {
@@ -6945,7 +7015,9 @@
     "policy_forestry": "Forestry",
     "policy_family": "Families",
     "policy_health": "Health",
-    "policy_welcome": "Newcomers"
+    "policy_welcome": "Newcomers",
+    "granary": "Grain store",
+    "granary_n": "{n} / {cap} sacks of wheat"
   },
   "deed": {
     "player_built": "{name} built a {building_type}.",
@@ -8694,7 +8766,8 @@
       "crew": "2 · Hands to help",
       "land": "3 · A place of your own",
       "goods": "4 · Moving goods",
-      "name": "5 · Making a name"
+      "name": "5 · Making a name",
+      "life": "6 · Village life"
     },
     "step": {
       "first_job": {
@@ -8764,6 +8837,30 @@
       "path": {
         "name": "Choose your path",
         "hint": "Journal → Guide: pick a career to follow — contractor, transport, landlord, business, founder or craftsman."
+      },
+      "plant_tree": {
+        "name": "Plant a tree",
+        "hint": "Buy a sapling at the store (or a tree nursery) and plant it on a stump or at the forest's edge — or take the tree-planting job on the notice board."
+      },
+      "stall_day": {
+        "name": "Sell at your own stall",
+        "hint": "Rent the stall on the west of the square for a day, set out your goods and stay nearby (or pay someone to keep it)."
+      },
+      "market_trade": {
+        "name": "Trade at the market",
+        "hint": "On market day (every Friday) traders come to the square: buy something rare, or sell them your crafts."
+      },
+      "job_rank": {
+        "name": "Get good at a job",
+        "hint": "Do the same job a few times: you become a Hand at it, and it pays more."
+      },
+      "celebrate": {
+        "name": "Join the village",
+        "hint": "Go to a wedding feast or a funeral (the calendar shows when) — people remember who came."
+      },
+      "town_order": {
+        "name": "Fill an order from another town",
+        "hint": "Once you know of other towns they send orders: take one on at the hall and bring the goods there."
       }
     }
   },
@@ -9239,7 +9336,8 @@
     "past": "Past meetings",
     "passed": "passed ({n}% for)",
     "failed": "turned down ({n}% for)",
-    "no_money": "the treasury couldn't pay"
+    "no_money": "the treasury couldn't pay",
+    "voices": "Who's speaking"
   },
   "proposal": {
     "pave_square": {
@@ -9265,6 +9363,26 @@
     "better_road": {
       "name": "A better road",
       "desc": "The village pays for a better road to the town it trades with most."
+    },
+    "granary": {
+      "name": "A bigger grain store",
+      "desc": "Build a proper grain store: the village keeps more wheat back in good years, so bread stays cheap in bad ones."
+    },
+    "new_well": {
+      "name": "A new well",
+      "desc": "Dig a well for the new street, so people needn't walk to the square for water."
+    },
+    "bridge": {
+      "name": "A bridge",
+      "desc": "Plank a bridge across the water, so the far bank is a short walk instead of a long way round."
+    },
+    "planting_fund": {
+      "name": "A planting fund",
+      "desc": "Protect the woods: a strict felling limit, and the village pays for every tree planted."
+    },
+    "free_clinic": {
+      "name": "A free clinic",
+      "desc": "The village pays the clinic, so nobody goes without a doctor: people live longer."
     }
   },
   "history_ui": {
@@ -9700,7 +9818,13 @@
     "they_buy": "They'll buy from you",
     "nothing_they_want": "You aren't carrying anything they buy.",
     "wanted": "They buy: {list}.",
-    "traders_hint": "Once a week traders come to the square: they bring things the shops don't have, and pay more than the shops for crafts and farm goods. The square's busy, so your stall sells more too."
+    "traders_hint": "Once a week traders come to the square: they bring things the shops don't have, and pay more than the shops for crafts and farm goods. The square's busy, so your stall sells more too.",
+    "to_pay": "{money} to pay",
+    "collect": "Collect",
+    "next_market": "coming next market day",
+    "brought_for_you": "Brought for you",
+    "order_title": "Order for next market day",
+    "order_hint": "Ask the traders to bring something next week: a quarter now, the rest when you collect it. What you can't carry goes to your storage."
   },
   "mine": {
     "title": "Your mine",
@@ -10002,5 +10126,169 @@
     "bring_to_hall": "Bring the goods to the hall to hand them over.",
     "board_title": "Orders from other towns ({n})",
     "open_list": "See the orders"
+  },
+  "meeting_say": {
+    "any": {
+      "for": [
+        "It's good for all of us. I'm for it.",
+        "We've waited long enough — let's do it.",
+        "My family would be glad of it."
+      ],
+      "against": [
+        "It's the village's money. We'll need it for worse days.",
+        "I don't see what good it does me.",
+        "Not now. There are more important things."
+      ]
+    },
+    "granary": {
+      "for": [
+        "Remember last winter's bread prices? Never again.",
+        "A full grain store is a quiet mind."
+      ],
+      "against": [
+        "The farmers should keep their own grain.",
+        "A barn full of wheat nobody eats?"
+      ]
+    },
+    "new_well": {
+      "for": [
+        "My children carry water from the square every morning. Every morning!",
+        "Water at the door — that's a street worth living in."
+      ],
+      "against": [
+        "The square's well does fine.",
+        "Dig it yourselves if you want it."
+      ]
+    },
+    "bridge": {
+      "for": [
+        "Half a day's walk to go round! A bridge, please.",
+        "Trade comes over bridges."
+      ],
+      "against": [
+        "The river's kept us safe this long.",
+        "Planks rot. It'll need mending every year."
+      ]
+    },
+    "planting_fund": {
+      "for": [
+        "No woods, no timber, no work. Plant them.",
+        "My grandchildren should see a forest."
+      ],
+      "against": [
+        "A limit on felling is a limit on my wages.",
+        "The forest grows back by itself."
+      ]
+    },
+    "free_clinic": {
+      "for": [
+        "When my knees give out, I want a doctor, not a bill.",
+        "Nobody should die for want of a coin."
+      ],
+      "against": [
+        "The healthy paying for the sick? I'm not sure.",
+        "It'll empty the treasury."
+      ]
+    },
+    "pave_square": {
+      "for": [
+        "No more mud to the ankles on market day!",
+        "A proper square, like a proper town."
+      ],
+      "against": [
+        "Stones for the square while my roof leaks?",
+        "Mud never hurt anyone."
+      ]
+    },
+    "gas_lamps": {
+      "for": [
+        "Light in the streets at night — safer for everyone.",
+        "Like the big towns!"
+      ],
+      "against": [
+        "Who needs to be out at night?",
+        "Gas costs money every week."
+      ]
+    },
+    "green": {
+      "for": [
+        "Somewhere for the children to play.",
+        "Trees and benches — we deserve it."
+      ],
+      "against": [
+        "Grass doesn't feed anyone.",
+        "Pretty, but useless."
+      ]
+    },
+    "market_day": {
+      "for": [
+        "More customers for all of us.",
+        "Traders bring news and goods."
+      ],
+      "against": [
+        "Strangers selling cheap will ruin the shops.",
+        "More noise on the square."
+      ]
+    },
+    "school_fund": {
+      "for": [
+        "Our children should read and reckon.",
+        "Learning is the best inheritance."
+      ],
+      "against": [
+        "I never went to school and I'm fine.",
+        "Books won't plough the fields."
+      ]
+    },
+    "better_road": {
+      "for": [
+        "A good road brings trade — and trade brings money.",
+        "The carts get stuck every spring."
+      ],
+      "against": [
+        "A good road brings strangers, too.",
+        "The old road's served us well enough."
+      ]
+    }
+  },
+  "cal": {
+    "title": "Calendar",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "today_card": "Today",
+    "hint": "Festivals, market days, meetings and elections, weddings and funerals, your friends' name days, your orders and your rent. Click the date at the top of the screen to open this.",
+    "festival": "The festival: {fest}",
+    "market": "Market day: traders on the square",
+    "name_day": "{npc}'s name day (a gift counts double)",
+    "wedding": "Wedding feast: {npc} and {npc2}",
+    "funeral": "Farewell to {npc}",
+    "meeting": "Town meeting: {proposal}",
+    "election": "Election day",
+    "order_due": "Order due: {n} × {item} for {settlement}",
+    "trader_order": "Collect from the traders: {qty} × {item}",
+    "rent": "Rent due ({money})",
+    "best_pay": "Best pay now: {job} ({money}/h)",
+    "best_pay_other": "Best pay now: {money}/h (see the board)"
+  },
+  "grown": {
+    "title": "{npc} has grown up",
+    "text": "{npc} is sixteen now. What next? The trade learned at your side ({occ}), the family business — or their own way?",
+    "trade": "Help them into the trade: {occ}",
+    "family": "Join the family business",
+    "free": "Let them choose their own way"
+  },
+  "future": {
+    "title": "What became of your children",
+    "heir": "Carries on the family, as {name}",
+    "died": "Gone before you",
+    "towns": "Went off to the towns to seek their fortune",
+    "business": "Runs a business of their own ({building})",
+    "manager": "Manages the family business",
+    "master": "A master of the trade ({occ})",
+    "trade": "Works as a {occ}",
+    "searching": "Still finding their way",
+    "grown": "Grown up, looking for work",
+    "young": "Still a child",
+    "married": "· married"
   }
 }

@@ -172,6 +172,26 @@ export const BUSINESS_TYPES = {
     targets: {},
     startCost: 200, openable: true,
   },
+  // The trades a growing town needs (TradesSystem): villagers wear out their clothes and boots.
+  tailor: {
+    kind: 'shop', sector: 'clothing', icon: '🧵', openHours: [9, 18],
+    ownerOccupation: 'tailor', workerOccupation: 'tailor_hand', maxWorkers: 2,
+    sells: ['clothes'],
+    buys: ['wool'],
+    targets: { clothes: 8, wool: 12 },
+    // Cloth from wool (yours, or the traders'); plain cloth bought in when there's no wool (slower, dearer work).
+    recipes: { clothes: { alts: [{ in: { wool: 2 }, out: 1 }, { in: {}, out: 1, cost: 2.5 }], perDay: 1.5, perWorker: 1.5, cap: 2 } },
+    startCost: 240, openable: true,
+  },
+  cobbler: {
+    kind: 'shop', sector: 'shoes', icon: '👢', openHours: [9, 18],
+    ownerOccupation: 'cobbler', workerOccupation: 'cobbler_hand', maxWorkers: 2,
+    sells: ['shoes'],
+    buys: ['hide'],
+    targets: { shoes: 8, hide: 8 },
+    recipes: { shoes: { alts: [{ in: { hide: 1 }, out: 1 }, { in: {}, out: 1, cost: 2.5 }], perDay: 1.5, perWorker: 1.5, cap: 2 } },
+    startCost: 220, openable: true,
+  },
   // Saplings raised from seed: sold to the store, villagers and you — and planted out in the woods by its foresters
   // (paid by the village's planting fund). Villagers open one when the woods are thinning (ForestrySystem).
   tree_nursery: {
@@ -218,6 +238,8 @@ export const EXPERIENCE = {
   carpentry: ['carpenter_hand', 'woodcutter', 'lumber_foreman'],
   fishery: ['fisher', 'fisherman'],
   tree_nursery: ['forester', 'woodcutter', 'farmhand', 'farmer'],
+  tailor: ['tailor_hand', 'tailor', 'store_clerk'],
+  cobbler: ['cobbler_hand', 'cobbler', 'hunter'],
   mill: ['mill_hand', 'miller', 'farmhand', 'baker_hand', 'farmer'],
   builders: ['builder', 'carpenter_hand', 'woodcutter', 'master_builder'],
   warehouse: ['warehouse_hand', 'store_clerk', 'shopkeeper', 'merchant'],

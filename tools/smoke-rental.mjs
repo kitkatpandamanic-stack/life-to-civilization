@@ -152,7 +152,8 @@ sim.state.realty.idx = 1.3; // …while people are looking for homes (the housin
 P.valueCache.clear();
 const chance = RENTAL.investChance;
 RENTAL.investChance = 1;
-P.investInHouses();
+// (a careful villager still weighs it up — the dice decide the day; a few days' looking settles it)
+for (let i = 0; i < 6 && !P.rentalsOf(investor.id).length; i++) P.investInHouses();
 RENTAL.investChance = chance;
 const bought = P.rentalsOf(investor.id);
 check('a well-off villager buys a house to let', bought.length === 1, `${investor.id} ${bought}`);

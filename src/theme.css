@@ -132,3 +132,22 @@ kbd { font-family: var(--font-display); background: var(--parchment-bg); color: 
 .fc-bar { flex: 1; height: 10px; margin: 0 8px; background: rgba(201, 154, 62, 0.15); border-radius: 5px; overflow: hidden; align-self: center; }
 .fc-bar i { display: block; height: 100%; background: linear-gradient(90deg, #8fb85a, #4f8a36); }
 @media (max-width: 520px) { .pyr-row { grid-template-columns: 1fr 40px 1fr; } }
+
+/* ---- The HUD's "Today" card and the calendar (ui/calendar.js) ---- */
+.today { width: 280px; padding: 6px 8px 7px 12px; border-left: 3px solid #7fb552; cursor: pointer; margin-top: 6px; }
+.today:hover { filter: brightness(1.1); }
+.today .obj-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.today .obj-title { font-weight: 800; font-size: var(--fs-small, 12px); }
+.today .obj-fold { background: none; border: 0; color: inherit; cursor: pointer; padding: 0 2px; }
+.today .today-line { font-size: var(--fs-small, 12px); line-height: 1.35; }
+.today.folded .obj-text { display: none; }
+.today.folded .obj-fold { transform: rotate(-90deg); }
+@media (max-width: 700px) { .today { width: 230px; } }
+.calendar { display: flex; flex-direction: column; gap: 4px; }
+.cal-day { display: grid; grid-template-columns: 120px 1fr; gap: 8px; padding: 5px 6px; border-radius: 6px; background: rgba(201, 154, 62, 0.07); }
+.cal-day.today { background: rgba(127, 181, 82, 0.18); outline: 1px solid rgba(127, 181, 82, 0.5); }
+.cal-day.empty { opacity: 0.6; }
+.cal-date { display: flex; flex-direction: column; }
+.cal-item { font-size: var(--fs-body, 13px); }
+.cal-item.cal-you { font-weight: 700; }
+@media (max-width: 520px) { .cal-day { grid-template-columns: 1fr; } }

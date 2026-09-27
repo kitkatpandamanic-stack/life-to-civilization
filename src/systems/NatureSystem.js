@@ -55,6 +55,12 @@ export class NatureSystem {
     for (const o of Object.values(s.objects)) this.normalize(o);
     this.updateCaps();
     sim.bus.on('time:day', () => this.onDay());
+    // (only a grown tree coming or going changes where the grown trees are)
+    const touch = (o) => {
+      if (o?.kind === 'tree' && (o.state === 'grown' || this.grid?.has(o.ty * 4096 + o.tx))) this.gridDirty = true;
+    };
+    sim.bus.on('object:changed', touch);
+    sim.bus.on('object:added', touch);
   }
 
   get n() {
@@ -76,11 +82,20 @@ export class NatureSystem {
 
   /** Grown trees within r tiles (how healthy the forest is here). */
   forestAround(tx, ty, r = 3) {
+    const grid = this.grownGrid();
     let n = 0;
-    for (const o of Object.values(this.sim.state.objects)) {
-      if (o.kind === 'tree' && o.state === 'grown' && o.variant !== 'apple' && Math.abs(o.tx - tx) <= r && Math.abs(o.ty - ty) <= r) n++;
-    }
+    for (let y = ty - r; y <= ty + r; y++) for (let x = tx - r; x <= tx + r; x++) if (grid.has(y * 4096 + x)) n++;
     return n;
+  }
+
+  /** Where the grown trees stand (a set of tiles), rebuilt when a tree changes — forestAround asks it a lot. */
+  grownGrid() {
+    if (this.grid && !this.gridDirty) return this.grid;
+    const g = new Set();
+    for (const o of Object.values(this.sim.state.objects)) if (o.kind === 'tree' && o.state === 'grown' && o.variant !== 'apple') g.add(o.ty * 4096 + o.tx);
+    this.grid = g;
+    this.gridDirty = false;
+    return g;
   }
 
   // ------------------------------------------------------------------ fish

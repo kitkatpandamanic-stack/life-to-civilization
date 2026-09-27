@@ -30,6 +30,11 @@ export const OCCUPATIONS = {
   // Foresters plant saplings and tend the young woods (ForestrySystem): at the lumberyard, or at a tree nursery.
   forester: { workplace: 'business', restDay: 6, start: 7, end: 16, lunch: true, activity: 'plant', wake: 6, sleep: 22, wage: 14 },
   nursery_keeper: { workplace: 'business', restDay: 6, start: 7, end: 17, lunch: true, activity: 'inside', wake: 6, sleep: 22 },
+  // The town's trades (TradesSystem).
+  tailor: { workplace: 'business', restDay: 6, start: 9, end: 18, lunch: true, activity: 'inside', wake: 7, sleep: 22 },
+  tailor_hand: { workplace: 'business', restDay: 6, start: 9, end: 17, lunch: true, activity: 'inside', wake: 7, sleep: 22, wage: 12 },
+  cobbler: { workplace: 'business', restDay: 6, start: 9, end: 18, lunch: true, activity: 'inside', wake: 7, sleep: 22 },
+  cobbler_hand: { workplace: 'business', restDay: 6, start: 9, end: 17, lunch: true, activity: 'inside', wake: 7, sleep: 22, wage: 12 },
   quarry_foreman: { workplace: 'quarry', restDay: 6, start: 7, end: 17, lunch: true, activity: 'spot', wake: 6, sleep: 22 },
   miner: { workplace: 'quarry', restDay: 6, start: 7, end: 17, lunch: true, activity: 'mine', wake: 6, sleep: 22, wage: 16 },
   blacksmith: { workplace: 'smithy', restDay: 6, start: 8, end: 18, lunch: true, activity: 'spot', wake: 7, sleep: 22 },

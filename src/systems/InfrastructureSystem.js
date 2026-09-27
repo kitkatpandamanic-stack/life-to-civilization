@@ -282,6 +282,38 @@ export class InfrastructureSystem {
     return { ok: true };
   }
 
+  /**
+   * A short crossing the village could bridge (a town meeting): from a road on one bank, straight over
+   * shallow water, to land within a few tiles. The nearest to the square first. Returns [{ tx, ty }…] or null.
+   */
+  bridgeSpot(maxLen = 4) {
+    const w = this.world;
+    const P = { tx: 46, ty: 40 };
+    let best = null;
+    let bestD = Infinity;
+    for (let ty = 1; ty < w.H - 1; ty++) {
+      for (let tx = 1; tx < w.W - 1; tx++) {
+        if (w.tileAt(tx, ty) !== T.WATER) continue;
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          if (!ROADLIKE.has(w.tileAt(tx - dx, ty - dy)) || w.tileAt(tx - dx, ty - dy) === T.BRIDGE) continue;
+          const span = [];
+          let x = tx;
+          let y = ty;
+          while (span.length < maxLen && w.tileAt(x, y) === T.WATER) {
+            span.push({ tx: x, ty: y });
+            x += dx;
+            y += dy;
+          }
+          const land = w.inBounds(x, y) && !w.isWater(x, y) && w.tileAt(x, y) !== T.BRIDGE;
+          if (!land || !span.length) continue;
+          const d = Math.abs(tx - P.tx) + Math.abs(ty - P.ty);
+          if (d < bestD) (bestD = d), (best = span);
+        }
+      }
+    }
+    return best;
+  }
+
   /** A street lamp beside a road (it lights the street at night). */
   canLamp(tx, ty, by = 'player') {
     const w = this.world;

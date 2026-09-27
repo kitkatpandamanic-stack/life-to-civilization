@@ -36,6 +36,10 @@ export const COMMUNITY = {
   marketBuys: ['stool', 'chair', 'table', 'cabinet', 'planks', 'bricks', 'wool', 'hide', 'honey', 'apple', 'resin', 'egg', 'milk'],
   // Public work: an afternoon gathering deadwood and stone and mending the lanes. What they gather is sold to the
   // traders (yield — so it always pays that much); the village tops it up to the wage when it can.
+  // Summer: on a hot afternoon some go down to the lake to swim (and cool off). Winter: the lake freezes over.
+  swim: { from: 13, to: 18, hot: 22, go: 0.25, ages: [8, 45], mood: 3 },
+  // Ordering from the traders: they bring it next market day (a quarter down now, the rest when you collect).
+  traderOrder: { markup: 1.35, deposit: 0.25, maxOpen: 3, maxQty: 20, items: ['iron_ingot', 'glass', 'gemstone', 'bricks', 'planks', 'iron_axe', 'iron_pickaxe', 'saw', 'hammer', 'wool', 'hide', 'cheese', 'apple_sapling', 'pumpkin_seeds', 'cabbage_seeds'] },
   poor: { below: 40, from: 13, to: 17, wage: 9, yield: 6, perPop: 8, max: 8 },
   charity: { richAbove: 260, gift: 15, poorBelow: 15, newsEvery: 28 },
   youth: { from: 13, to: 17, weekdays: [0, 1, 2, 3, 4], hours: [14, 17], helpPower: 0.3, pocket: 2, learn: 0.6, knowsAfter: 15 },
@@ -47,6 +51,7 @@ export class CommunitySystem {
   constructor(sim) {
     this.sim = sim;
     sim.state.community ??= { events: [], nextId: 1, marketBought: {}, charityDay: -1, lastCharityNews: -999, publicWork: { paid: 0, days: 0 } };
+    sim.state.community.traderOrders ??= [];
     sim.bus.on('chronicle', (e) => this.onChronicle(e));
     sim.bus.on('time:hour', (h) => this.onHour(h));
     sim.bus.on('time:day', () => this.onDay());
@@ -178,6 +183,7 @@ export class CommunitySystem {
     const week = Math.floor(this.T.day / 7);
     const b = (this.S.marketBought[week] ??= {});
     b[item] = (b[item] || 0) + n;
+    this.S.traded = (this.S.traded || 0) + 1;
     for (const w of Object.keys(this.S.marketBought)) if (Number(w) < week - 1) delete this.S.marketBought[w];
     sim.bus.emit('player:changed');
     return { ok: true, n, price };
@@ -191,10 +197,67 @@ export class CommunitySystem {
     const n = Math.min(qty, sim.inventory.count(item));
     if (n <= 0) return { ok: false, reason: 'need_item', params: { item, qty: 1 } };
     sim.inventory.remove(item, n);
+    this.S.traded = (this.S.traded || 0) + 1;
     sim.state.player.money += pays * n;
     sim.state.stats.moneyEarned = (sim.state.stats.moneyEarned || 0) + pays * n;
     sim.bus.emit('player:changed');
     return { ok: true, n, money: pays * n };
+  }
+
+  // ------------------------------------------------------------------ ordering from the traders
+
+  /** A market day's number (which market day this is, counting from the first). */
+  marketNo(day = this.T.day) {
+    return Math.floor((day - COMMUNITY.market.weekday + 7) / 7);
+  }
+  traderOrderPrice(item) {
+    return Math.max(1, Math.round((ITEMS[item]?.basePrice || 1) * COMMUNITY.traderOrder.markup));
+  }
+  canOrderFromTraders(item, qty) {
+    const O = COMMUNITY.traderOrder;
+    if (!this.marketOpen()) return { ok: false, reason: 'market_closed', params: { hour: COMMUNITY.market.from } };
+    if (!O.items.includes(item) || qty < 1 || qty > O.maxQty) return { ok: false, reason: 'nothing_here' };
+    if (this.S.traderOrders.filter((o) => !o.collected).length >= O.maxOpen) return { ok: false, reason: 'too_many_trader_orders', params: { n: O.maxOpen } };
+    const deposit = Math.ceil(this.traderOrderPrice(item) * qty * O.deposit);
+    if (this.sim.state.player.money < deposit) return { ok: false, reason: 'no_money' };
+    return { ok: true, deposit };
+  }
+  /** Ask the traders to bring something next time (a quarter down now). */
+  orderFromTraders(item, qty) {
+    const chk = this.canOrderFromTraders(item, qty);
+    if (!chk.ok) return chk;
+    const price = this.traderOrderPrice(item);
+    this.sim.state.player.money -= chk.deposit;
+    const o = { id: this.S.nextId++, item, qty, price, paid: chk.deposit, due: this.marketNo() + 1, collected: false };
+    this.S.traderOrders.push(o);
+    this.sim.bus.emit('player:changed');
+    return { ok: true, order: o };
+  }
+  /** What they've brought for you (from the market day it was due). */
+  readyOrders() {
+    return this.S.traderOrders.filter((o) => !o.collected && this.marketNo() >= o.due);
+  }
+  canCollect(o) {
+    if (!o || o.collected) return { ok: false, reason: 'contract_gone' };
+    if (!this.marketOpen() || this.marketNo() < o.due) return { ok: false, reason: 'not_yet_brought' };
+    if (this.sim.state.player.money < o.price * o.qty - o.paid) return { ok: false, reason: 'no_money' };
+    return { ok: true };
+  }
+  collectOrder(id) {
+    const o = this.S.traderOrders.find((x) => x.id === id);
+    const chk = this.canCollect(o);
+    if (!chk.ok) return chk;
+    const sim = this.sim;
+    sim.state.player.money -= o.price * o.qty - o.paid;
+    o.paid = o.price * o.qty;
+    o.collected = true;
+    // What you can carry comes with you; the rest is sent round to your storage.
+    const n = Math.min(o.qty, sim.inventory.maxAddable ? sim.inventory.maxAddable(o.item) : o.qty);
+    if (n > 0) sim.inventory.add(o.item, n);
+    if (o.qty - n > 0) sim.home.store(o.item, o.qty - n, { force: true });
+    this.S.traderOrders = this.S.traderOrders.filter((x) => !x.collected || this.marketNo() - x.due < 2);
+    sim.bus.emit('player:changed');
+    return { ok: true, n: o.qty };
   }
 
   // ------------------------------------------------------------------ where people go (HabitSystem.newPlan)
@@ -240,12 +303,44 @@ export class CommunitySystem {
         return { kind: 'friends', who: host.id, until: at(N.to), why: 'name_day' };
       }
     }
+    // A hot summer afternoon: down to the lake for a swim.
+    const SW = COMMUNITY.swim;
+    if (this.T.season === 'summer' && h >= SW.from && h < SW.to && npc.age >= SW.ages[0] && npc.age <= SW.ages[1] && !sim.weather.isBad() && (sim.seasons?.temperature() ?? 0) >= SW.hot && hashStr(key(npc, day, 'swim'), seed) < SW.go) {
+      const spot = this.swimSpot(npc);
+      if (spot) return { kind: 'gathering', until: at(SW.to), at: spot, why: 'swim' };
+    }
     // Market day: the square fills up.
     const M = COMMUNITY.market;
     if (this.marketOpen() && npc.age >= 8 && hashStr(key(npc, day, 'market'), seed) < M.go) {
       return { kind: 'gathering', until: Math.min(at(M.to), sim.time.total + 120), at: this.plazaSpot(), why: 'market' };
     }
     return null;
+  }
+
+  /** Somewhere on the lake shore to swim from (a few spots, spread by who's going). */
+  swimSpot(npc) {
+    if (!this.shore) {
+      const w = this.sim.world;
+      const L = AREAS.lake;
+      const out = [];
+      if (L) {
+        for (let ty = L.cy - L.ry - 2; ty <= L.cy + L.ry + 2; ty++) {
+          for (let tx = L.cx - L.rx - 2; tx <= L.cx + L.rx + 2; tx++) {
+            if (!w.inBounds(tx, ty) || w.isWater(tx, ty) || w.isBlocked(tx, ty)) continue;
+            if ([[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => w.isWater(tx + dx, ty + dy))) out.push({ tx, ty });
+          }
+        }
+      }
+      this.shore = out;
+    }
+    if (!this.shore.length) return null;
+    return this.shore[Math.floor(hashStr(`shore:${npc.id}`, this.sim.state.seed) * this.shore.length)];
+  }
+
+  /** Winter: the lake freezes over (after the first snow, or a few days in). */
+  lakeFrozen() {
+    const T = this.T;
+    return T.season === 'winter' && ((this.sim.seasons?.snow?.() || 0) > 0 || T.dayOfSeason >= 3);
   }
 
   /** Does this villager's plan keep them out (rain or not, past their usual hour home)? */
@@ -440,6 +535,7 @@ export class CommunitySystem {
       if (e.you || Math.abs(e.at.tx - tx) + Math.abs(e.at.ty - ty) > 8) continue;
       e.you = true;
       const sim = this.sim;
+      this.S.attended = (this.S.attended || 0) + 1;
       if (e.kind === 'wedding') {
         sim.progression.addReputation(COMMUNITY.wedding.youRep);
         for (const id of e.host) {

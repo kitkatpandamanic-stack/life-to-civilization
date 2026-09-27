@@ -12,13 +12,26 @@
  *     offers:    [{ id, head, their, child, day, until }]                        matches families have proposed
  *     snubbed:   { headId: day }                                                 families you turned down
  *     feuds:     [npcId]                                                        grudges your heir inherited
+ *     grown:     { childId: { day, trade, choice } }                            a grown child's way in life (their career)
+ *     lastFutures: [{ id, kind, params }]                                         what became of your children (the succession screen)
  *   }
+ *
+ * Growing up: at 16 a child of yours chooses a way in life — the trade they learned at your side (you help them
+ * into it), the family business, or their own way (perhaps to the towns for a while). At the end of your life
+ * the succession screen tells what became of each of them.
  *
  * No dice: who says yes is worked out from how things stand (and a fixed hash), so the valley's other
  * systems see the same random numbers they always did.
  */
 import { hashStr } from '../core/rng.js';
 import { SKILLS } from '../data/skills.js';
+
+/** The trade that goes with a skill you taught (a child's first job in it). */
+export const SKILL_TRADES = {
+  woodcutting: 'woodcutter', mining: 'miner', farming: 'farmhand', carpentry: 'carpenter_hand', smithing: 'smith_hand',
+  cooking: 'baker_hand', trading: 'store_clerk', negotiation: 'store_clerk', fishing: 'fisher', construction: 'builder',
+  hunting: 'hunter', foraging: 'forester', leadership: 'store_clerk', learning: 'store_clerk', exploration: 'carter',
+};
 
 export const DYNASTY = {
   childMin: 4, // a child can be taught from this age…
@@ -67,7 +80,9 @@ export class DynastySystem {
     D.snubbed ??= {};
     D.feuds ??= [];
     D.refused ??= {};
+    D.grown ??= {};
     sim.bus.on('time:day', () => this.daily());
+    sim.bus.on('chronicle', (e) => e.key === 'chronicle.npc_grew_up' && this.grownUp(e.params.npc));
   }
 
   get D() {
@@ -379,6 +394,7 @@ export class DynastySystem {
   /** Just before the torch passes (LineageSystem.succeed): how everyone felt about you. */
   beforeSucceed() {
     this.snap = new Map(this.sim.state.npcs.map((n) => [n.id, n.rel || 0]));
+    this.D.lastFutures = this.futures(); // (what became of them — shown on the succession screen)
   }
 
   /**
@@ -388,6 +404,7 @@ export class DynastySystem {
   afterSucceed(heirId) {
     const sim = this.sim;
     const p = this.p;
+    this.D.lastHeir = heirId || null;
     // Skills taught at home, on top of what's passed down anyway.
     const bonus = heirId ? this.bonusLevels(heirId) : {};
     for (const [s, n] of Object.entries(bonus)) if (p.skills[s]) p.skills[s].level = Math.min(10, p.skills[s].level + n);
@@ -414,6 +431,100 @@ export class DynastySystem {
     this.D.offers = [];
     sim.bus.emit('dynasty:inherited', { friends, enemies, bonus });
     return { friends, enemies, bonus };
+  }
+
+  // ------------------------------------------------------------------ 9.4 growing up: a way in life
+
+  /** The trade a child would go into: what they learned most at your side — or helped at, or love. */
+  tradeFor(c) {
+    const pts = this.up(c.id).pts;
+    const best = Object.entries(pts).sort((a, b) => b[1] - a[1])[0];
+    if (best && best[1] >= 10 && SKILL_TRADES[best[0]]) return SKILL_TRADES[best[0]];
+    if (c.youthTrade?.occ) return c.youthTrade.occ;
+    return SKILL_TRADES[this.bestSkill()] || 'store_clerk';
+  }
+
+  /** A child of yours has grown up: their choice of a way in life (the UI asks you — 'dynasty:grown'). */
+  grownUp(id) {
+    const c = this.mine(id);
+    if (!c || this.D.grown[id]) return null;
+    const g = { day: this.sim.time.day, trade: this.tradeFor(c), choice: null };
+    this.D.grown[id] = g;
+    this.sim.bus.emit('dynasty:grown', { id, trade: g.trade, business: this.familyBusiness() });
+    return g;
+  }
+
+  /** A business of yours they could work in (the first one). */
+  familyBusiness() {
+    return this.sim.holdings?.mine?.()[0] || null;
+  }
+
+  /**
+   * Their choice: 'trade' (you help them into it: a little money for tools, and a start in the trade),
+   * 'family' (the family business, learning to run it) or 'free' (their own way — perhaps the towns for a while).
+   */
+  chooseCareer(id, choice) {
+    const sim = this.sim;
+    const c = this.mine(id);
+    const g = this.D.grown[id];
+    if (!c || !g || g.choice) return { ok: false, reason: 'not_your_child' };
+    if (choice === 'family' && !this.familyBusiness()) return { ok: false, reason: 'not_your_business' };
+    g.choice = choice;
+    if (choice === 'trade') {
+      c.prevOccupation = g.trade;
+      for (const f of sim.education?.fieldsOf(g.trade) || []) sim.education.practise(c, f, 20);
+      const gift = Math.min(40, Math.max(0, Math.floor(this.p.money)));
+      this.p.money -= gift;
+      c.money += gift;
+      sim.social.addRel(c, 5);
+      sim.chronicle('chronicle.child_trade', { npc: c.id, gender: c.gender, occ: g.trade });
+    } else if (choice === 'family') {
+      const biz = this.familyBusiness();
+      const managed = Object.values(this.D.roles).some((r) => r.role === 'manage' && r.biz === biz);
+      this.setRole(id, managed ? 'shadow' : 'manage', managed ? null : biz);
+      sim.social.addRel(c, 3);
+      sim.chronicle('chronicle.child_family_business', { npc: c.id, gender: c.gender });
+    } else {
+      // Their own way: some go off to see the towns for a while (and come back with a trade).
+      if (sim.population && hashStr(`ownway:${id}`, sim.state.seed) < 0.35) sim.population.goAbroad(c);
+      else sim.chronicle('chronicle.child_own_way', { npc: c.id, gender: c.gender });
+    }
+    sim.bus.emit('family:changed', id);
+    return { ok: true };
+  }
+
+  /** What became of each of your children (for the succession screen), worked out from how things stand. */
+  futures() {
+    const sim = this.sim;
+    const out = [];
+    for (const id of this.p.children) {
+      const c = sim.npcs.byId(id);
+      const abroad = sim.state.population?.abroad?.find((a) => a.npc.id === id);
+      const dead = sim.state.graveyard.find((g) => g.id === id);
+      if (dead) {
+        out.push({ id, kind: 'died', params: { npc: id } });
+        continue;
+      }
+      if (abroad) {
+        out.push({ id, kind: 'towns', params: { npc: id } });
+        continue;
+      }
+      if (!c) continue;
+      const g = this.D.grown[id];
+      let kind = 'young';
+      const params = { npc: id, gender: c.gender };
+      if (c.owns) {
+        kind = 'business';
+        params.building = sim.economy.biz(c.owns)?.building;
+      } else if (this.D.roles[id]?.role === 'manage') kind = 'manager';
+      else if (c.age >= 16 && !['unemployed', 'child', 'elder'].includes(c.occupation)) {
+        kind = sim.npcs.rank(c) === 'master' ? 'master' : 'trade';
+        params.occ = c.occupation;
+      } else if (c.age >= 16) kind = g?.choice === 'free' ? 'searching' : 'grown';
+      if (c.kin?.spouse && kind !== 'young') params.married = 1;
+      out.push({ id, kind, params });
+    }
+    return out;
   }
 
   daily() {

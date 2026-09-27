@@ -227,7 +227,7 @@ export function getActions(scene, target) {
       groundActions(scene, target.tx, target.ty, add);
       break;
     case 'water':
-      if (sim.inventory.bestTool('fishing_rod')) add('action.fish', {}, () => scene.performFishing(target.tx, target.ty), sim.actions.checkFish());
+      if (sim.inventory.bestTool('fishing_rod')) add(sim.community?.lakeFrozen() && sim.nature.waterBody(target.tx, target.ty) === 'lake' ? 'action.fish_ice' : 'action.fish', {}, () => scene.performFishing(target.tx, target.ty), sim.actions.checkFish());
       if (sim.farming.canNeedsRefill()) add('action.fill_can', {}, () => sim.farming.refillCan());
       break;
     case 'animal':

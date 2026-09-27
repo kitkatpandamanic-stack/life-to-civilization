@@ -27,7 +27,7 @@ export const TOWN = {
   meetingEvery: 14,
   announceDays: 3,
   meetingHour: 18,
-  fromStatus: 'large_village',
+  fromStatus: 'village', // (a village holds meetings too — every few weeks, on the smaller things)
   sway: { base: 0.04, perRep: 0.002, maxRep: 0.16, council: 0.08, headman: 0.15 },
   marketWeeks: 8,
   marketIncome: 12,
@@ -72,6 +72,50 @@ export const PROPOSALS = {
     },
   },
 };
+
+// More a meeting can decide (the village's grain store, a well, a bridge, the woods, the clinic).
+Object.assign(PROPOSALS, {
+  granary: {
+    cost: 120,
+    lean: 0.08,
+    when: (sim) => (sim.state.granary?.cap || 0) < 400,
+    run: (sim) => sim.granary?.enlarge(),
+  },
+  new_well: {
+    cost: 90,
+    lean: 0.1,
+    when: (sim) => !!sim.growth?.streetWithoutWell(),
+    run: (sim) => {
+      const spot = sim.growth.streetWithoutWell();
+      if (spot) sim.growth.start('village', 'well', 'public', spot);
+    },
+  },
+  bridge: {
+    cost: 160,
+    lean: 0.03,
+    when: (sim) => !!sim.infra?.bridgeSpot?.(),
+    run: (sim) => {
+      // Plank by plank across, from the road on this bank.
+      for (const t of sim.infra.bridgeSpot() || []) sim.infra.bridge(t.tx, t.ty, 'village');
+    },
+  },
+  planting_fund: {
+    cost: 60,
+    lean: 0.05,
+    when: (sim) => (sim.forestry?.health() ?? 1) < 0.8 && sim.state.civic?.policies?.forestry !== 'high',
+    run: (sim) => {
+      if (sim.state.civic?.policies) sim.state.civic.policies.forestry = 'high';
+    },
+  },
+  free_clinic: {
+    cost: 100,
+    lean: 0.02,
+    when: (sim) => sim.state.civic?.policies?.health !== 'high',
+    run: (sim) => {
+      if (sim.state.civic?.policies) sim.state.civic.policies.health = 'high';
+    },
+  },
+});
 
 export class TownSystem {
   constructor(sim) {
@@ -172,8 +216,25 @@ export class TownSystem {
     if (tr.includes('thrifty') || tr.includes('greedy')) v -= 0.25; // it's the village's money
     if (tr.includes('generous') || tr.includes('kind')) v += 0.15;
     if (tr.includes('ambitious')) v += 0.1;
-    if ((n.money || 0) < 20) v += proposal === 'market_day' || proposal === 'green' ? 0.1 : -0.05;
+    if ((n.money || 0) < 20) v += proposal === 'market_day' || proposal === 'green' || proposal === 'granary' ? 0.1 : -0.05;
+    // Each proposal's own friends: the old for the clinic, families for the well, woodcutters against a planting fund…
+    if (proposal === 'free_clinic' && (n.age >= 55 || (n.health ?? 100) < 60)) v += 0.25;
+    if (proposal === 'new_well' && n.kin?.children?.length) v += 0.15;
+    if (proposal === 'planting_fund') v += n.occupation === 'woodcutter' || n.occupation === 'lumber_foreman' ? -0.2 : n.occupation === 'forester' ? 0.3 : 0;
+    if (proposal === 'granary' && ['baker', 'baker_hand', 'farmer', 'farmhand'].includes(n.occupation)) v += 0.2;
     return Math.max(-1, Math.min(1, v));
+  }
+
+  /** Who argues for it and who against, loudest first (for the meeting screen). */
+  voices(n = 2) {
+    const sim = this.sim;
+    const m = this.S.meeting;
+    if (!m) return { for: [], against: [] };
+    const voters = (sim.civic?.voters() || sim.state.npcs.filter((x) => x.age >= 18)).map((x) => ({ n: x, v: this.lean(x, m.proposal) }));
+    return {
+      for: voters.filter((x) => x.v > 0.25).sort((a, b) => b.v - a.v).slice(0, n).map((x) => x.n.id),
+      against: voters.filter((x) => x.v < -0.25).sort((a, b) => a.v - b.v).slice(0, n).map((x) => x.n.id),
+    };
   }
 
   /** How much your word counts: your name, and being on the council (or headman). */

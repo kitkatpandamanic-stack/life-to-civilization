@@ -4,7 +4,7 @@
  */
 import { Panel } from '../Panel.js';
 import { t, tn, npcName } from '../../i18n/i18n.js';
-import { escapeHtml } from '../format.js';
+import { tr, escapeHtml } from '../format.js';
 import { button, portrait } from '../widgets.js';
 
 export class SuccessionPanel extends Panel {
@@ -42,10 +42,29 @@ export class SuccessionPanel extends Panel {
         </div>
         <p class="desc">${escapeHtml(next)}</p>
         <p class="muted small">${escapeHtml(t(newcomer ? 'lineage.newcomer_hint' : 'lineage.heir_hint'))}</p>
+        ${this.futuresHtml()}
         <h3>${escapeHtml(t('lineage.family_line'))}</h3>
         ${line}
         <div class="row">${button(t('lineage.continue'), 'close', {}, { cls: 'primary' })}</div>
       </div>`;
+  }
+
+  /** What became of your children (DynastySystem.futures, taken as the torch passed). */
+  futuresHtml() {
+    const sim = this.sim;
+    const p = sim.state.player;
+    const D = sim.state.dynasty || {};
+    const list = D.lastFutures || [];
+    if (!list.length) return '';
+    const rows = list
+      .map((f) => {
+        const heir = f.id === D.lastHeir;
+        const n = heir ? p : sim.npcs.byId(f.id) || sim.family.person(f.id) || sim.state.population?.abroad?.find((a) => a.npc.id === f.id)?.npc;
+        const text = heir ? t('future.heir', { name: npcName(p) }) : tr(sim, `future.${f.kind}`, f.params) + (f.params.married ? ` ${t('future.married')}` : '');
+        return `<div class="kv"><span>${escapeHtml(n ? npcName(n) : '?')}</span><b class="small">${escapeHtml(text)}</b></div>`;
+      })
+      .join('');
+    return `<h3>${escapeHtml(t('future.title'))}</h3>${rows}`;
   }
 
   onAction(action) {

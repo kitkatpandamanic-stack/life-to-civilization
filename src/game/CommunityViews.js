@@ -9,6 +9,8 @@ import { ensureCharacter, idleFrame, CHAR_ORIGIN_Y } from './characters.js';
 import { randomLook } from '../core/GameState.js';
 import { Rng } from '../core/rng.js';
 import { BALANCE } from '../config/balance.js';
+import { AREAS } from '../data/villageLayout.js';
+import { DEPTH } from './depth.js';
 
 const TS = BALANCE.tileSize;
 // Your stall (the west one on the square): where its counter is.
@@ -41,6 +43,27 @@ export class CommunityViews {
     this.timer = 500;
     this.updateGoods();
     this.updateTraders();
+    this.updateIce();
+  }
+
+  /** Winter: the lake freezes — a pale sheet of ice with a few cracks over it. */
+  updateIce() {
+    const frozen = !!this.sim.community?.lakeFrozen();
+    if (frozen && !this.ice) {
+      const L = AREAS.lake;
+      if (!L) return;
+      const g = this.scene.add.graphics().setDepth(DEPTH.TERRAIN + 2);
+      const cx = L.cx * TS + TS / 2;
+      const cy = L.cy * TS + TS / 2;
+      g.fillStyle(0xe4f0f6, 0.62).fillEllipse(cx, cy, L.rx * 2 * TS - 18, L.ry * 2 * TS - 14);
+      g.fillStyle(0xffffff, 0.35).fillEllipse(cx - L.rx * 6, cy - L.ry * 6, L.rx * TS * 0.8, L.ry * TS * 0.5);
+      g.lineStyle(1.5, 0x9ab8c8, 0.7);
+      for (const [a, b, c, d] of [[-0.5, -0.2, 0.1, 0.25], [0.2, -0.4, 0.45, 0.05], [-0.2, 0.3, 0.3, 0.4]]) g.lineBetween(cx + a * L.rx * TS, cy + b * L.ry * TS, cx + c * L.rx * TS, cy + d * L.ry * TS);
+      this.ice = g;
+    } else if (!frozen && this.ice) {
+      this.ice.destroy();
+      this.ice = null;
+    }
   }
 
   /** What's on your stall, laid out on the counter (up to four kinds). */
@@ -96,6 +119,7 @@ export class CommunityViews {
     for (const u of this.unsubs) u();
     for (const g of this.goods) g.destroy();
     for (const o of this.traders || []) o.destroy();
+    this.ice?.destroy();
   }
 }
 

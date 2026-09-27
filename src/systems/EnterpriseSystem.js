@@ -383,6 +383,13 @@ export class EnterpriseSystem {
         score = (share - 0.45) * 3 + pop / 28 - same * 1.3 + (priceSignal(['fish']) - 1) + 0.3;
         break;
       }
+      case 'tailor':
+      case 'cobbler': {
+        // A town big enough to keep a tailor (a cobbler) — and people going without (TradesSystem).
+        const want = this.sim.state.trades?.wanting?.[type === 'tailor' ? 'clothes' : 'shoes'] || 0;
+        score = (pop - 24) / 12 + want / 10 - same * 2.2;
+        break;
+      }
       case 'tree_nursery': {
         // The woods are thinning (ForestrySystem) — and more so if the village pays for planting.
         const h = this.sim.forestry ? this.sim.forestry.health() : 1;

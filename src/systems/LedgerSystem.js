@@ -60,6 +60,8 @@ const SOURCES = [
   ['townOrders', 'deliver', 'trade'],
   ['community', 'buyFromTraders', 'shopping'],
   ['community', 'sellToTraders', 'sales'],
+  ['community', 'orderFromTraders', 'shopping'],
+  ['community', 'collectOrder', 'shopping'],
   ['jobs', 'resolveIncident', 'jobs'],
   ['crafting', 'rentForge', 'crafting'],
   ['actions', 'eatAtTavern', 'food'],

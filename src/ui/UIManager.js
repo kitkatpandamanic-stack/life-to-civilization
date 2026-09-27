@@ -29,10 +29,12 @@ import { ForestPanel } from './panels/ForestPanel.js';
 import { StallPanel } from './panels/StallPanel.js';
 import { MarketPanel } from './panels/MarketPanel.js';
 import { TownOrdersPanel } from './panels/TownOrdersPanel.js';
+import { CalendarPanel } from './panels/CalendarPanel.js';
+import { todayLines } from './calendar.js';
 import { INCIDENTS } from '../systems/JobIncidents.js';
 
 const INCIDENT_ICONS = { thief: '🦹', no_fare: '⛵', hidden_coins: '🪙', truffle: '🍄', poachers: '🏹', lost_child: '🧒', lost_lamb: '🐑' };
-import { t, fmtMoney, onLanguageChange, npcName, itemName } from '../i18n/i18n.js';
+import { t, fmtMoney, onLanguageChange, npcName, itemName, getLanguage } from '../i18n/i18n.js';
 import { tr, escapeHtml, hoodLabel, districtLabel, buildingLabel } from './format.js';
 import { WEATHER_ICONS } from '../systems/WeatherSystem.js';
 import { BALANCE } from '../config/balance.js';
@@ -122,6 +124,7 @@ export class UIManager {
       sim.bus.on('construction:waiting', (c) => this.notifyMaterials(c)),
       sim.bus.on('dynasty:offer', (o) => this.notifyOffer(o)),
       sim.bus.on('job:incident', (inc) => this.notifyIncident(inc)),
+      sim.bus.on('dynasty:grown', (g) => this.notifyGrown(g)),
       sim.bus.on('player:levelup', (d) => this.showLevelUp(d)),
       onLanguageChange(() => this.onLanguage()),
       sim.bus.on('land:changed', () => (this.landKey = null)),
@@ -164,9 +167,23 @@ export class UIManager {
       if (this.objectiveEl.dataset.guide) this.openJournal('guide');
     });
     this.objectiveEl.classList.toggle('folded', !!getSetting('objectiveFolded'));
+    // Today: what's on (a market day, a wedding at 16:00, an order due…) and the best-paid work — click for the calendar.
+    this.todayEl = el('hud today hidden', this.leftCol);
+    this.todayEl.addEventListener('click', (e) => {
+      if (e.target.closest('[data-fold]')) {
+        e.stopPropagation();
+        setSetting('todayFolded', !getSetting('todayFolded'));
+        this.todayEl.classList.toggle('folded', !!getSetting('todayFolded'));
+        return;
+      }
+      this.openCalendar();
+    });
+    this.todayEl.classList.toggle('folded', !!getSetting('todayFolded'));
     this.rightCol = el('hud-col hud-col-right');
     const topRow = el('hud-row', this.rightCol);
     this.hudRight = el('hud hud-world', topRow);
+    this.hudRight.addEventListener('click', () => this.openCalendar()); // (the date: the calendar)
+    this.hudRight.style.cursor = 'pointer';
     this.moneyEl = el('hud hud-money', topRow, 'button');
     this.moneyEl.addEventListener('click', () => this.togglePanel('affairs'));
     this.landEl = el('land-chip hidden', this.rightCol, 'button');
@@ -372,6 +389,28 @@ export class UIManager {
     }
   }
 
+  /** The "Today" card (ui/calendar.js), refreshed every game hour. */
+  updateToday() {
+    const sim = this.sim;
+    const k = `${sim.time.day}:${sim.time.hour}:${getLanguage()}:${sim.state.townOrders?.list?.length || 0}:${sim.state.community?.traderOrders?.length || 0}`;
+    if (this.todayKey === k) return;
+    this.todayKey = k;
+    const lines = todayLines(sim);
+    if (!lines.length) {
+      this.todayEl.classList.add('hidden');
+      return;
+    }
+    const rows = lines
+      .map((e) => `<div class="today-line">${e.icon} ${e.tomorrow ? `<span class="muted">${escapeHtml(t('cal.tomorrow'))}:</span> ` : ''}${e.hour !== null && e.hour !== undefined && !e.tomorrow ? `<span class="muted">${String(e.hour).padStart(2, '0')}:00</span> ` : ''}${escapeHtml(tr(sim, e.key, e.params))}</div>`)
+      .join('');
+    this.todayEl.innerHTML = `<div class="obj-head"><span class="obj-title">📅 ${escapeHtml(t('cal.today_card'))}</span><button class="obj-fold" data-fold="1" aria-label="${escapeHtml(t('ui.fold'))}">▾</button></div><div class="obj-text">${rows}</div>`;
+    this.todayEl.classList.remove('hidden');
+  }
+
+  openCalendar() {
+    this.openPanel(new CalendarPanel(this));
+  }
+
   /** The objective card: a heading, the text, and (for the guide) a hint; ▾ folds it down to the heading. */
   setObjective(head, text, more = '') {
     const html = `<div class="obj-head"><span class="obj-title">${head}</span><button class="obj-fold" data-fold="1" aria-label="${escapeHtml(t('ui.fold'))}">▾</button></div><div class="obj-text">${text}</div>${more ? `<div class="obj-more">${more}</div>` : ''}`;
@@ -457,6 +496,7 @@ export class UIManager {
     q.wextra.classList.toggle('hidden', !xtext);
     this.updateLandChip();
     this.updateFollow();
+    this.updateToday();
 
     const obj = sim.jobs.objective();
     delete this.objectiveEl.dataset.guide;
@@ -611,6 +651,21 @@ export class UIManager {
   }
 
   /** A family proposes a match for one of your children. */
+  /** A child of yours has grown up: help them choose a way in life (DynastySystem.chooseCareer). */
+  notifyGrown(g) {
+    const sim = this.sim;
+    const c = sim.npcs.byId(g.id);
+    if (!c) return;
+    const choose = (choice) => {
+      const r = sim.dynasty.chooseCareer(g.id, choice);
+      if (!r.ok) sim.toast(`reason.${r.reason}`, r.params || {}, 'warn');
+    };
+    const actions = [{ label: tr(sim, 'grown.trade', { occ: g.trade, gender: c.gender }), ico: '🛠️', run: () => choose('trade') }];
+    if (g.business) actions.push({ label: t('grown.family'), ico: '🏪', run: () => choose('family') });
+    actions.push({ label: t('grown.free'), ico: '🧭', run: () => choose('free') });
+    this.notify({ kind: 'info', ico: '🎓', title: tr(sim, 'grown.title', { npc: c.id }), lines: [escapeHtml(tr(sim, 'grown.text', { npc: c.id, gender: c.gender, occ: g.trade }))], actions, sticky: true });
+  }
+
   /** Something happened on the job (JobIncidents): what do you do? */
   notifyIncident(inc) {
     const sim = this.sim;

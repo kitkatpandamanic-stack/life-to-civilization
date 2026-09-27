@@ -587,7 +587,13 @@ export class NPCSystem {
     this.leaveBuilding(npc);
     npc.task.stage = npc.task.stage === 'start' ? 'walking' : npc.task.stage;
     const s = this.world.toTile(npc.x, npc.y);
-    const goal = this.world.nearestWalkable(tx, ty, 4);
+    let goal = this.world.nearestWalkable(tx, ty, 4);
+    // Out for their free time — a hobby, the square, a feast, market day, public work: not on top of someone
+    // already there, but the nearest free tile beside them (so a crowd spreads out, and neighbours can talk).
+    // At work too, where the exact tile doesn't matter: waiting at the workplace, tending the fields.
+    // (A woodcutter keeps to the tree, a builder to the site — nextBuild spreads the builders along it.)
+    const spread = npc.task.type === 'leisure' || (npc.task.type === 'work' && (npc.task.stage === 'idle_go' || this.activityOf(npc) === 'farm'));
+    if (goal && spread && !npc.task.target?.building && !npc.task.enter) goal = this.freeStand(npc, goal);
     const place = () => {
       const c = this.world.tileCenter(goal.tx, goal.ty);
       npc.x = c.x;
@@ -601,6 +607,32 @@ export class NPCSystem {
     if (!path.length) return this.arrive(npc);
     this.paths.set(npc.id, path);
     npc.moving = true;
+  }
+
+  /**
+   * The nearest tile to `goal` that nobody else is standing on (or walking to), within two tiles —
+   * or the goal itself if it's free (or nothing near is).
+   */
+  freeStand(npc, goal) {
+    const taken = new Set();
+    const K = (tx, ty) => ty * 4096 + tx;
+    for (const o of this.list) {
+      if (o === npc || o.inside || o.away || o.leaving) continue;
+      const path = this.paths.get(o.id);
+      const end = path?.length ? path[path.length - 1] : this.world.toTile(o.x, o.y);
+      if (Math.abs(end.tx - goal.tx) > 3 || Math.abs(end.ty - goal.ty) > 3) continue;
+      taken.add(K(end.tx, end.ty));
+    }
+    if (!taken.has(K(goal.tx, goal.ty))) return goal;
+    // Beside it first (left, right, below, above), then the corners, then a step further out.
+    const ring = [[-1, 0], [1, 0], [0, 1], [0, -1], [-1, 1], [1, 1], [-1, -1], [1, -1], [-2, 0], [2, 0], [0, 2], [0, -2], [-2, 1], [2, 1], [-2, -1], [2, -1], [-1, 2], [1, 2]];
+    for (const [dx, dy] of ring) {
+      const tx = goal.tx + dx;
+      const ty = goal.ty + dy;
+      if (!this.world.inBounds(tx, ty) || this.world.isBlocked(tx, ty) || taken.has(K(tx, ty))) continue;
+      return { tx, ty };
+    }
+    return goal;
   }
 
   leaveBuilding(npc) {
@@ -970,7 +1002,20 @@ export class NPCSystem {
     }
     npc.task.siteId = c.id;
     npc.task.stage = 'to_target';
-    this.walkTo(npc, c.tx + rand.int(0, c.w - 1), c.ty + c.h);
+    // A place along the front of the site nobody else is working from (then the sides) — not all on one tile.
+    const taken = new Set();
+    for (const o of this.list) {
+      if (o === npc || o.task?.siteId !== c.id) continue;
+      const path = this.paths.get(o.id);
+      const end = path?.length ? path[path.length - 1] : this.world.toTile(o.x, o.y);
+      taken.add(`${end.tx},${end.ty}`);
+    }
+    const spots = [];
+    for (let x = c.tx; x < c.tx + c.w; x++) spots.push({ tx: x, ty: c.ty + c.h });
+    for (let y = c.ty + c.h - 1; y >= c.ty; y--) spots.push({ tx: c.tx - 1, ty: y }, { tx: c.tx + c.w, ty: y });
+    const free = spots.filter((t) => !taken.has(`${t.tx},${t.ty}`) && this.world.inBounds(t.tx, t.ty) && !this.world.isBlocked(t.tx, t.ty));
+    const at = free.length ? free[Math.floor(hashStr(`build:${npc.id}:${c.id}`, this.sim.state.seed) * free.length)] : { tx: c.tx + rand.int(0, c.w - 1), ty: c.ty + c.h };
+    this.walkTo(npc, at.tx, at.ty);
   }
 
   /** A fisher heads for the water nearest their fishery (if the fishery can sell more fish). */
@@ -1034,7 +1079,8 @@ export class NPCSystem {
     const target = wants && mayFell ? this.sim.resources.findNearest(kind, bld.door.tx, bld.door.ty, NB.searchRadius, usable) || this.sim.resources.findNearest(kind, bld.door.tx, bld.door.ty, NB.searchRadius * 2.2, usable) : null;
     if (!target) {
       // Nothing to fell? Plant instead (and tend the young trees), so there's timber in years to come.
-      if (kind === 'tree') {
+      // (A full yard and woods back to their old size: nothing to do but wait — tending is the foresters' job.)
+      if (kind === 'tree' && (wants || (this.sim.forestry?.health() ?? 1) < FOREST.plantUpTo)) {
         if (wants && this.sim.economy.biz(biz)) this.sim.economy.biz(biz).noTreesDay = this.time.day;
         return this.nextPlanting(npc);
       }
@@ -1258,8 +1304,9 @@ export class NPCSystem {
         // A feast, a funeral, market day (standing about near the spot) — or public work, at the spot itself.
         const at = plan.at || { tx: Math.round((P.x1 + P.x2) / 2), ty: Math.round((P.y1 + P.y2) / 2) };
         const hh = hashStr(`${npc.id}:${this.time.day}:${plan.kind}`, this.sim.state.seed);
-        const dx = plan.kind === 'publicwork' ? 0 : Math.floor(hh * 7) - 3;
-        const dy = plan.kind === 'publicwork' ? 0 : Math.floor(((hh * 13) % 1) * 5) - 2;
+        const exact = plan.kind === 'publicwork' || plan.why === 'swim';
+        const dx = exact ? 0 : Math.floor(hh * 7) - 3;
+        const dy = exact ? 0 : Math.floor(((hh * 13) % 1) * 5) - 2;
         const s = this.world.nearestWalkable(at.tx + dx, at.ty + dy, 3) || at;
         return this.walkTo(npc, s.tx, s.ty);
       }
@@ -1633,7 +1680,7 @@ export class NPCSystem {
     if (npc.task?.planting && npc.task.stage === 'doing') return npc.task.plant?.kind === 'tend' ? '💧' : '🌱';
     const pl = npc.task?.type === 'leisure' && npc.task.stage === 'idle' ? npc.plan?.why : null;
     if (pl) {
-      const ico = { wedding: '💐', funeral: '🕯️', market: '🧺', public_work: '🧹', stall: '🧺', help: '🧒', name_day: '🎂' }[pl];
+      const ico = { wedding: '💐', funeral: '🕯️', market: '🧺', public_work: '🧹', stall: '🧺', help: '🧒', name_day: '🎂', swim: '🏊' }[pl];
       if (ico) return ico;
     }
     if (npc.task?.type === 'work' && npc.task.stage === 'doing' && this.activityOf(npc) === 'fish') return '🎣';

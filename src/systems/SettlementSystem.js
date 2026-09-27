@@ -144,7 +144,10 @@ export class SettlementSystem {
 
   /** The valley's railway station (someone has to build one before the first line). */
   station() {
-    return Object.values(this.sim.world.buildings).find((b) => b.type === RAIL.stationType) || null;
+    // (looked up often — trains, newcomers: remembered until a building goes up or comes down)
+    const n = this.sim.world.buildingList.length;
+    if (this.stationCache?.n !== n) this.stationCache = { n, st: Object.values(this.sim.world.buildings).find((b) => b.type === RAIL.stationType) || null };
+    return this.stationCache.st;
   }
 
   danger(id) {

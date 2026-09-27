@@ -3,7 +3,7 @@
  * your say (for, against, or nothing). Past meetings and how they went.
  */
 import { Panel } from '../Panel.js';
-import { t, fmtMoney } from '../../i18n/i18n.js';
+import { t, fmtMoney, tList, npcName } from '../../i18n/i18n.js';
 import { tr, escapeHtml } from '../format.js';
 import { button, bar, emptyState } from '../widgets.js';
 import { PROPOSALS } from '../../systems/TownSystem.js';
@@ -30,6 +30,7 @@ export class MeetingPanel extends Panel {
         <div class="kv"><span>${escapeHtml(t('meeting.cost'))}</span><b>${escapeHtml(fmtMoney(p.cost))} · ${escapeHtml(t('meeting.treasury', { money: fmtMoney(Math.round(sim.state.village.treasury)) }))}</b></div>
         <div class="kv"><span>${escapeHtml(t('meeting.when'))}</span><b>${escapeHtml(days > 0 ? t('meeting.in_days', { n: days }) : t('meeting.tonight'))}</b></div>
         ${bar(sup * 100, sup >= 0.5 ? 'good' : 'warn', t('meeting.support', { n: Math.round(sup * 100) }))}
+        ${this.voicesHtml(m)}
         <p class="small muted">${escapeHtml(t('meeting.sway', { n: Math.round(T.sway() * 100) }))}</p>
         <div class="btn-row">
           ${button(t('meeting.for'), 'speak', { side: 'for' }, { cls: `sm ${m.spoke === 'for' ? 'selected' : ''}` })}
@@ -44,6 +45,23 @@ export class MeetingPanel extends Panel {
         .join('')}`;
     }
     return html;
+  }
+
+  /** Who speaks for it and who against — what they say (by the proposal, and who they are). */
+  voicesHtml(m) {
+    const sim = this.sim;
+    const v = sim.town.voices(2);
+    const line = (id, side) => {
+      const n = sim.npcs.byId(id);
+      if (!n) return '';
+      const own = tList(`meeting_say.${m.proposal}.${side}`, { gender: n.gender });
+      const pool = own.length ? own : tList(`meeting_say.any.${side}`, { gender: n.gender });
+      if (!pool.length) return '';
+      const said = pool[[...id].reduce((a, c) => a + c.charCodeAt(0), 0) % pool.length]; // (the same words each time you look)
+      return `<div class="rumor">${side === 'for' ? '👍' : '👎'} <b>${escapeHtml(npcName(n))}:</b> «${escapeHtml(said)}»</div>`;
+    };
+    const html = [...v.for.map((id) => line(id, 'for')), ...v.against.map((id) => line(id, 'against'))].join('');
+    return html ? `<h4>${escapeHtml(t('meeting.voices'))}</h4>${html}` : '';
   }
 
   onAction(action, data) {

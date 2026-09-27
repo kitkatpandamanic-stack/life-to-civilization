@@ -158,6 +158,8 @@ export class NPCViews {
     const ringOn = this.selected || followed;
     let ringShown = false;
     this.life.beginFrame();
+    // Two villagers on the same spot (walking the same road, say): drawn a little apart, not one on the other.
+    const nudge = this.spread();
     for (const v of this.views.values()) {
       const npc = v.npc;
       const visible = !npc.inside && npc.simLevel !== 'abstract';
@@ -174,7 +176,7 @@ export class NPCViews {
         this.ring.setScale(1 + Math.sin(now / 250) * 0.06);
         ringShown = true;
       }
-      v.sprite.setPosition(npc.x, npc.y).setDepth(npc.y);
+      v.sprite.setPosition(npc.x + (nudge.get(npc.id) || 0), npc.y).setDepth(npc.y);
       // A new job (or grown up): new work clothes.
       const g = garbKey(npc);
       if (g !== v.garb) {
@@ -251,6 +253,25 @@ export class NPCViews {
       }
     }
     if (!ringShown) this.ring.setVisible(false);
+  }
+
+  /** Sideways nudges (px) for villagers drawn on top of each other: { id → dx }. View only. */
+  spread() {
+    const out = new Map();
+    const cells = new Map();
+    for (const v of this.views.values()) {
+      const n = v.npc;
+      if (n.inside || n.simLevel === 'abstract') continue;
+      const k = `${Math.round(n.x / 10)},${Math.round(n.y / 10)}`;
+      if (!cells.has(k)) cells.set(k, []);
+      cells.get(k).push(n.id);
+    }
+    for (const ids of cells.values()) {
+      if (ids.length < 2) continue;
+      ids.sort();
+      ids.forEach((id, i) => out.set(id, (i - (ids.length - 1) / 2) * 12));
+    }
+    return out;
   }
 
   destroy() {

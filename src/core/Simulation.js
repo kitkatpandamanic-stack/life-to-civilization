@@ -129,6 +129,8 @@ import { PopulationSystem } from '../systems/PopulationSystem.js';
 import { StallSystem } from '../systems/StallSystem.js';
 import { CommunitySystem } from '../systems/CommunitySystem.js';
 import { TownOrderSystem } from '../systems/TownOrderSystem.js';
+import { GranarySystem } from '../systems/GranarySystem.js';
+import { TradesSystem } from '../systems/TradesSystem.js';
 import { CivicSystem } from '../systems/CivicSystem.js';
 import { LedgerSystem } from '../systems/LedgerSystem.js';
 import { LettingSystem } from '../systems/LettingSystem.js';
@@ -239,6 +241,8 @@ export class Simulation {
     this.stall = new StallSystem(this); // your market stall on the square
     this.community = new CommunitySystem(this); // weddings, funerals, name days, market day, public work, youths helping out
     this.townOrders = new TownOrderSystem(this); // orders from the towns you know
+    this.granary = new GranarySystem(this); // the village grain store: steadies the price of bread
+    this.trades = new TradesSystem(this); // clothes and shoes wear out; bigger towns, more hands
     this.civic = new CivicSystem(this); // it weighs up everyone and everything
     this.letting = new LettingSystem(this);
     this.housing = new HousingSystem(this); // how villagers choose where to live

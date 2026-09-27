@@ -48,6 +48,18 @@ export function goTo(ui, go) {
     case 'paths':
     case 'guide':
       return ui.openJournal('guide');
+    case 'forest':
+      return ui.openForest();
+    case 'stall':
+      return ui.openStall();
+    case 'market':
+      return ui.openMarket();
+    case 'town_orders':
+      return ui.openTownOrders(false);
+    case 'calendar':
+      return ui.openCalendar();
+    case 'population':
+      return ui.openPopulation();
   }
 }
 
