@@ -1811,7 +1811,9 @@
     "player_invented": "A new invention in the valley: the {invention}.",
     "npc_invented": "{npc} invented the {invention}.",
     "colony_founded": "A new settlement was founded: {colony}.",
-    "colony_grew": "{colony} has grown into a {stage}."
+    "colony_grew": "{colony} has grown into a {stage}.",
+    "building_bee": "{npc}'s house had stood half-built for want of money — family and friends chipped in to see it finished.",
+    "village_helped_build": "The village put money towards {npc}'s half-built house, so the family has a roof of its own."
   },
   "event": {
     "good_harvest": {
@@ -2495,7 +2497,11 @@
     "date_hud": "{season} · day {day}",
     "temp_c": "{n}°C",
     "fold": "Fold / unfold",
-    "info_mode": "Info mode (labels on the world)"
+    "info_mode": "Info mode (labels on the world)",
+    "world_look": "World look",
+    "world_look_hint": "Painted: soft, hand-painted ground. Classic: the simple square tiles (lighter on slow computers).",
+    "look_painted": "Painted",
+    "look_classic": "Classic"
   },
   "dialog": {
     "intro": [

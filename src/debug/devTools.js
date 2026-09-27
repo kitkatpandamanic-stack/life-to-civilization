@@ -10,6 +10,9 @@
  *   dev.teleport(tx, ty)         move the player to a tile
  *   dev.skip(minutes)            fast-forward the clock
  *   dev.cards = true             developer details on worker / building / contract cards (ids, state, task, path)
+ *   dev.ground.classic(true)     the old square tiles (false: the painted ground) — same as Menu → Settings
+ *   dev.ground.repaint()         repaint every piece of the painted ground now; returns the time it took (ms)
+ *   dev.ground.season('winter')  show the world in another season (textures only; the clock doesn't change)
  *
  * F9 opens the debug panel (stats, performance, world controls) — see DebugPanel.js.
  */
@@ -74,6 +77,26 @@ const dev = {
     boot.scene.start('Game', { sim: Simulation.newGame(name) });
     dev.pump(5);
     return dev.sim;
+  },
+  ground: {
+    classic(on = true) {
+      scene().terrain.setClassic(on);
+      dev.pump(1);
+      return on;
+    },
+    repaint() {
+      const T = scene().terrain;
+      const t0 = performance.now();
+      for (const c of T.chunks) T.paint(c);
+      return Math.round(performance.now() - t0);
+    },
+    season(s) {
+      const sc = scene();
+      sc.terrain.applySeason(s);
+      sc.terrain.paintVisible(true);
+      dev.pump(1);
+      return s;
+    },
   },
   teleport(tx, ty) {
     const s = scene();

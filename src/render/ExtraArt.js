@@ -4,6 +4,7 @@
  *   • home interiors (room shells + furniture)
  * Everything is drawn with Canvas2D, like the rest of the game's art.
  */
+import { paintSoil, paintPlayerCrop } from './PaintedFields.js';
 
 function makeCanvas(w, h) {
   const c = document.createElement('canvas');
@@ -483,21 +484,6 @@ const PROPS = {
 
 // ---------------------------------------------------------------- player farming
 
-function drawSoil(wet) {
-  const c = makeCanvas(32, 32);
-  const ctx = c.getContext('2d');
-  ctx.fillStyle = wet ? '#4f3622' : '#7b5436';
-  rrect(ctx, 1, 1, 30, 30, 4);
-  ctx.fill();
-  for (let y = 5; y < 30; y += 7) {
-    ctx.fillStyle = wet ? '#3e2a1a' : '#634228';
-    ctx.fillRect(3, y, 26, 2);
-    ctx.fillStyle = wet ? '#6a4a30' : '#8f6645';
-    ctx.fillRect(3, y + 2, 26, 1);
-  }
-  return c;
-}
-
 const CROP_COLORS = {
   wheat: { leaf: '#6aa84f', ripe: '#e0bd55' },
   carrot: { leaf: '#4f9a3f', ripe: '#e8822a' },
@@ -505,66 +491,6 @@ const CROP_COLORS = {
   cabbage: { leaf: '#7cbc58', ripe: '#a6d88a' },
   pumpkin: { leaf: '#4f8a3a', ripe: '#e0801e' },
 };
-
-function drawPlayerCrop(crop, stage) {
-  const c = makeCanvas(32, 36);
-  const ctx = c.getContext('2d');
-  const col = CROP_COLORS[crop];
-  if (stage === 0) {
-    for (const x of [10, 16, 22]) {
-      ctx.fillStyle = col.leaf;
-      ctx.fillRect(x, 28, 2, 4);
-      ctx.fillRect(x - 2, 27, 2, 2);
-    }
-    return c;
-  }
-  if (crop === 'wheat') {
-    const h = stage === 1 ? 12 : stage === 2 ? 20 : 26;
-    for (const x of [7, 11, 15, 19, 23]) {
-      ctx.strokeStyle = stage === 3 ? '#c9a23a' : col.leaf;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(x, 33);
-      ctx.lineTo(x + 1, 33 - h);
-      ctx.stroke();
-      if (stage === 3) {
-        ctx.fillStyle = col.ripe;
-        rrect(ctx, x - 1, 33 - h - 6, 3, 7, 1.5);
-        ctx.fill();
-      }
-    }
-    return c;
-  }
-  if (crop === 'cabbage' || crop === 'pumpkin') {
-    const r = stage === 1 ? 5 : stage === 2 ? 8 : 10;
-    ellipse(ctx, 16, 30, r + 3, 4, 'rgba(0,0,0,0.2)');
-    for (const [dx, dy] of [[-7, -3], [7, -3], [0, -8]]) ellipse(ctx, 16 + dx * (r / 10), 26 + dy * (r / 10), r * 0.7, r * 0.45, col.leaf);
-    if (stage === 3) {
-      if (crop === 'pumpkin') {
-        ellipse(ctx, 16, 27, 10, 7, col.ripe);
-        ctx.fillStyle = '#c86a12';
-        ctx.fillRect(11, 21, 2, 12);
-        ctx.fillRect(19, 21, 2, 12);
-      } else {
-        circle(ctx, 16, 25, 8, col.ripe);
-        circle(ctx, 16, 25, 5, '#c8ecb0');
-      }
-    }
-    return c;
-  }
-  // carrot, potato: leafy tops, root showing when ripe
-  const leaves = stage === 1 ? 7 : stage === 2 ? 11 : 13;
-  for (const dx of [-4, 0, 4]) {
-    ctx.strokeStyle = col.leaf;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(16, 31);
-    ctx.lineTo(16 + dx, 31 - leaves);
-    ctx.stroke();
-  }
-  if (stage === 3) ellipse(ctx, 16, 31, 5, 3, col.ripe);
-  return c;
-}
 
 function drawDeadCrop() {
   const c = makeCanvas(32, 36);
@@ -581,10 +507,10 @@ function drawDeadCrop() {
 }
 
 export function createExtraTextures(scene, addCanvas) {
-  addCanvas(scene, 'soil', drawSoil(false));
-  addCanvas(scene, 'soil_wet', drawSoil(true));
+  addCanvas(scene, 'soil', paintSoil(false));
+  addCanvas(scene, 'soil_wet', paintSoil(true));
   addCanvas(scene, 'pcrop_dead', drawDeadCrop());
-  for (const crop of Object.keys(CROP_COLORS)) for (let s = 0; s <= 3; s++) addCanvas(scene, `pcrop_${crop}_${s}`, drawPlayerCrop(crop, s));
+  for (const crop of Object.keys(CROP_COLORS)) for (let s = 0; s <= 3; s++) addCanvas(scene, `pcrop_${crop}_${s}`, paintPlayerCrop(crop, s));
   for (const [type, fn] of Object.entries(FURNITURE_DRAW)) {
     const [w, h] = FURNITURE_SIZE[type];
     const c = makeCanvas(w, h);

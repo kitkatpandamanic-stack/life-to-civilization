@@ -31,6 +31,10 @@ export class BuildingViews {
       sim.bus.on('time:day', () => {
         for (const entry of this.byId.values()) this.applyDecay(entry);
       }),
+      // Snow settles on the roofs in winter and melts in spring.
+      sim.bus.on('time:season', () => {
+        for (const entry of this.byId.values()) this.applySnow(entry);
+      }),
     ];
   }
 
@@ -43,10 +47,11 @@ export class BuildingViews {
       const x = b.tx * TS + TS / 2;
       const bottom = (b.ty + 1) * TS;
       const img = scene.add.image(x, bottom - 2, decorTex).setOrigin(0.5, 1).setDepth(bottom);
+      const shade = this.castShadow(x - TS / 2, bottom - 2, TS, 40);
       const zone = scene.add.zone(x, b.ty * TS + TS / 2 + 4, TS - 4, TS - 8);
       scene.physics.add.existing(zone, true);
       scene.solids.add(zone);
-      this.byId.set(b.id, { building: b, sprites: [img], zone, windows: [], smoke: [] });
+      this.byId.set(b.id, { building: b, sprites: [img, shade], zone, windows: [], smoke: [] });
       return;
     }
     const key = ensureBuildingTexture(scene, b);
@@ -54,7 +59,7 @@ export class BuildingViews {
     const x = b.tx * TS;
     const bottom = (b.ty + b.h) * TS;
     const img = scene.add.image(x, bottom, key).setOrigin(0, 1).setDepth(bottom);
-    const entry = { building: b, sprites: [img], zone: null, windows: [], smoke: [] };
+    const entry = { building: b, sprites: [img, this.castShadow(x, bottom, b.w * TS, meta.height)], zone: null, windows: [], smoke: [] };
 
     // Collision: the footprint minus a strip at the back, so you can walk "behind" the roof edge.
     const zone = scene.add.zone(x + (b.w * TS) / 2, b.ty * TS + 10 + (b.h * TS - 10) / 2, b.w * TS, b.h * TS - 10);
@@ -87,9 +92,43 @@ export class BuildingViews {
       entry.smoke.push(emitter);
     }
     entry.meta = meta;
+    entry.key = key;
     this.byId.set(b.id, entry);
     this.applyDecay(entry);
+    this.applySnow(entry);
     this.addSign(entry);
+  }
+
+  /**
+   * The soft shadow a building casts on the ground: the sun is up to the left (as for the trees), so it falls
+   * to the right and a little forward — longer for taller buildings. Drawn just above the ground.
+   */
+  castShadow(x, bottom, w, height) {
+    const dx = Math.round(Math.min(44, 10 + height * 0.22));
+    const dy = 7;
+    const depthPx = Math.round(Math.min(w * 0.5, 40)); // how deep the footprint reads from the front
+    const key = `bshadow_${w}_${dx}_${depthPx}`;
+    const pad = 14;
+    if (!this.scene.textures.exists(key)) {
+      const c = document.createElement('canvas');
+      c.width = w + dx + pad * 2;
+      c.height = depthPx + dy + pad * 2;
+      const ctx = c.getContext('2d');
+      ctx.filter = 'blur(5px)';
+      ctx.fillStyle = 'rgba(25,20,10,0.32)';
+      ctx.beginPath();
+      // the footprint, and the same shape pushed right and forward — the band between them is the shadow
+      ctx.moveTo(pad + 4, pad);
+      ctx.lineTo(pad + w, pad);
+      ctx.lineTo(pad + w + dx, pad + dy);
+      ctx.lineTo(pad + w + dx, pad + depthPx + dy);
+      ctx.lineTo(pad + dx * 0.4, pad + depthPx + dy);
+      ctx.lineTo(pad + 4, pad + depthPx);
+      ctx.closePath();
+      ctx.fill();
+      this.scene.textures.addCanvas(key, c);
+    }
+    return this.scene.add.image(x - pad, bottom - depthPx - pad, key).setOrigin(0, 0).setDepth(DEPTH.TUFTS + 1);
   }
 
   /** A shop sign over the door when a villager runs a business from this building. */
@@ -134,6 +173,58 @@ export class BuildingViews {
       .setOrigin(0.5)
       .setDepth(bottom + 0.7);
     entry.sign = [g, t];
+  }
+
+  /**
+   * Snow on the roof in winter: an overlay made from the building's own picture — white along the top edge
+   * of every roof (and chimney cap), thinning downwards, with a ragged lower edge.
+   */
+  applySnow(entry) {
+    const winter = this.sim.time.season === 'winter';
+    if (!winter || !entry.key) {
+      entry.snow?.destroy();
+      entry.snow = null;
+      return;
+    }
+    if (entry.snow) return;
+    const key = `${entry.key}_snow`;
+    const textures = this.scene.textures;
+    if (!textures.exists(key)) {
+      const src = textures.get(entry.key).getSourceImage();
+      const W = src.width;
+      const H = src.height;
+      const c = document.createElement('canvas');
+      c.width = W;
+      c.height = H;
+      const ctx = c.getContext('2d');
+      const data = src.getContext('2d').getImageData(0, 0, W, H).data;
+      const depth = Math.max(8, Math.min(26, Math.round(H * 0.2)));
+      ctx.fillStyle = '#ffffff';
+      for (let x = 0; x < W; x++) {
+        let y0 = -1;
+        for (let y = 0; y < H - 10; y++) {
+          if (data[(y * W + x) * 4 + 3] > 200) {
+            y0 = y;
+            break;
+          }
+        }
+        if (y0 < 0) continue;
+        const d = depth * (0.8 + 0.12 * Math.sin(x * 0.19) + 0.08 * Math.sin(x * 0.053 + 1.3)); // a gently wavy lower edge
+        const g = ctx.createLinearGradient(0, y0, 0, y0 + d);
+        g.addColorStop(0, 'rgba(252,253,255,1)');
+        g.addColorStop(0.7, 'rgba(240,246,252,0.95)');
+        g.addColorStop(0.85, 'rgba(214,226,238,0.9)');
+        g.addColorStop(1, 'rgba(200,214,228,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(x, y0, 1, d);
+      }
+      // only where the building is
+      ctx.globalCompositeOperation = 'destination-in';
+      ctx.drawImage(src, 0, 0);
+      textures.addCanvas(key, c);
+    }
+    const img = entry.sprites[0];
+    entry.snow = this.scene.add.image(img.x, img.y, key).setOrigin(0, 1).setDepth(img.depth + 0.05);
   }
 
   /** Show the building's condition: darker when worn, boards when abandoned, holes when ruined. */
@@ -220,6 +311,7 @@ export class BuildingViews {
       }
       for (const e of entry.smoke) e.destroy();
       entry.decay?.destroy();
+      entry.snow?.destroy();
       for (const s of entry.sign || []) s.destroy();
       if (entry.zone) this.scene.solids.remove(entry.zone, true, true);
       this.byId.delete(id);

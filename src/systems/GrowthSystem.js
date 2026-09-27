@@ -197,6 +197,12 @@ export class GrowthSystem {
         c.lastProgressDay = this.sim.time.day; // materials arriving is progress too
         left -= qty;
       }
+      // Nobody in the valley has it for days on end? Sent for from outside, through the store — dearer.
+      c.short ??= {};
+      if (left > 0 && !sellers.length) {
+        c.short[item] ??= this.sim.time.day;
+        if (item !== 'planks' && this.sim.time.day - c.short[item] >= G.importAfterDays) left -= this.importFor(c, item, left, purse);
+      } else delete c.short[item];
       // No planks anywhere? The builders saw their own from timber (two logs a plank).
       if (item === 'planks' && left > 0) {
         const woodSeller = sellers.length ? null : E.active().find((id) => E.stock(id, 'wood') >= 2);
@@ -213,6 +219,87 @@ export class GrowthSystem {
       }
     }
     this.sim.bus.emit('construction:changed', c);
+  }
+
+  /** Send for building materials from outside (no one in the valley has any): the store takes a cut. */
+  importFor(c, item, qty, purse) {
+    const E = this.sim.economy;
+    const price = Math.max(1, Math.round((ITEMS[item]?.basePrice || 3) * G.importMarkup * (this.sim.settlements?.importFactor(item) ?? 1)));
+    const n = Math.min(qty, Math.floor((c.budget + Math.max(0, purse.get() - 20)) / price));
+    if (n <= 0) return 0;
+    const cost = n * price;
+    const fromBudget = Math.min(c.budget, cost);
+    c.budget -= fromBudget;
+    purse.pay(cost - fromBudget);
+    this.sim.settlements?.drawImport(item, n);
+    const store = E.active().find((id) => E.def(id).kind === 'shop' && E.def(id).sector === 'grocery') || E.active().find((id) => E.def(id).kind === 'shop');
+    if (store) {
+      const fee = Math.round(cost * G.storeFee);
+      E.biz(store).money += fee;
+      E.ledger(store, 'rev', fee);
+    }
+    c.delivered[item] = (c.delivered[item] || 0) + n;
+    c.lastProgressDay = this.sim.time.day;
+    c.imported = (c.imported || 0) + n;
+    delete c.short[item];
+    return n;
+  }
+
+  /** What finishing this site will still cost: the missing materials and the labourers' pay. */
+  stillToPay(c) {
+    let m = 0;
+    for (const [item, q] of Object.entries(this.cons.missing(c))) m += q * (ITEMS[item]?.basePrice || 3) * G.materialMarkup;
+    const days = Math.ceil(Math.max(0, c.laborNeeded - c.labor) / (480 * G.labourRate));
+    return Math.round(m + days * G.dayWage);
+  }
+
+  /**
+   * Neighbours chip in: a family's home that has stood still for want of money gets help — kin first, then
+   * good friends, then (for a household with no roof of its own) the village. The money goes to the site, so
+   * the materials are bought and day labourers hired as usual. No dice: who gives follows from who they are.
+   */
+  lendAHand() {
+    const sim = this.sim;
+    const day = sim.time.day;
+    for (const c of this.projects()) {
+      if (c.purpose !== 'home' || c.owner === 'village' || c.contractor === 'player') continue;
+      if (day - (c.lastProgressDay ?? c.createdDay) < G.helpStallDays || day - (c.helpedDay ?? -99) < G.helpEveryDays) continue;
+      const owner = sim.npcs.byId(c.owner);
+      if (!owner) continue;
+      let need = this.stillToPay(c) - c.budget - Math.max(0, owner.money - 20);
+      if (need <= 0) continue;
+      c.helpedDay = day;
+      const givers = [];
+      const give = (n, most) => {
+        const x = Math.min(need, most, Math.floor(n.money - G.giverKeeps));
+        if (x <= 0) return;
+        n.money -= x;
+        c.budget += x;
+        need -= x;
+        givers.push(n);
+        sim.social.addNpcRel(owner, n, 3);
+        if (!sim.memory.has(owner, 'helped_build', n.id)) sim.memory.remember(owner, 'helped_build', { who: n.id, params: { npc: n.id } });
+      };
+      const kin = sim.family.relatives(owner).filter((r) => r.age >= 18).sort((a, b) => b.money - a.money);
+      for (const r of kin) if (need > 0) give(r, G.kinGift);
+      const friends = sim.state.npcs
+        .filter((n) => n.id !== owner.id && n.age >= 18 && !kin.includes(n) && sim.social.npcRel(n, owner) >= G.friendRel)
+        .sort((a, b) => b.money - a.money);
+      for (const n of friends) if (need > 0) give(n, G.friendGift);
+      // The village helps those with nowhere else to sleep.
+      const V = sim.state.village;
+      let grant = 0;
+      if (need > 0 && (!owner.homeId || owner.homeId === 'hall') && V.treasury >= G.villageGrant + G.villageReserve) {
+        grant = Math.min(need, G.villageGrant);
+        V.treasury -= grant;
+        c.budget += grant;
+        need -= grant;
+      }
+      if (givers.length || grant) {
+        c.helped = (c.helped || 0) + 1;
+        if (c.helped === 1) sim.chronicle(grant && !givers.length ? 'chronicle.village_helped_build' : 'chronicle.building_bee', { npc: owner.id, gender: owner.gender, n: givers.length });
+      }
+    }
   }
 
   // ------------------------------------------------------------------ starting projects
@@ -779,6 +866,7 @@ export class GrowthSystem {
   onDay() {
     const sim = this.sim;
     this.payLabour();
+    this.lendAHand();
     this.hireLabour();
     // Builders you've paid to get the materials for you buy them like anyone else's.
     for (const c of this.contracted()) if (c.buyMats) this.buyMaterials(c);

@@ -43,6 +43,19 @@ export const GROWTH = {
   builderPayPerHour: 3, // what a project pays a builders' firm per worker-hour
   stallDaysToAbandon: 40, // a project with no progress this long is abandoned
   materialMarkup: 1.05,
+  // What no one in the valley has in stock is sent for from outside (through the store) after a few days' wait.
+  importAfterDays: 3,
+  importMarkup: 1.5,
+  storeFee: 0.1, // the store's cut for sending for it
+  // Neighbours chip in: a family's home stalled this long for want of money gets help from kin, friends and the village.
+  helpStallDays: 5,
+  helpEveryDays: 7,
+  kinGift: 40,
+  friendGift: 20,
+  friendRel: 45,
+  giverKeeps: 120, // nobody gives away the money they live on
+  villageGrant: 60, // for a household with no roof of its own
+  villageReserve: 40,
   migrationCheckEveryDays: 7,
   maxMigrantsPerWeek: 2,
   leaveAfterJoblessDays: 28,

@@ -23,6 +23,18 @@ const SKY = [
   [24, 0x0a0f2e, 0.62],
 ];
 
+// Warm sunlight over the painted world (multiplied in): golden in the morning and evening, gentle at noon.
+const WARM = [
+  [0, 0xffffff, 0],
+  [5.5, 0xffffff, 0],
+  [6.8, 0xffb878, 0.42],
+  [9, 0xffe8c8, 0.34],
+  [15.5, 0xffe8c8, 0.34],
+  [17.6, 0xffb060, 0.5],
+  [19.4, 0xffffff, 0],
+  [24, 0xffffff, 0],
+];
+
 const GLOOM = { sunny: [0x000000, 0], cloudy: [0x404858, 0.1], rain: [0x2c3444, 0.2], storm: [0x1a1f2c, 0.32], snow: [0xdfe8f0, 0.1], fog: [0xc8ccd0, 0.3] };
 
 function lerpColor(a, b, t) {
@@ -43,6 +55,22 @@ export class Atmosphere {
     const { width, height } = scene.scale;
     this.night = scene.add.rectangle(0, 0, width, height, 0x000000, 0).setOrigin(0).setScrollFactor(0).setDepth(DEPTH.NIGHT);
     this.gloom = scene.add.rectangle(0, 0, width, height, 0x000000, 0).setOrigin(0).setScrollFactor(0).setDepth(DEPTH.GLOOM);
+    this.warm = scene.add.rectangle(0, 0, width, height, 0xffffff, 0).setOrigin(0).setScrollFactor(0).setDepth(DEPTH.GLOOM - 2).setBlendMode(Phaser.BlendModes.MULTIPLY);
+    // Softly darker corners, like a painting.
+    if (!scene.textures.exists('vignette')) {
+      const c = document.createElement('canvas');
+      c.width = 256;
+      c.height = 256;
+      const ctx = c.getContext('2d');
+      const g = ctx.createRadialGradient(128, 128, 60, 128, 128, 182);
+      g.addColorStop(0, 'rgba(20,12,4,0)');
+      g.addColorStop(0.6, 'rgba(20,12,4,0.25)');
+      g.addColorStop(1, 'rgba(20,12,4,0.8)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, 256, 256);
+      scene.textures.addCanvas('vignette', c);
+    }
+    this.vignette = scene.add.image(0, 0, 'vignette').setOrigin(0).setScrollFactor(0).setDepth(DEPTH.GLOOM - 1).setDisplaySize(width, height).setAlpha(0.32);
     this.lantern = scene.add.image(0, 0, 'glow').setBlendMode(Phaser.BlendModes.ADD).setTint(0xffd9a0).setScale(2.4).setDepth(DEPTH.LIGHTS).setAlpha(0);
 
     this.rain = scene.add
@@ -89,6 +117,8 @@ export class Atmosphere {
   onResize(size) {
     this.night.setSize(size.width, size.height);
     this.gloom.setSize(size.width, size.height);
+    this.warm.setSize(size.width, size.height);
+    this.vignette.setDisplaySize(size.width, size.height);
   }
 
   update() {
@@ -100,6 +130,15 @@ export class Atmosphere {
     const t = Math.max(0, Math.min(1, (h - h0) / (h1 - h0)));
     const indoorDim = this.indoor ? 0.3 : 1;
     this.night.setFillStyle(this.indoor ? 0x2a1a08 : lerpColor(c0, c1, t), (a0 + (a1 - a0) * t) * indoorDim);
+
+    // Warm light — out of doors, and less of it under cloud.
+    let j = 0;
+    while (j < WARM.length - 2 && WARM[j + 1][0] <= h) j++;
+    const [w0, wc0, wa0] = WARM[j];
+    const [w1, wc1, wa1] = WARM[j + 1];
+    const wt = Math.max(0, Math.min(1, (h - w0) / (w1 - w0)));
+    const cloud = { sunny: 1, cloudy: 0.5, fog: 0.3, rain: 0.25, storm: 0.15, snow: 0.35 }[this.sim.weather.type] ?? 1;
+    this.warm.setFillStyle(lerpColor(wc0, wc1, wt), this.indoor ? 0 : (wa0 + (wa1 - wa0) * wt) * cloud);
 
     const type = this.indoor ? 'sunny' : this.sim.weather.type;
     const [gc, ga] = GLOOM[type] || GLOOM.sunny;

@@ -15,6 +15,9 @@ import { createTransportTextures } from './TransportArt.js';
 import { createSiteTextures } from './SiteArt.js';
 import { FARM_ICONS, createFarmTextures } from './FarmArt.js';
 import { createRailTextures } from './RailArt.js';
+import { roofSurface, wallSurface, paintedWindow, paintedDoor, finishBuilding } from './PaintedBuildings.js';
+import { paintFieldCrop } from './PaintedFields.js';
+import { TREE_VARIANTS, paintOak, paintPine, paintBush, paintStump, paintRock, paintRubble, paintTuft } from './PaintedNature.js';
 
 const TS = 32;
 const FLOOR_H = 30; // an upper storey adds this much wall
@@ -222,253 +225,7 @@ function paintTile(ctx, ox, id, season) {
   }
 }
 
-// ---------------------------------------------------------------- nature
-
-function drawOak(season) {
-  const c = makeCanvas(64, 80);
-  const ctx = c.getContext('2d');
-  ellipse(ctx, 32, 74, 20, 6, 'rgba(0,0,0,0.22)');
-  ctx.fillStyle = '#6b4a2b';
-  ctx.fillRect(27, 44, 10, 31);
-  ctx.fillStyle = '#553a22';
-  ctx.fillRect(33, 44, 4, 31);
-  ctx.fillStyle = '#6b4a2b';
-  ctx.beginPath();
-  ctx.moveTo(22, 76);
-  ctx.lineTo(27, 66);
-  ctx.lineTo(37, 66);
-  ctx.lineTo(42, 76);
-  ctx.fill();
-
-  if (season === 'winter') {
-    ctx.strokeStyle = '#5b3f25';
-    ctx.lineCap = 'round';
-    const branches = [[32, 48, 14, 22, 4], [32, 46, 50, 20, 4], [32, 44, 32, 8, 4], [24, 32, 12, 14, 2], [42, 30, 54, 12, 2], [32, 26, 22, 10, 2], [32, 24, 42, 8, 2]];
-    for (const [x1, y1, x2, y2, w] of branches) {
-      ctx.lineWidth = w;
-      ctx.beginPath();
-      ctx.moveTo(x1, y1);
-      ctx.lineTo(x2, y2);
-      ctx.stroke();
-    }
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 2;
-    for (const [x1, y1, x2, y2] of branches) {
-      ctx.beginPath();
-      ctx.moveTo(x1 + (x2 - x1) * 0.4, y1 + (y2 - y1) * 0.4 - 1);
-      ctx.lineTo(x2, y2 - 1);
-      ctx.stroke();
-    }
-    return c;
-  }
-  const cols = {
-    spring: ['#5a9c40', '#6fb552', '#94d272'],
-    summer: ['#2f6d2a', '#3f8a37', '#5aa84a'],
-    autumn: ['#b5541d', '#d9822b', '#f0b24a'],
-  }[season];
-  for (const [x, y, r] of [[32, 36, 22], [15, 42, 13], [49, 42, 13]]) circle(ctx, x, y, r, cols[0]);
-  for (const [x, y, r] of [[32, 30, 20], [18, 34, 12], [46, 34, 12], [25, 18, 12], [40, 18, 12]]) circle(ctx, x, y, r, cols[1]);
-  for (const [x, y, r] of [[24, 20, 7], [37, 13, 5], [15, 32, 5], [45, 27, 4]]) circle(ctx, x, y, r, cols[2]);
-  const rnd = mulberry32(season.length * 31);
-  if (season === 'spring') {
-    for (let i = 0; i < 14; i++) circle(ctx, 12 + rnd() * 40, 10 + rnd() * 36, 1.6, i % 3 ? '#f7c6d9' : '#ffffff');
-  }
-  if (season === 'autumn') {
-    for (let i = 0; i < 6; i++) circle(ctx, 14 + rnd() * 36, 70 + rnd() * 8, 1.5, rnd() < 0.5 ? '#d9822b' : '#c4491f');
-  }
-  return c;
-}
-
-function drawPine(season) {
-  const c = makeCanvas(48, 84);
-  const ctx = c.getContext('2d');
-  ellipse(ctx, 24, 79, 15, 5, 'rgba(0,0,0,0.22)');
-  ctx.fillStyle = '#5b3f25';
-  ctx.fillRect(21, 62, 6, 18);
-  const dark = season === 'autumn' ? '#2e5f3a' : '#2f6b3f';
-  const light = season === 'autumn' ? '#437a4c' : '#3f8a52';
-  const tiers = [[24, 4, 7, 34], [24, 17, 4, 50], [24, 31, 1, 67]];
-  for (const [tx, ty, lx, by] of tiers) {
-    ctx.fillStyle = dark;
-    ctx.beginPath();
-    ctx.moveTo(tx, ty);
-    ctx.lineTo(lx, by);
-    ctx.lineTo(48 - lx, by);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = light;
-    ctx.beginPath();
-    ctx.moveTo(tx, ty);
-    ctx.lineTo(lx, by);
-    ctx.lineTo(tx, by - 3);
-    ctx.closePath();
-    ctx.fill();
-    if (season === 'winter') {
-      ctx.fillStyle = '#f4f8fb';
-      ctx.beginPath();
-      ctx.moveTo(tx, ty);
-      ctx.lineTo(tx - (tx - lx) * 0.45, ty + (by - ty) * 0.45);
-      ctx.lineTo(tx + (tx - lx) * 0.45, ty + (by - ty) * 0.45);
-      ctx.closePath();
-      ctx.fill();
-    }
-  }
-  return c;
-}
-
-function drawStump(season) {
-  const c = makeCanvas(32, 28);
-  const ctx = c.getContext('2d');
-  ellipse(ctx, 16, 23, 11, 4, 'rgba(0,0,0,0.2)');
-  ctx.fillStyle = '#6b4a2b';
-  ctx.fillRect(9, 12, 14, 11);
-  ellipse(ctx, 16, 23, 7, 2.5, '#6b4a2b');
-  ellipse(ctx, 16, 12, 7, 3, season === 'winter' ? '#f2f5f8' : '#c9a06a');
-  if (season !== 'winter') {
-    ctx.strokeStyle = '#a67c4c';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.ellipse(16, 12, 4, 1.6, 0, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-  return c;
-}
-
-const ROCK_POLY = [[4, 24], [2, 16], [8, 7], [17, 3], [27, 6], [33, 14], [32, 24], [20, 28]];
-
-function drawRock(variant, season) {
-  const c = makeCanvas(36, 32);
-  const ctx = c.getContext('2d');
-  ellipse(ctx, 18, 27, 16, 4, 'rgba(0,0,0,0.22)');
-  const base = variant === 'coal' ? '#6a6a6a' : variant === 'iron' ? '#8d847c' : variant === 'clay' ? '#a8704a' : '#8e8e8a';
-  ctx.fillStyle = base;
-  ctx.beginPath();
-  ROCK_POLY.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
-  ctx.closePath();
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(30,30,30,0.5)';
-  ctx.lineWidth = 1;
-  ctx.stroke();
-  ctx.fillStyle = shade(base, -28);
-  ctx.beginPath();
-  ctx.moveTo(4, 24);
-  ctx.lineTo(20, 28);
-  ctx.lineTo(32, 24);
-  ctx.lineTo(33, 17);
-  ctx.lineTo(18, 21);
-  ctx.lineTo(3, 18);
-  ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle = shade(base, 30);
-  ctx.beginPath();
-  ctx.moveTo(9, 9);
-  ctx.lineTo(17, 5);
-  ctx.lineTo(22, 7);
-  ctx.lineTo(13, 13);
-  ctx.closePath();
-  ctx.fill();
-  const rnd = mulberry32(variant.length * 17);
-  if (variant === 'clay') {
-    // A clay bank: smooth, reddish, with wet dark streaks.
-    for (let i = 0; i < 5; i++) {
-      ctx.fillStyle = i % 2 ? '#8a5436' : '#c08a5e';
-      ctx.fillRect(6 + rnd() * 22, 10 + rnd() * 12, 5, 2);
-    }
-  } else if (variant === 'iron') {
-    for (let i = 0; i < 7; i++) circle(ctx, 7 + rnd() * 22, 8 + rnd() * 14, 1.8 + rnd(), i % 2 ? '#c0703d' : '#d9955a');
-  } else if (variant === 'coal') {
-    for (let i = 0; i < 7; i++) {
-      ctx.fillStyle = '#1e1e1e';
-      ctx.fillRect(6 + rnd() * 22, 7 + rnd() * 14, 4, 3);
-      ctx.fillStyle = '#5a5a66';
-      ctx.fillRect(7 + rnd() * 20, 8 + rnd() * 12, 1, 1);
-    }
-  }
-  if (season === 'winter') {
-    ctx.fillStyle = '#f4f8fb';
-    ctx.beginPath();
-    ctx.moveTo(6, 10);
-    ctx.lineTo(17, 4);
-    ctx.lineTo(28, 7);
-    ctx.lineTo(24, 11);
-    ctx.lineTo(12, 12);
-    ctx.closePath();
-    ctx.fill();
-  }
-  return c;
-}
-
-function drawRubble(season) {
-  const c = makeCanvas(32, 20);
-  const ctx = c.getContext('2d');
-  for (const [x, y, r] of [[8, 13, 4], [17, 10, 5], [25, 14, 4], [14, 15, 3]]) {
-    ellipse(ctx, x, y + 2, r, r * 0.5, 'rgba(0,0,0,0.15)');
-    circle(ctx, x, y, r, season === 'winter' ? '#d9dadb' : '#8a8a86');
-    circle(ctx, x - 1, y - 1, r * 0.45, season === 'winter' ? '#ffffff' : '#a9a9a4');
-  }
-  return c;
-}
-
-function drawBush(full, season) {
-  const c = makeCanvas(32, 28);
-  const ctx = c.getContext('2d');
-  ellipse(ctx, 16, 24, 13, 4, 'rgba(0,0,0,0.2)');
-  if (season === 'winter') {
-    ctx.strokeStyle = '#6b4a2b';
-    ctx.lineWidth = 1.5;
-    for (const [x, y] of [[6, 8], [12, 4], [20, 5], [26, 9], [16, 3]]) {
-      ctx.beginPath();
-      ctx.moveTo(16, 23);
-      ctx.lineTo(x, y);
-      ctx.stroke();
-    }
-    ellipse(ctx, 16, 8, 8, 2, '#f4f8fb');
-    return c;
-  }
-  const g = season === 'autumn' ? ['#7a7a30', '#95903c', '#b0a950'] : ['#3d7a33', '#4f8f3f', '#6aaa55'];
-  for (const [x, y, r] of [[10, 16, 8], [22, 16, 8], [16, 11, 9]]) circle(ctx, x, y, r, g[0]);
-  for (const [x, y, r] of [[11, 14, 6], [21, 14, 6], [16, 9, 7]]) circle(ctx, x, y, r, g[1]);
-  circle(ctx, 13, 7, 3, g[2]);
-  if (full) {
-    for (const [x, y] of [[8, 13], [14, 17], [20, 10], [24, 16], [12, 8], [18, 15], [22, 20]]) {
-      circle(ctx, x, y, 2.2, '#c93a3a');
-      circle(ctx, x - 0.7, y - 0.7, 0.8, '#ff9a9a');
-    }
-  }
-  return c;
-}
-
-function drawCrop(stage, season) {
-  const c = makeCanvas(32, 40);
-  const ctx = c.getContext('2d');
-  ellipse(ctx, 16, 34, 12, 4, season === 'winter' ? '#e6e2da' : '#6a472c');
-  if (season === 'winter' || stage === 0) {
-    ctx.fillStyle = season === 'winter' ? '#ffffff' : '#5a3b22';
-    for (const x of [8, 14, 20, 25]) ctx.fillRect(x, 32, 2, 2);
-    return c;
-  }
-  const stalk = stage === 3 ? '#c9a23a' : '#5f9e3f';
-  const tip = stage === 3 ? '#e8c65a' : '#7cbc58';
-  const height = stage === 1 ? 7 : stage === 2 ? 18 : 24;
-  for (const x of [7, 11, 15, 19, 23, 26]) {
-    const h = height - ((x * 7) % 5);
-    ctx.strokeStyle = stalk;
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(x, 34);
-    ctx.lineTo(x + (x % 3) - 1, 34 - h);
-    ctx.stroke();
-    if (stage === 3) {
-      ctx.fillStyle = tip;
-      rrect(ctx, x + (x % 3) - 2.5, 34 - h - 6, 3, 7, 1.5);
-      ctx.fill();
-    } else if (stage === 2) {
-      ctx.fillStyle = tip;
-      ctx.fillRect(x + (x % 3) - 2, 34 - h + 4, 3, 2);
-    }
-  }
-  return c;
-}
+// (trees, bushes, rocks, crops: PaintedNature, PaintedFields)
 
 // ---------------------------------------------------------------- buildings
 
@@ -530,27 +287,23 @@ export function drawBuilding(type, variant = 0, over = null) {
     }
   }
   // Foundation
-  ctx.fillStyle = '#6f6a62';
+  ctx.fillStyle = '#4f4a43';
   ctx.fillRect(1, H - 7, W - 2, 7);
-  ctx.fillStyle = '#5c5750';
-  for (let x = 4; x < W; x += 12) ctx.fillRect(x, H - 7, 1, 7);
+  for (let x = 1, i = 0; x < W - 2; x += 11, i++) {
+    const fg = ctx.createLinearGradient(x, H - 7, x + 4, H);
+    fg.addColorStop(0, i % 2 ? '#8d877d' : '#8a8378');
+    fg.addColorStop(1, '#5d5850');
+    ctx.fillStyle = fg;
+    rrect(ctx, x + 0.5, H - 6.5, Math.min(10, W - 2 - x), 6, 2);
+    ctx.fill();
+  }
 
   // Door
   const doorW = def.wideDoor ? 22 : 16;
   const doorH = Math.min(30, wallH - 10);
   const dx = Math.round(W / 2 - doorW / 2);
   const dy = H - 7 - doorH;
-  ctx.fillStyle = '#3e2716';
-  ctx.fillRect(dx - 2, dy - 3, doorW + 4, doorH + 3);
-  ctx.fillStyle = '#7a4a2a';
-  ctx.fillRect(dx, dy, doorW, doorH);
-  ctx.fillStyle = '#6a3f23';
-  for (let x = dx + 4; x < dx + doorW; x += 5) ctx.fillRect(x, dy, 1, doorH);
-  if (def.wideDoor) {
-    ctx.fillStyle = '#3e2716';
-    ctx.fillRect(dx + doorW / 2 - 0.5, dy, 1, doorH);
-  }
-  circle(ctx, dx + doorW - 4, dy + doorH / 2, 1.5, '#e0c060');
+  paintedDoor(ctx, dx, dy, doorW, doorH, def.wideDoor);
 
   // Windows (evenly spaced either side of the door)
   const winW = 16;
@@ -608,10 +361,13 @@ export function drawBuilding(type, variant = 0, over = null) {
 
   if (def.chimney) {
     const cx = Math.round(W * 0.72);
-    ctx.fillStyle = '#8a4b3a';
+    const cg = ctx.createLinearGradient(cx, 0, cx + 11, 0);
+    cg.addColorStop(0, '#a45a44');
+    cg.addColorStop(1, '#5e3226');
+    ctx.fillStyle = cg;
     ctx.fillRect(cx, 6, 11, 22);
-    ctx.fillStyle = '#6e3a2d';
-    ctx.fillRect(cx + 7, 6, 4, 22);
+    ctx.fillStyle = 'rgba(40,18,12,0.5)';
+    for (let yy = 9; yy < 28; yy += 4) ctx.fillRect(cx, yy, 11, 1);
     ctx.fillStyle = '#4a3029';
     ctx.fillRect(cx - 1, 3, 13, 5);
     chimney = { x: cx + 5, y: 2 };
@@ -631,52 +387,14 @@ export function drawBuilding(type, variant = 0, over = null) {
 }
 
 function drawWall(ctx, x, y, w, h, def) {
-  ctx.fillStyle = def.wallColor;
-  ctx.fillRect(x, y, w, h);
-  if (def.wall === 'wood') {
-    for (let yy = y + 4; yy < y + h; yy += 7) {
-      ctx.fillStyle = shade(def.wallColor, -22);
-      ctx.fillRect(x, yy, w, 1);
-      ctx.fillStyle = shade(def.wallColor, 14);
-      ctx.fillRect(x, yy + 1, w, 1);
-    }
-  } else if (def.wall === 'stone') {
-    const rnd = mulberry32(w * 3 + h);
-    for (let yy = y; yy < y + h; yy += 8) {
-      const off = ((yy - y) / 8) % 2 ? 7 : 0;
-      for (let xx = x - off; xx < x + w; xx += 14) {
-        ctx.fillStyle = shade(def.wallColor, Math.round(rnd() * 24 - 12));
-        const sx = Math.max(x, xx + 1);
-        const ex = Math.min(x + w, xx + 14);
-        if (ex > sx) ctx.fillRect(sx, yy + 1, ex - sx - 1, 6);
-      }
-    }
-  } else {
-    // Plaster with a timber frame.
-    ctx.fillStyle = '#6b4a2b';
-    ctx.fillRect(x, y, 4, h);
-    ctx.fillRect(x + w - 4, y, 4, h);
-    ctx.fillRect(x, y + h - 4, w, 4);
-    ctx.fillRect(x, y + 8, w, 3);
-  }
+  wallSurface(ctx, x, y, w, h, def);
   ctx.strokeStyle = 'rgba(40,25,15,0.6)';
   ctx.lineWidth = 1;
   ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
 }
 
 function drawWindow(ctx, x, y, w, h) {
-  ctx.fillStyle = '#f1e6cf';
-  ctx.fillRect(x - 2, y - 2, w + 4, h + 4);
-  const g = ctx.createLinearGradient(x, y, x + w, y + h);
-  g.addColorStop(0, '#a9d3ec');
-  g.addColorStop(1, '#5e8fb3');
-  ctx.fillStyle = g;
-  ctx.fillRect(x, y, w, h);
-  ctx.fillStyle = '#f1e6cf';
-  ctx.fillRect(x + w / 2 - 1, y, 2, h);
-  ctx.fillRect(x, y + h / 2 - 1, w, 2);
-  ctx.fillStyle = '#7a5a3a';
-  ctx.fillRect(x - 3, y + h + 2, w + 6, 3);
+  paintedWindow(ctx, x, y, w, h);
 }
 
 function drawRoof(ctx, W, bottom, def) {
@@ -695,38 +413,22 @@ function drawRoof(ctx, W, bottom, def) {
   ctx.fill();
   ctx.save();
   ctx.clip();
-  const rnd = mulberry32(W + bottom);
-  if (def.roof === 'thatch') {
-    for (let i = 0; i < W * 2.2; i++) {
-      const x = rnd() * W;
-      const y = top + rnd() * (bottom - top);
-      ctx.strokeStyle = rnd() < 0.5 ? shade(def.roofColor, -30) : shade(def.roofColor, 25);
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.lineTo(x + 1, y + 5);
-      ctx.stroke();
-    }
-  } else if (def.roof === 'plank') {
-    for (let x = 0; x < W; x += 9) {
-      ctx.fillStyle = shade(def.roofColor, -30);
-      ctx.fillRect(x, top, 1, bottom - top);
-    }
-  } else {
-    const rowH = def.roof === 'slate' ? 7 : 6;
-    const tileW = def.roof === 'slate' ? 12 : 8;
-    for (let y = top + 4, row = 0; y < bottom; y += rowH, row++) {
-      ctx.fillStyle = shade(def.roofColor, -34);
-      ctx.fillRect(0, y, W, 1);
-      for (let x = (row % 2) * (tileW / 2); x < W; x += tileW) ctx.fillRect(x, y - rowH + 1, 1, rowH - 1);
-    }
-  }
+  roofSurface(ctx, W, top, bottom, def);
+  // light across the roof: brighter on the left, where the sun is
+  const lg = ctx.createLinearGradient(0, 0, W, 0);
+  lg.addColorStop(0, 'rgba(255,240,200,0.18)');
+  lg.addColorStop(1, 'rgba(0,0,0,0.14)');
+  ctx.fillStyle = lg;
+  ctx.fillRect(0, top, W, bottom - top);
   ctx.restore();
   // Ridge and eave
   ctx.fillStyle = shade(def.roofColor, 40);
   ctx.fillRect(inset, top, W - inset * 2, 3);
-  ctx.fillStyle = 'rgba(0,0,0,0.3)';
-  ctx.fillRect(2, bottom, W - 4, 4);
+  const eg = ctx.createLinearGradient(0, bottom, 0, bottom + 9);
+  eg.addColorStop(0, 'rgba(20,10,4,0.45)');
+  eg.addColorStop(1, 'rgba(20,10,4,0)');
+  ctx.fillStyle = eg;
+  ctx.fillRect(2, bottom, W - 4, 9);
   ctx.strokeStyle = 'rgba(30,20,15,0.55)';
   ctx.lineWidth = 1;
   ctx.beginPath();
@@ -1212,14 +914,18 @@ export function createAllTextures(scene) {
   addCanvas(scene, 'tiles', tiles);
 
   for (const s of SEASONS) {
-    addCanvas(scene, `tree_oak_${s}`, drawOak(s));
-    addCanvas(scene, `tree_pine_${s}`, drawPine(s));
-    addCanvas(scene, `stump_${s}`, drawStump(s));
-    addCanvas(scene, `rubble_${s}`, drawRubble(s));
-    for (const v of ['stone', 'iron', 'coal', 'clay']) addCanvas(scene, `rock_${v}_${s}`, drawRock(v, s));
-    addCanvas(scene, `bush_full_${s}`, drawBush(true, s));
-    addCanvas(scene, `bush_empty_${s}`, drawBush(false, s));
-    for (let st = 0; st <= 3; st++) addCanvas(scene, `crop_${st}_${s}`, drawCrop(st, s));
+    // Trees, bushes, rocks: the painted style (PaintedNature), trees in a few shapes each (`tree_oak_spring_1`…).
+    for (let v = 0; v < TREE_VARIANTS; v++) {
+      addCanvas(scene, v ? `tree_oak_${s}_${v}` : `tree_oak_${s}`, paintOak(s, v));
+      addCanvas(scene, v ? `tree_pine_${s}_${v}` : `tree_pine_${s}`, paintPine(s, v));
+    }
+    addCanvas(scene, `stump_${s}`, paintStump(s));
+    addCanvas(scene, `rubble_${s}`, paintRubble(s));
+    for (const v of ['stone', 'iron', 'coal', 'clay']) addCanvas(scene, `rock_${v}_${s}`, paintRock(v, s));
+    addCanvas(scene, `bush_full_${s}`, paintBush(true, s));
+    addCanvas(scene, `bush_empty_${s}`, paintBush(false, s));
+    for (let v = 0; v < 6; v++) addCanvas(scene, `ptuft_${s}_${v}`, paintTuft(s, v));
+    for (let st = 0; st <= 3; st++) addCanvas(scene, `crop_${st}_${s}`, paintFieldCrop(st, s));
     addCanvas(scene, `tuft_${s}`, drawTuft(s));
   }
 
@@ -1562,6 +1268,7 @@ export function ensureBuildingTexture(scene, building) {
   const key = `bld_${building.id}_${building.type}${building.look ? `_${lookKey(building.look)}` : ''}`;
   if (!scene.textures.exists(key)) {
     const { canvas, windows, chimney } = drawStructure(building.type, building.variant, building.look || null);
+    finishBuilding(canvas);
     addCanvas(scene, key, canvas);
     BUILDING_META[key] = { windows, chimney, width: canvas.width, height: canvas.height };
   }

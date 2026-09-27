@@ -89,7 +89,8 @@ export class MenuPanel extends Panel {
           const v = getSetting(k) ?? d;
           return `<div class="setting-row"><div><b>${escapeHtml(t(label))}</b></div><div class="btn-row">${VOLUME_STEPS.map((s) => button(s ? `${Math.round(s * 100)}%` : t('ui.vol_off'), 'vol', { k, s }, { cls: `sm ${Math.abs(s - v) < 0.01 ? 'selected' : 'ghost'}` })).join('')}</div></div>`;
         }).join('')}
-        <div class="setting-row"><div><b>${escapeHtml(t('ui.fullscreen'))}</b><div class="hint">${escapeHtml(t('ui.fullscreen_hint'))}</div></div>${button(t(fs ? 'ui.fullscreen_off' : 'ui.fullscreen_on'), 'fullscreen', {}, { cls: fs ? 'selected' : '' })}</div>`;
+        <div class="setting-row"><div><b>${escapeHtml(t('ui.fullscreen'))}</b><div class="hint">${escapeHtml(t('ui.fullscreen_hint'))}</div></div>${button(t(fs ? 'ui.fullscreen_off' : 'ui.fullscreen_on'), 'fullscreen', {}, { cls: fs ? 'selected' : '' })}</div>
+        <div class="setting-row"><div><b>${escapeHtml(t('ui.world_look'))}</b><div class="hint">${escapeHtml(t('ui.world_look_hint'))}</div></div><div class="btn-row">${button(t('ui.look_painted'), 'ground', { classic: 0 }, { cls: `sm ${getSetting('classicGround') ? 'ghost' : 'selected'}` })}${button(t('ui.look_classic'), 'ground', { classic: 1 }, { cls: `sm ${getSetting('classicGround') ? 'selected' : 'ghost'}` })}</div></div>`;
     } else if (this.tab === 'controls') {
       const rows = ['move', 'interact', 'inspect_key', 'menu_keys', 'more_keys', 'mgmt_key', 'info_key', 'click_key', 'numbers', 'eat', 'esc'];
       // Keys as key caps: "W A S D / Arrows" → [W][A][S][D] / [Arrows]
@@ -103,6 +104,7 @@ export class MenuPanel extends Panel {
     if (action === 'open') return this.ui.togglePanel(data.screen);
     if (action === 'scale') setSetting('uiScale', Number(data.s));
     if (action === 'mute') setSetting('mute', !getSetting('mute'));
+    if (action === 'ground') setSetting('classicGround', !!Number(data.classic));
     if (action === 'vol') {
       setSetting(data.k, Number(data.s));
       // A sample at the new level (effects: a coin; the valley: a bird; music and master: a chime).

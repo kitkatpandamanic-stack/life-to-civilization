@@ -1,0 +1,98 @@
+/* ============================================================
+   From Nothing — the painted-storybook finish (loaded after styles.css)
+   ------------------------------------------------------------
+   Matches the hand-painted world: dark carved wood in a gold frame with corner ornaments, parchment
+   title bars lettered in ink, a storybook face (Alegreya SC — it has Cyrillic too) for titles and numbers.
+   styles.css still sets every layout and size; this file only dresses them.
+   ============================================================ */
+:root {
+  --font-display: 'Alegreya SC', Georgia, 'Times New Roman', serif;
+  --ink-dark: #3a2412;
+  --parch-1: #f3e4c0;
+  --parch-2: #e2cc98;
+  --gold-line: #c99a3e;
+  --gold-hi: #f5d68a;
+  /* wood grain (fine streaks) and a painterly noise, drawn by the browser — no image files */
+  --tex-grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.012 0.45' numOctaves='3' seed='7' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.1  0 0 0 0 0.06  0 0 0 0 0.02  0 0 0 0.4 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  --tex-noise: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' seed='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.3  0 0 0 0 0.2  0 0 0 0 0.08  0 0 0 0.22 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  --wood-panel: var(--tex-grain), linear-gradient(180deg, #3a2a1a 0%, #2a1d12 55%, #22170e 100%);
+  --wood-hud: var(--tex-grain), linear-gradient(180deg, rgba(58, 42, 26, 0.94), rgba(32, 22, 13, 0.94));
+  --parchment-bg: var(--tex-noise), radial-gradient(ellipse at 30% 20%, var(--parch-1), var(--parch-2) 75%, #d2b67c);
+  --frame: 0 0 0 1px #1a0f06, inset 0 0 0 1px rgba(245, 214, 138, 0.35), inset 0 0 0 3px #2a1a0c, inset 0 0 0 4px rgba(201, 154, 62, 0.55);
+}
+
+/* Panels: carved wood in a gold frame, a parchment title bar */
+.panel { background: var(--wood-panel); border: 2px solid var(--gold-line); box-shadow: var(--frame), var(--shadow-3); position: relative; }
+.panel::before,
+.panel::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
+  z-index: 2;
+  background:
+    radial-gradient(circle, var(--gold-hi) 0 3px, #8a5f1c 3.5px 5px, transparent 5.5px),
+    linear-gradient(45deg, transparent 45%, var(--gold-line) 45% 55%, transparent 55%),
+    linear-gradient(-45deg, transparent 45%, var(--gold-line) 45% 55%, transparent 55%);
+}
+.panel::before { top: -9px; left: -9px; }
+.panel::after { bottom: -9px; right: -9px; }
+.panel-head { background: var(--parchment-bg); border-bottom: 2px solid var(--gold-line); box-shadow: inset 0 -3px 6px rgba(90, 55, 20, 0.25), inset 0 2px 0 rgba(255, 255, 255, 0.5); color: var(--ink-dark); }
+.panel-title { font-family: var(--font-display); font-size: calc(var(--fs-title) + 3px); font-weight: 800; color: var(--ink-dark); letter-spacing: 0.02em; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45); }
+.panel-head .muted,
+.panel-head .hint,
+.panel-head .small { color: #6b4a26; }
+.panel-head .btn:not(.primary) { color: var(--ink-dark); background: linear-gradient(180deg, rgba(255, 255, 255, 0.35), rgba(160, 120, 60, 0.25)); border-color: #9a7440; box-shadow: none; }
+.panel-close { background: linear-gradient(180deg, #7a4a24, #4a2a12); border: 1px solid #2a1606; color: var(--parch-1); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2); }
+.panel-close:hover { color: #fff; background: linear-gradient(180deg, #a84a30, #6a2012); border-color: #2a1606; }
+
+/* Headings: storybook lettering with a gold flourish */
+h3,
+.section-title { font-family: var(--font-display); font-size: var(--fs-body); letter-spacing: 0.06em; color: var(--gold-hi); }
+h3::after,
+.section-title::after { content: ''; flex: 1; height: 1px; margin-left: 6px; background: linear-gradient(90deg, rgba(201, 154, 62, 0.8), rgba(201, 154, 62, 0)); }
+
+/* Tabs: bookmarks along the top of the page */
+.tabs { border-bottom: 2px solid rgba(201, 154, 62, 0.45); }
+.tab { font-family: var(--font-display); font-size: calc(var(--fs-body) + 1px); letter-spacing: 0.02em; }
+.tab.active { color: var(--gold-hi); background: linear-gradient(180deg, rgba(201, 154, 62, 0.22), rgba(201, 154, 62, 0)); border-bottom-color: var(--gold-line); }
+
+/* Cards: tooled leather on the wood */
+.card, .build-card, .job-card, .worker-card, .inv-detail, .slot-row, .person, .about, .craft-row, .stock-cell, .chain {
+  background: var(--tex-noise), linear-gradient(180deg, rgba(74, 54, 34, 0.78), rgba(52, 38, 24, 0.78));
+  border-color: rgba(201, 154, 62, 0.35);
+  box-shadow: inset 0 1px 0 rgba(255, 230, 170, 0.08), 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+.card.interactive:hover { border-color: var(--gold-line); }
+.card-title,
+.detail-name { font-family: var(--font-display); letter-spacing: 0.01em; }
+
+/* Buttons: carved wood; the main action embossed gold */
+.btn { background: var(--tex-grain), linear-gradient(180deg, #6e4f2e, #4a331d); border-color: #2a1a0c; box-shadow: inset 0 1px 0 rgba(255, 225, 160, 0.22), inset 0 0 0 1px rgba(201, 154, 62, 0.28), 0 2px 0 rgba(0, 0, 0, 0.45); }
+.btn.primary { background: linear-gradient(180deg, #ffe39a 0%, #e9b24a 45%, #b7791e 100%); color: #2a1804; border-color: #6a4010; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 -2px 0 rgba(120, 70, 10, 0.4), 0 2px 0 rgba(0, 0, 0, 0.45); text-shadow: 0 1px 0 rgba(255, 240, 200, 0.6); }
+.btn.success { background: linear-gradient(180deg, #7cc46a, #3f7f36 60%, #2d5f27); border-color: #1d3d18; }
+.btn.danger { background: linear-gradient(180deg, #d9694e, #9a3620 60%, #6e2212); border-color: #3a1006; }
+.btn.ghost { background: transparent; border-color: rgba(201, 154, 62, 0.45); box-shadow: none; }
+.btn.plus { background: linear-gradient(180deg, #7cc46a, #2f6a2f); }
+.btn.big { font-family: var(--font-display); font-size: calc(var(--fs-heading) + 2px); letter-spacing: 0.02em; }
+
+/* HUD: wooden plaques with a gold trim */
+.hud, .hotbar, .dock { background: var(--wood-hud); border: 1px solid #1a0f06; box-shadow: inset 0 0 0 1px rgba(201, 154, 62, 0.55), inset 0 1px 0 rgba(255, 225, 160, 0.18), 0 3px 8px rgba(0, 0, 0, 0.45); }
+.hud-world .clock,
+.hud-money { font-family: var(--font-display); }
+.hud-world .clock { color: #fff3d6; text-shadow: 0 1px 0 #000, 0 0 10px rgba(255, 200, 110, 0.25); }
+.objective { border-left: 3px solid var(--gold-line); }
+.dock-btn.active { background: radial-gradient(circle at 50% 40%, rgba(255, 214, 120, 0.35), rgba(201, 154, 62, 0.1)); border-color: var(--gold-line); }
+
+/* Notices, prompts and tooltips: small gold-trimmed plaques */
+.toast { background: var(--wood-hud); border-color: #1a0f06; box-shadow: inset 0 0 0 1px rgba(201, 154, 62, 0.45), 0 3px 8px rgba(0, 0, 0, 0.45); }
+.wp-card { background: var(--wood-hud); border-color: #1a0f06; box-shadow: inset 0 0 0 1px rgba(201, 154, 62, 0.5), 0 3px 8px rgba(0, 0, 0, 0.4); }
+.wp-card::after { border-top-color: #22170e; }
+.tooltip { background: var(--wood-hud); border: 1px solid #1a0f06; box-shadow: inset 0 0 0 1px rgba(201, 154, 62, 0.5), var(--shadow-2); }
+kbd { font-family: var(--font-display); background: var(--parchment-bg); color: var(--ink-dark); border-color: #8a6430; }
+
+/* The title screen: the name in gilded storybook letters on a framed wooden board */
+.title-card { background: var(--wood-panel); border: 2px solid var(--gold-line); box-shadow: var(--frame), var(--shadow-3); }
+.title-logo { font-family: var(--font-display); font-weight: 900; color: #ffeab8; text-shadow: 0 2px 0 #6a3a0c, 0 4px 0 #3a1e06, 0 0 30px rgba(255, 190, 90, 0.5); }
+.title-sub { font-family: var(--font-display); letter-spacing: 0.1em; }

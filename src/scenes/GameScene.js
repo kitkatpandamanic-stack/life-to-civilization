@@ -156,6 +156,7 @@ export class GameScene extends Phaser.Scene {
     this.fireViews.update();
     this.interaction.update(blocked);
     this.camDir.update();
+    this.terrain.update();
     this.overlay.update(delta, this.inside || this.ui.isPaused() || !!this.ui.status);
     const darkness = this.atmosphere.update();
     this.lightTimer -= delta;

@@ -5,19 +5,16 @@
  */
 import { BALANCE } from '../config/balance.js';
 import { SEASONS } from '../systems/SeasonSystem.js';
+import { SIZES, TREE_VARIANTS } from '../render/PaintedNature.js';
+import { hash2 } from '../core/rng.js';
 
 const TS = BALANCE.tileSize;
 
 /** Where the "feet" of each texture are, as a fraction of its height. */
 const ORIGIN_Y = {
-  tree_oak: 74 / 80,
-  tree_pine: 79 / 84,
-  stump: 23 / 28,
-  rock: 27 / 32,
-  rubble: 15 / 20,
-  bush: 24 / 28,
   crop: 34 / 40,
 };
+for (const [k, v] of Object.entries(SIZES)) ORIGIN_Y[k] = v.feet / v.h;
 
 export class WorldObjectViews {
   constructor(scene, sim) {
@@ -40,7 +37,11 @@ export class WorldObjectViews {
     switch (obj.kind) {
       case 'tree':
         // Saplings and young trees are the grown tree, smaller (see scaleFor).
-        if (obj.state === 'grown' || obj.state === 'young' || obj.state === 'sapling') return [`tree_${obj.variant}_${s}`, ORIGIN_Y[`tree_${obj.variant}`]];
+        if (obj.state === 'grown' || obj.state === 'young' || obj.state === 'sapling') {
+          // Each tree keeps its own shape (from where it stands).
+          const v = Math.floor(hash2(obj.tx, obj.ty, 4242) * TREE_VARIANTS);
+          return [v ? `tree_${obj.variant}_${s}_${v}` : `tree_${obj.variant}_${s}`, ORIGIN_Y[`tree_${obj.variant}`]];
+        }
         return [`stump_${s}`, ORIGIN_Y.stump];
       case 'rock':
         return obj.state === 'full' ? [`rock_${obj.variant}_${s}`, ORIGIN_Y.rock] : [`rubble_${s}`, ORIGIN_Y.rubble];
