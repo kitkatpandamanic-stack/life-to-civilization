@@ -1,10 +1,14 @@
 /**
  * LivestockViews — your chickens, sheep and cows about your barns, and the village farm's herd about
  * the farmhouse. They amble, graze and stand about (never through walls or into the river), and now and
- * then you hear them. What they are and how they are is LivestockSystem's; this only shows them.
+ * then you hear them; standing about, they graze and peck. Each keeps its own look (a brown hen, a
+ * rooster, a dark-faced sheep, a brown cow — AnimalArt), picked steadily by who it is.
+ * What they are and how they are is LivestockSystem's; this only shows them.
  */
 import { BALANCE } from '../config/balance.js';
 import { LIVESTOCK } from '../data/livestock.js';
+import { hashStr } from '../core/rng.js';
+import { ANIMAL_VARIANTS } from '../render/AnimalArt.js';
 
 const TS = BALANCE.tileSize;
 const LOOK = {
@@ -57,7 +61,10 @@ export class LivestockViews {
       if (!v) {
         const at = this.spotNear(b);
         const sprite = this.scene.add.image(at.x, at.y, `${want.kind}_0`).setOrigin(0.5, LOOK[want.kind].origin).setDepth(at.y);
-        v = { ...want, x: at.x, y: at.y, tx: at.x, ty: at.y, sprite, state: 'idle', until: 0, frame: 0, b };
+        const looks = ANIMAL_VARIANTS[want.kind] || [''];
+        const n = Number(/(\d+)$/.exec(want.key)?.[1] || 0); // (neighbours in a herd take turns, so there's always a mix)
+        const look = looks[(n + Math.floor(hashStr(want.barn + want.kind) * looks.length)) % looks.length];
+        v = { ...want, x: at.x, y: at.y, tx: at.x, ty: at.y, sprite, state: 'idle', until: 0, frame: 0, b, look, phase: hashStr(`${want.key}:graze`) * 5000 };
         this.views.set(want.key, v);
       }
       v.barn = want.barn;
@@ -94,7 +101,7 @@ export class LivestockViews {
         v.ty = at.y;
         v.state = 'walk';
       }
-      const tex = v.kind === 'sheep' && v.shorn ? 'sheep_shorn' : v.kind;
+      const tex = (v.kind === 'sheep' && v.shorn ? 'sheep_shorn' : v.kind) + (v.look ? `_${v.look}` : '');
       if (v.state === 'walk') {
         const dx = v.tx - v.x;
         const dy = v.ty - v.y;
@@ -110,7 +117,9 @@ export class LivestockViews {
           if (flip) v.frame ^= 1;
         }
       }
-      v.sprite.setTexture(`${tex}_${v.state === 'walk' ? v.frame : 0}`).setPosition(v.x, v.y).setDepth(v.y);
+      // Standing about: head down to graze (or peck) for a while, then look up.
+      const graze = v.state === 'idle' && (now + v.phase) % 5000 < (v.kind === 'chicken' ? 1400 : 3000);
+      v.sprite.setTexture(`${tex}_${v.state === 'walk' ? v.frame : graze ? 2 : 0}`).setPosition(v.x, v.y).setDepth(v.y);
     }
   }
 

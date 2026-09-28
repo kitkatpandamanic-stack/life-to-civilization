@@ -1,6 +1,6 @@
 /**
  * NatureArt — procedural art for fishing, hunting and wildlife:
- * item icons (fish, rod, bow, meat, hide…) and animal sprites (deer, rabbit).
+ * item icons (fish, rod, bow, meat, hide…). (Deer and rabbits are in AnimalArt.)
  */
 
 function makeCanvas(w, h) {
@@ -181,67 +181,6 @@ export const NATURE_ICONS = {
   },
 };
 
-/** Deer: 30×26, two leg frames. */
-function drawDeer(frame) {
-  const c = makeCanvas(30, 26);
-  const ctx = c.getContext('2d');
-  const body = '#9a6a3e';
-  const legs = frame ? [[8, 3], [11, -2], [19, -2], [22, 3]] : [[8, -2], [11, 3], [19, 3], [22, -2]];
-  ctx.strokeStyle = '#6b4526';
-  ctx.lineWidth = 2;
-  for (const [x, dx] of legs) {
-    ctx.beginPath();
-    ctx.moveTo(x, 15);
-    ctx.lineTo(x + dx * 0.4, 24);
-    ctx.stroke();
-  }
-  ellipse(ctx, 15, 13, 10, 5, body);
-  ellipse(ctx, 14, 15, 7, 2.5, '#c89a6a');
-  ellipse(ctx, 6, 11, 2, 2.5, '#f2ece0'); // white tail
-  // Neck and head
-  ctx.fillStyle = body;
-  ctx.beginPath();
-  ctx.moveTo(21, 12);
-  ctx.lineTo(24, 4);
-  ctx.lineTo(27, 5);
-  ctx.lineTo(25, 13);
-  ctx.closePath();
-  ctx.fill();
-  ellipse(ctx, 26, 5, 3.2, 2.3, body);
-  ellipse(ctx, 28.5, 5.6, 1.2, 1, '#2a1d14');
-  ellipse(ctx, 26.4, 4.4, 0.7, 0.7, '#1a1a1a');
-  // Antlers
-  ctx.strokeStyle = '#d8c8a0';
-  ctx.lineWidth = 1.2;
-  ctx.beginPath();
-  ctx.moveTo(25, 3);
-  ctx.lineTo(23, 0);
-  ctx.moveTo(24, 1.5);
-  ctx.lineTo(22, 1.5);
-  ctx.moveTo(26, 3);
-  ctx.lineTo(27, 0);
-  ctx.stroke();
-  return c;
-}
-
-/** Rabbit: 16×14, hopping frames. */
-function drawRabbit(frame) {
-  const c = makeCanvas(16, 14);
-  const ctx = c.getContext('2d');
-  const fur = '#a89078';
-  const y = frame ? 7 : 8;
-  ellipse(ctx, 7, y + 1, 5, 3.5, fur);
-  ellipse(ctx, 11.5, y - 1.5, 2.8, 2.4, fur);
-  ellipse(ctx, 11, y - 5.5, 0.9, 2.6, fur);
-  ellipse(ctx, 12.6, y - 5.3, 0.9, 2.6, '#9a8068');
-  ellipse(ctx, 2.3, y, 1.6, 1.6, '#f2ece0');
-  ellipse(ctx, 12.8, y - 2, 0.6, 0.6, '#1a1a1a');
-  ctx.fillStyle = '#8a745e';
-  ctx.fillRect(4, y + 3.5, 3, frame ? 1.5 : 2.5);
-  ctx.fillRect(9, y + 3.5, 2, frame ? 2.5 : 1.5);
-  return c;
-}
-
 /** A soft flame blob for fire particles. */
 function drawFlame() {
   const c = makeCanvas(16, 16);
@@ -260,8 +199,4 @@ function drawFlame() {
 
 export function createNatureTextures(scene, addCanvas) {
   addCanvas(scene, 'flame', drawFlame());
-  for (const f of [0, 1]) {
-    addCanvas(scene, `deer_${f}`, drawDeer(f));
-    addCanvas(scene, `rabbit_${f}`, drawRabbit(f));
-  }
 }

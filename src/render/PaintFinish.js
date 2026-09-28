@@ -13,7 +13,7 @@ const OUTLINE = [38, 26, 20];
 
 /** Which finish a texture key gets (null: already painted, or not art — glows, particles, markers). */
 export function finishFor(key) {
-  if (/^(deer|rabbit|chicken|sheep|cow)_/.test(key)) return { mute: 0.2, light: 1, grain: 1, outline: true };
+  if (/^(deer|rabbit|chicken|sheep|cow)_/.test(key)) return { mute: 0.05, light: 0.35, grain: 0.5, outline: false }; // AnimalArt: own ink line and shading
   if (/^(porter|handcart|horse_cart|wagon|train_|eq_)/.test(key)) return { mute: 0.22, light: 1, grain: 1, outline: true };
   if (/^(decor_|furn_|pile_|plot_stake|owner_flag)/.test(key)) return { mute: 0.2, light: 1, grain: 1, outline: false };
   if (/^site_/.test(key)) return { mute: 0.2, light: 1, grain: 1, outline: false };

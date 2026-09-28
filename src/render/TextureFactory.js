@@ -13,7 +13,8 @@ import { EXTRA_ICONS, createExtraTextures } from './ExtraArt.js';
 import { NATURE_ICONS, createNatureTextures } from './NatureArt.js';
 import { createTransportTextures } from './TransportArt.js';
 import { createSiteTextures } from './SiteArt.js';
-import { FARM_ICONS, createFarmTextures } from './FarmArt.js';
+import { FARM_ICONS } from './FarmArt.js';
+import { createAnimalTextures } from './AnimalArt.js';
 import { createRailTextures } from './RailArt.js';
 import { finishFor, paintFinish } from './PaintFinish.js';
 import { roofSurface, wallSurface, paintedWindow, paintedDoor, finishBuilding } from './PaintedBuildings.js';
@@ -1097,7 +1098,7 @@ export function createAllTextures(scene) {
   buildItemIcons();
   createExtraTextures(scene, addCanvas);
   createNatureTextures(scene, addCanvas);
-  createFarmTextures(scene, addCanvas); // chickens, sheep, cows
+  createAnimalTextures(scene, addCanvas); // chickens, sheep, cows, deer, rabbits
   createRailTextures(scene, addCanvas); // the train
   createTransportTextures(scene, addCanvas);
   createSiteTextures(scene, addCanvas);

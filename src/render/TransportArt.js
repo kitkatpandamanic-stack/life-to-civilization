@@ -2,6 +2,7 @@
  * TransportArt — porters and carts carrying goods along the roads.
  * Two frames each (legs / wheels) so they visibly move.
  */
+import { HORSE, paintHorseOnto } from './AnimalArt.js';
 
 function makeCanvas(w, h) {
   const c = document.createElement('canvas');
@@ -87,30 +88,11 @@ function drawHandcart(frame) {
 }
 
 /** A horse cart: 48×30. */
-function drawHorseCart(frame) {
+function drawHorseCart(frame, horse = HORSE.bay) {
   const c = makeCanvas(48, 30);
   const ctx = c.getContext('2d');
-  // horse
-  const legs = frame ? [[31, 2], [34, -2], [41, -2], [44, 2]] : [[31, -2], [34, 2], [41, 2], [44, -2]];
-  ctx.strokeStyle = '#4a3020';
-  ctx.lineWidth = 2;
-  for (const [x, dx] of legs) {
-    ctx.beginPath();
-    ctx.moveTo(x, 17);
-    ctx.lineTo(x + dx * 0.5, 27);
-    ctx.stroke();
-  }
-  ellipse(ctx, 38, 14, 8, 5, '#7a4e2e');
-  ctx.fillStyle = '#7a4e2e';
-  ctx.beginPath();
-  ctx.moveTo(43, 12);
-  ctx.lineTo(46, 5);
-  ctx.lineTo(48, 7);
-  ctx.lineTo(46, 14);
-  ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle = '#2a1a10';
-  ctx.fillRect(41, 5, 3, 7);
+  // horse (AnimalArt)
+  paintHorseOnto(ctx, 21.4, 7.2, frame, horse, 0.85);
   // cart
   ctx.fillStyle = '#9a6e3a';
   ctx.fillRect(2, 12, 24, 9);
@@ -279,27 +261,13 @@ function drawBarge(frame) {
 function drawPackHorse(frame) {
   const c = makeCanvas(30, 26);
   const ctx = c.getContext('2d');
-  const legs = frame ? [[8, 2], [11, -2], [18, -2], [21, 2]] : [[8, -2], [11, 2], [18, 2], [21, -2]];
-  ctx.strokeStyle = '#4a3020';
-  ctx.lineWidth = 2;
-  for (const [x, dx] of legs) {
-    ctx.beginPath();
-    ctx.moveTo(x, 15);
-    ctx.lineTo(x + dx * 0.5, 25);
-    ctx.stroke();
-  }
-  ellipse(ctx, 15, 12, 9, 5, '#8a5a34');
-  ctx.fillStyle = '#8a5a34';
-  ctx.beginPath();
-  ctx.moveTo(21, 10);
-  ctx.lineTo(25, 2);
-  ctx.lineTo(28, 4);
-  ctx.lineTo(25, 12);
-  ctx.closePath();
-  ctx.fill();
-  rect(ctx, 23, 2, 3, 7, '#2a1a10');
+  paintHorseOnto(ctx, -1.4, 0, frame, HORSE.chestnut);
+  // the packs, either side of the saddle
+  ctx.fillStyle = '#2e2018';
+  ctx.fillRect(8.4, 5.4, 12.2, 9.2);
   rect(ctx, 9, 6, 5, 8, '#c8b48a');
   rect(ctx, 15, 6, 5, 8, '#b8a47a');
+  rect(ctx, 9, 9.5, 11, 1, '#7a5a3a');
   return c;
 }
 
@@ -333,7 +301,7 @@ export function createEquipmentTextures(scene, addCanvas) {
     addCanvas(scene, `eq_wooden_wagon_${f}`, drawWoodenWagon(f));
     addCanvas(scene, `eq_pack_horse_${f}`, drawPackHorse(f));
     addCanvas(scene, `eq_horse_cart_${f}`, drawHorseCart(f));
-    addCanvas(scene, `eq_wagon_${f}`, drawHorseCart(f));
+    addCanvas(scene, `eq_wagon_${f}`, drawHorseCart(f, HORSE.grey));
     addCanvas(scene, `eq_rowboat_${f}`, drawRowboat(f));
     addCanvas(scene, `eq_barge_${f}`, drawBarge(f));
   }
@@ -347,6 +315,6 @@ export function createTransportTextures(scene, addCanvas) {
     addCanvas(scene, `porter_${f}`, drawPorter(f));
     addCanvas(scene, `handcart_${f}`, drawHandcart(f));
     addCanvas(scene, `horse_cart_${f}`, drawHorseCart(f));
-    addCanvas(scene, `wagon_${f}`, drawHorseCart(f));
+    addCanvas(scene, `wagon_${f}`, drawHorseCart(f, HORSE.grey));
   }
 }

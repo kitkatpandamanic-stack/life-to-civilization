@@ -61,8 +61,9 @@ export class AnimalViews {
     const K = KINDS[kind];
     const x = tx * TS + TS / 2;
     const y = ty * TS + TS - 4;
-    const sprite = this.scene.add.image(x, y, `${kind}_0`).setOrigin(0.5, K.originY).setDepth(y);
-    const a = { id: this.nextId++, kind, x, y, sprite, state: 'idle', until: 0, tx: x, ty: y, frameT: 0, frame: 0, home: { x, y } };
+    const look = kind === 'deer' && this.nextId % 3 !== 0 ? 'deer_doe' : kind; // (a stag now and then; mostly does)
+    const sprite = this.scene.add.image(x, y, `${look}_0`).setOrigin(0.5, K.originY).setDepth(y);
+    const a = { id: this.nextId++, kind, look, x, y, sprite, state: 'idle', until: 0, tx: x, ty: y, frameT: 0, frame: 0, home: { x, y } };
     this.animals.push(a);
     return a;
   }
@@ -139,7 +140,7 @@ export class AnimalViews {
         if (a.frameT > (a.state === 'flee' ? 110 : 220)) {
           a.frameT = 0;
           a.frame ^= 1;
-          a.sprite.setTexture(`${a.kind}_${a.frame}`);
+          a.sprite.setTexture(`${a.look}_${a.frame}`);
         }
       }
       a.sprite.setPosition(a.x, a.y).setDepth(a.y).setVisible(!this.scene.inside);
